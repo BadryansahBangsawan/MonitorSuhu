@@ -7,8 +7,8 @@ public static class UpdateInstaller
 {
     public static void LaunchWindows(string setupPath)
     {
-        var name = Path.GetFileName(setupPath);
-        if (!ReleaseAssets.Matches(name, "windows") || !File.Exists(setupPath))
+        var name = System.IO.Path.GetFileName(setupPath);
+        if (!ReleaseAssets.Matches(name, "windows") || !System.IO.File.Exists(setupPath))
             throw new InvalidOperationException("Update file is not a MonitorSuhu installer.");
 
         var quoted = setupPath.Replace("\"", "\\\"");

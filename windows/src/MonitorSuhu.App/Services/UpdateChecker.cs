@@ -106,9 +106,9 @@ public sealed partial class UpdateChecker : ObservableObject
         OnPropertyChanged(nameof(UpdateMessage));
         try
         {
-            var dir = Path.Combine(Path.GetTempPath(), "MonitorSuhu-update");
-            Directory.CreateDirectory(dir);
-            var dest = Path.Combine(dir, LatestAsset.Name);
+            var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MonitorSuhu-update");
+            System.IO.Directory.CreateDirectory(dir);
+            var dest = System.IO.Path.Combine(dir, LatestAsset.Name);
             var progress = new Progress<double>(p =>
             {
                 Progress = p;
