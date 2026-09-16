@@ -68,7 +68,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     private Task CheckUpdates() => Updates.CheckAsync(userInitiated: true);
 
     [RelayCommand]
-    private void OpenUpdate() => Updates.OpenDownloadPage();
+    private void OpenUpdate()
+    {
+        if (Updates.LatestAsset is not null)
+        {
+            _ = Updates.ApplyAsync();
+            return;
+        }
+        Updates.OpenDownloadPage();
+    }
+
+    [RelayCommand]
+    private Task ApplyUpdate() => Updates.ApplyAsync();
 
     public bool OverlayVisible
     {

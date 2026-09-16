@@ -367,7 +367,7 @@
                                 HorizontalAlignment="Left" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="Checks GitHub Releases. Updates are not installed automatically."
+                <TextBlock Text="Checks GitHub Releases. Linux still opens the download page until a packaged tarball ships."
                            Classes="caption" Margin="2,0,0,8"/>
             </StackPanel>
         </ScrollViewer>

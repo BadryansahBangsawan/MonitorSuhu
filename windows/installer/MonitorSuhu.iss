@@ -1,5 +1,5 @@
 #define MyAppName "MonitorSuhu"
-#define MyAppVersion "1.0.3"
+#define MyAppVersion "1.0.4"
 #define MyAppPublisher "MonitorSuhu"
 #define MyAppURL "https://github.com/BadryansahBangsawan/MonitorSuhu"
 #define MyAppExeName "MonitorSuhu.exe"
@@ -44,7 +44,7 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall
 
 [UninstallRun]
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""MonitorSuhu"" /F"; Flags: runhidden; RunOnceId: "RemoveAutostartTask"

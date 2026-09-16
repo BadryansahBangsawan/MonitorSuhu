@@ -21,8 +21,10 @@ public sealed partial class UpdateChecker : ObservableObject
 
     [ObservableProperty] private string? latestVersion;
     [ObservableProperty] private string? latestUrl;
+    [ObservableProperty] private ReleaseAsset? latestAsset;
     [ObservableProperty] private bool hasUpdate;
     [ObservableProperty] private bool checking;
+    [ObservableProperty] private bool installing;
     [ObservableProperty] private string? lastError;
 
     public string UpdateMessage =>
@@ -40,7 +42,7 @@ public sealed partial class UpdateChecker : ObservableObject
 
     public async Task CheckAsync(bool userInitiated = false)
     {
-        if (Checking) return;
+        if (Checking || Installing) return;
         Checking = true;
         LastError = null;
         try
@@ -67,6 +69,7 @@ public sealed partial class UpdateChecker : ObservableObject
 
             LatestVersion = tag;
             LatestUrl = page;
+            LatestAsset = ReleaseAssets.Pick(ParseAssets(doc.RootElement), "linux");
             HasUpdate = Versioning.IsNewer(tag, CurrentVersion);
             OnPropertyChanged(nameof(UpdateMessage));
 
@@ -97,10 +100,32 @@ public sealed partial class UpdateChecker : ObservableObject
         }
     }
 
+    public Task ApplyAsync()
+    {
+        OpenDownloadPage();
+        return Task.CompletedTask;
+    }
+
     public void OpenDownloadPage()
     {
         var url = string.IsNullOrWhiteSpace(LatestUrl) ? ReleasesPage : LatestUrl;
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static List<ReleaseAsset> ParseAssets(JsonElement root)
+    {
+        if (!root.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
+            return [];
+        var list = new List<ReleaseAsset>();
+        foreach (var item in assets.EnumerateArray())
+        {
+            var name = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+            var url = item.TryGetProperty("browser_download_url", out var u) ? u.GetString() ?? "" : "";
+            var size = item.TryGetProperty("size", out var s) && s.TryGetInt64(out var bytes) ? bytes : 0;
+            if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(url))
+                list.Add(new ReleaseAsset(name, url, size));
+        }
+        return list;
     }
 
     public static bool IsNewer(string latest, string current) =>

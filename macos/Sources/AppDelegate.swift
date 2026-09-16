@@ -60,7 +60,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] available in
                 guard let self else { return }
                 if available, let latest = self.updates.latestVersion {
-                    self.updateMenuItem?.title = "Download \(latest)…"
+                    let verb = self.updates.latestAsset == nil ? "Download" : "Install"
+                    self.updateMenuItem?.title = "\(verb) \(latest)…"
                 } else {
                     self.updateMenuItem?.title = "Check for Updates…"
                 }
@@ -176,7 +177,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func checkForUpdates() {
         if updates.hasUpdate {
-            updates.openDownloadPage()
+            if updates.latestAsset == nil {
+                updates.openDownloadPage()
+            } else {
+                updates.apply()
+            }
             return
         }
         updates.check(userInitiated: true)

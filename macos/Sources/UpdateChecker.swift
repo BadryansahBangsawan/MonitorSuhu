@@ -10,8 +10,11 @@ final class UpdateChecker: ObservableObject {
 
     @Published private(set) var latestVersion: String?
     @Published private(set) var latestURL: URL?
+    @Published private(set) var latestAsset: ReleaseAsset?
     @Published private(set) var hasUpdate = false
     @Published private(set) var checking = false
+    @Published private(set) var installing = false
+    @Published private(set) var progress: Double = 0
     @Published private(set) var lastError: String?
 
     init(currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0") {
@@ -19,7 +22,7 @@ final class UpdateChecker: ObservableObject {
     }
 
     func check(userInitiated: Bool = false, completion: ((Bool) -> Void)? = nil) {
-        guard !checking else { return }
+        guard !checking, !installing else { return }
         checking = true
         lastError = nil
 
@@ -51,17 +54,54 @@ final class UpdateChecker: ObservableObject {
                 let page = (body["html_url"] as? String).flatMap(URL.init(string:)) ?? Self.releasesPage
                 self.latestVersion = latest
                 self.latestURL = page
+                self.latestAsset = Self.parseAssets(body)
                 self.hasUpdate = Versioning.isNewer(latest, than: self.currentVersion)
                 completion?(true)
                 if userInitiated {
                     if self.hasUpdate {
-                        Self.promptDownload(latest: latest, url: page)
+                        self.promptInstall(latest: latest)
                     } else {
                         Self.alert("You’re up to date.", "MonitorSuhu \(self.currentVersion) is the latest release.")
                     }
                 }
             }
         }.resume()
+    }
+
+    func apply() {
+        guard !installing else { return }
+        guard let asset = latestAsset else {
+            openDownloadPage()
+            return
+        }
+        installing = true
+        progress = 0
+        lastError = nil
+        let agent = "MonitorSuhu/\(currentVersion)"
+        Task.detached { [weak self] in
+            do {
+                let destDir = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("MonitorSuhu-update", isDirectory: true)
+                try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+                let file = destDir.appendingPathComponent(asset.name)
+                try await Self.download(asset, to: file, userAgent: agent) { value in
+                    Task { @MainActor [weak self] in
+                        self?.progress = value * 0.85
+                    }
+                }
+                await MainActor.run { [weak self] in
+                    self?.progress = 1
+                }
+                try UpdateInstaller.apply(dmg: file)
+            } catch {
+                let message = error.localizedDescription
+                await MainActor.run { [weak self] in
+                    self?.installing = false
+                    self?.lastError = message
+                    Self.alert("Could not install update.", message)
+                }
+            }
+        }
     }
 
     func openDownloadPage() {
@@ -72,6 +112,87 @@ final class UpdateChecker: ObservableObject {
         Versioning.isNewer(latest, than: current)
     }
 
+    private func promptInstall(latest: String) {
+        let alert = NSAlert()
+        alert.messageText = "MonitorSuhu \(latest) is available"
+        alert.informativeText = latestAsset == nil
+            ? "Download it from GitHub Releases, then replace the app in Applications."
+            : "Download and replace the app in place. Your settings stay where they are."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: latestAsset == nil ? "Download" : "Install")
+        alert.addButton(withTitle: "Later")
+        if alert.runModal() == .alertFirstButtonReturn {
+            if latestAsset == nil {
+                openDownloadPage()
+            } else {
+                apply()
+            }
+        }
+    }
+
+    private static func parseAssets(_ body: [String: Any]) -> ReleaseAsset? {
+        guard let raw = body["assets"] as? [[String: Any]] else { return nil }
+        let assets: [ReleaseAsset] = raw.compactMap { item in
+            guard let name = item["name"] as? String,
+                  let href = item["browser_download_url"] as? String,
+                  let url = URL(string: href)
+            else { return nil }
+            let size = (item["size"] as? NSNumber)?.int64Value ?? 0
+            return ReleaseAsset(name: name, url: url, size: size)
+        }
+        return ReleaseAssets.pick(assets, platform: "macos")
+    }
+
+    private static func download(
+        _ asset: ReleaseAsset,
+        to dest: URL,
+        userAgent: String,
+        progress: @escaping (Double) -> Void
+    ) async throws {
+        guard ReleaseAssets.isTrusted(asset.url, name: asset.name, platform: "macos") else {
+            throw NSError(domain: "MonitorSuhu", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Update file is not from GitHub Releases."
+            ])
+        }
+        if asset.size > ReleaseAssets.maxBytes {
+            throw NSError(domain: "MonitorSuhu", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Update is larger than expected."
+            ])
+        }
+
+        var request = URLRequest(url: asset.url, timeoutInterval: 300)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        let (temp, response) = try await URLSession.shared.download(for: request)
+        let http = response as? HTTPURLResponse
+        guard http?.statusCode == 200 else {
+            throw NSError(domain: "MonitorSuhu", code: http?.statusCode ?? 0, userInfo: [
+                NSLocalizedDescriptionKey: "GitHub returned no file."
+            ])
+        }
+        let length = http?.expectedContentLength ?? asset.size
+        if length > ReleaseAssets.maxBytes {
+            throw NSError(domain: "MonitorSuhu", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Update is larger than expected."
+            ])
+        }
+        let written = (try? FileManager.default.attributesOfItem(atPath: temp.path)[.size] as? NSNumber)?.int64Value ?? 0
+        if written > ReleaseAssets.maxBytes {
+            throw NSError(domain: "MonitorSuhu", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Update is larger than expected."
+            ])
+        }
+        if asset.size > 0 && written != asset.size {
+            throw NSError(domain: "MonitorSuhu", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Download size did not match GitHub."
+            ])
+        }
+        progress(1)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            try FileManager.default.removeItem(at: dest)
+        }
+        try FileManager.default.moveItem(at: temp, to: dest)
+    }
+
     private static func alert(_ title: String, _ message: String) {
         let alert = NSAlert()
         alert.messageText = title
@@ -79,17 +200,5 @@ final class UpdateChecker: ObservableObject {
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
-    }
-
-    private static func promptDownload(latest: String, url: URL) {
-        let alert = NSAlert()
-        alert.messageText = "MonitorSuhu \(latest) is available"
-        alert.informativeText = "Download it from GitHub Releases, then replace the app in Applications."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Download")
-        alert.addButton(withTitle: "Later")
-        if alert.runModal() == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(url)
-        }
     }
 }
