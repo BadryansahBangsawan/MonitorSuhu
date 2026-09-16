@@ -8,6 +8,8 @@ using MonitorSuhu.Sensors;
 
 namespace MonitorSuhu.App.ViewModels;
 
+public sealed record AccentOption(string Name, string Hex);
+
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsStore _store;
@@ -16,12 +18,158 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public AppSettings Settings => _store.Settings;
 
+    public IReadOnlyList<AccentOption> Accents { get; } =
+    [
+        new("NVIDIA", AppSettings.NvidiaGreen),
+        new("Cyan", "#3DDCFF"),
+        new("White", "#FFFFFF"),
+        new("Orange", "#FF9F0A")
+    ];
+
+    public string? SensorError => _sensors.LastError;
+
+    public bool HasSensorError => !string.IsNullOrWhiteSpace(_sensors.LastError);
+
+    public string ToggleHotkeyDisplay => Settings.ToggleHotkey.Display;
+
+    public string EditHotkeyDisplay => Settings.EditHotkey.Display;
+
     public SettingsViewModel(SettingsStore store, OverlayWindow overlay, SensorService sensors)
     {
         _store = store;
         _overlay = overlay;
         _sensors = sensors;
     }
+
+    public bool OverlayVisible
+    {
+        get => Settings.OverlayVisible;
+        set
+        {
+            if (Settings.OverlayVisible == value) return;
+            Settings.OverlayVisible = value;
+            OnPropertyChanged();
+            if (value) _overlay.Show(); else _overlay.Hide();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool Locked
+    {
+        get => Settings.Locked;
+        set
+        {
+            if (Settings.Locked == value) return;
+            Settings.Locked = value;
+            OnPropertyChanged();
+            _overlay.ApplyLock();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool StartWithWindows
+    {
+        get => Settings.StartWithWindows;
+        set
+        {
+            if (Settings.StartWithWindows == value) return;
+            Settings.StartWithWindows = value;
+            OnPropertyChanged();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool ShowCpu { get => Settings.ShowCpu; set => SetFlag(v => Settings.ShowCpu = v, Settings.ShowCpu, value); }
+    public bool ShowGpu { get => Settings.ShowGpu; set => SetFlag(v => Settings.ShowGpu = v, Settings.ShowGpu, value); }
+    public bool ShowSsd { get => Settings.ShowSsd; set => SetFlag(v => Settings.ShowSsd = v, Settings.ShowSsd, value); }
+    public bool ShowBoard { get => Settings.ShowBoard; set => SetFlag(v => Settings.ShowBoard = v, Settings.ShowBoard, value); }
+    public bool ShowRam { get => Settings.ShowRam; set => SetFlag(v => Settings.ShowRam = v, Settings.ShowRam, value); }
+
+    public bool UseFahrenheit
+    {
+        get => Settings.UseFahrenheit;
+        set
+        {
+            if (Settings.UseFahrenheit == value) return;
+            Settings.UseFahrenheit = value;
+            OnPropertyChanged();
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public double OverlayOpacity
+    {
+        get => Settings.OverlayOpacity;
+        set
+        {
+            if (Math.Abs(Settings.OverlayOpacity - value) < 0.0005) return;
+            Settings.OverlayOpacity = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(OpacityLabel));
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public double FontSize
+    {
+        get => Settings.FontSize;
+        set
+        {
+            if (Math.Abs(Settings.FontSize - value) < 0.05) return;
+            Settings.FontSize = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FontSizeLabel));
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public string AccentHex
+    {
+        get => Settings.AccentHex;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || Settings.AccentHex == value) return;
+            Settings.AccentHex = value;
+            OnPropertyChanged();
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public int PollIntervalMs
+    {
+        get => Settings.PollIntervalMs;
+        set
+        {
+            var clamped = Math.Clamp(value, 400, 3000);
+            if (Settings.PollIntervalMs == clamped) return;
+            Settings.PollIntervalMs = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PollIntervalLabel));
+            _sensors.Start(clamped);
+            _store.SaveDebounced();
+        }
+    }
+
+    public string OpacityLabel => $"{(int)Math.Round(Settings.OverlayOpacity * 100)}%";
+
+    public string FontSizeLabel => $"{(int)Math.Round(Settings.FontSize)} pt";
+
+    public string PollIntervalLabel => $"{Settings.PollIntervalMs} ms";
+
+    public double CpuWarn { get => Warn(SensorKind.Cpu); set => SetWarn(SensorKind.Cpu, value); }
+    public double CpuCrit { get => Crit(SensorKind.Cpu); set => SetCrit(SensorKind.Cpu, value); }
+    public double GpuWarn { get => Warn(SensorKind.Gpu); set => SetWarn(SensorKind.Gpu, value); }
+    public double GpuCrit { get => Crit(SensorKind.Gpu); set => SetCrit(SensorKind.Gpu, value); }
+    public double SsdWarn { get => Warn(SensorKind.Ssd); set => SetWarn(SensorKind.Ssd, value); }
+    public double SsdCrit { get => Crit(SensorKind.Ssd); set => SetCrit(SensorKind.Ssd, value); }
+    public double BoardWarn { get => Warn(SensorKind.Board); set => SetWarn(SensorKind.Board, value); }
+    public double BoardCrit { get => Crit(SensorKind.Board); set => SetCrit(SensorKind.Board, value); }
+    public double RamWarn { get => Warn(SensorKind.Ram); set => SetWarn(SensorKind.Ram, value); }
+    public double RamCrit { get => Crit(SensorKind.Ram); set => SetCrit(SensorKind.Ram, value); }
 
     [RelayCommand]
     private void Save()
@@ -51,8 +199,40 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void EditOverlay()
     {
         Settings.Locked = false;
-        _store.Save();
+        OnPropertyChanged(nameof(Locked));
         _overlay.ApplyLock();
         _overlay.Show();
+        _store.SaveDebounced();
+    }
+
+    private void SetFlag(Action<bool> assign, bool current, bool value)
+    {
+        if (current == value) return;
+        assign(value);
+        OnPropertyChanged();
+        _overlay.ApplyTheme();
+        _store.SaveDebounced();
+    }
+
+    private double Warn(SensorKind kind) => Settings.ThresholdsFor(kind).Warn;
+
+    private double Crit(SensorKind kind) => Settings.ThresholdsFor(kind).Critical;
+
+    private void SetWarn(SensorKind kind, double value)
+    {
+        var t = Settings.ThresholdsFor(kind);
+        if (Math.Abs(t.Warn - value) < 0.05) return;
+        Settings.SetThresholds(kind, value, t.Critical);
+        _overlay.ApplyTheme();
+        _store.SaveDebounced();
+    }
+
+    private void SetCrit(SensorKind kind, double value)
+    {
+        var t = Settings.ThresholdsFor(kind);
+        if (Math.Abs(t.Critical - value) < 0.05) return;
+        Settings.SetThresholds(kind, t.Warn, value);
+        _overlay.ApplyTheme();
+        _store.SaveDebounced();
     }
 }

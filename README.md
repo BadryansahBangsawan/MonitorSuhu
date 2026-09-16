@@ -100,23 +100,27 @@ Output: `windows/dist/win-x64/MonitorSuhu.exe`
 
 Tray icon → Show/Hide, Edit Layout, Settings, Exit.
 
-Start with Windows registers a **Task Scheduler** task at highest privileges so the overlay still has admin after reboot (a normal Startup-folder shortcut would lose elevation).
+A second launch exits immediately (one overlay only). Global hotkeys are registered on a message-only window so hiding the HUD does not drop Ctrl+Shift+T. If another app already owns those chords, a tray balloon says so.
+
+Start with Windows registers a **Task Scheduler** task at highest privileges so the overlay still has admin after reboot (a normal Startup-folder shortcut would lose elevation). The task is created or removed when you press **Save**, not while dragging sliders.
 
 **Notes**
 
 - Exclusive fullscreen games hide this overlay. Use borderless windowed.
 - RAM temperature is rare on consumer DIMMs.
-- Antivirus may flag LibreHardwareMonitor’s kernel driver. Allow it if the HUD stays empty.
+- Antivirus may flag LibreHardwareMonitor’s kernel driver. Allow it if the HUD stays empty — Settings also shows the Open() error instead of a silent `NO SENSORS`.
 - First launch triggers UAC.
 
 ## Settings (both)
 
 - Which sensors to show
-- Warn / critical colors (green → yellow → red)
-- Opacity, font size, accent color, °C / °F
+- Warn / critical colors (green → yellow → red) — per CPU / GPU / SSD / board
+- Opacity, font size, accent color (NVIDIA green / cyan / white / orange), °C / °F
 - Corner presets and drag-to-place
 - Poll interval
 - Start with OS
+
+Overlay position is stored as relative edges (not only top-left), so growing the font or adding a sensor row keeps a corner HUD on that corner. Windows also converts the monitor work area through the current DPI so 125% / 150% scaling does not park the HUD off-screen.
 
 Settings file:
 

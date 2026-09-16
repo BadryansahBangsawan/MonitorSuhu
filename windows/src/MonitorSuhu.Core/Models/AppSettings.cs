@@ -11,6 +11,9 @@ public sealed class OverlayPosition
     public string MonitorDeviceName { get; set; } = "";
     public double RelativeX { get; set; }
     public double RelativeY { get; set; }
+    /// <summary>Right / bottom edges so a size change can pin the same corner.</summary>
+    public double? RelativeMaxX { get; set; }
+    public double? RelativeMaxY { get; set; }
 }
 
 public sealed class KeyChord
@@ -94,6 +97,11 @@ public sealed class AppSettings
     {
         var key = kind.ToString();
         return Thresholds.TryGetValue(key, out var t) ? t : new Thresholds { Warn = 75, Critical = 90 };
+    }
+
+    public void SetThresholds(SensorKind kind, double warn, double critical)
+    {
+        Thresholds[kind.ToString()] = new Thresholds { Warn = warn, Critical = critical };
     }
 
     public string FormatTemperature(double celsius)

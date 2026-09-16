@@ -9,6 +9,7 @@ public sealed class SensorService : IDisposable
     private readonly System.Timers.Timer _timer;
     private readonly object _gate = new();
     public HardwareSnapshot Snapshot { get; private set; } = new();
+    public string? LastError { get; }
     public event Action<HardwareSnapshot>? Updated;
 
     public SensorService()
@@ -17,7 +18,11 @@ public sealed class SensorService : IDisposable
         _timer.AutoReset = true;
         _timer.Elapsed += (_, _) => Tick();
 
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows())
+        {
+            LastError = "Hardware sensors require Windows.";
+            return;
+        }
 
         try
         {
@@ -31,9 +36,12 @@ public sealed class SensorService : IDisposable
             };
             _computer.Open();
         }
-        catch
+        catch (Exception ex)
         {
             _computer = null;
+            LastError = string.IsNullOrWhiteSpace(ex.Message)
+                ? "Could not open hardware sensors. Run as Administrator and allow the LibreHardwareMonitor driver."
+                : $"Could not open hardware sensors: {ex.Message}";
         }
     }
 

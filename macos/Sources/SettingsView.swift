@@ -1,142 +1,548 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var store: SettingsStore
+    @ObservedObject var sensors: SensorService
     var overlay: OverlayController
-    var onAutostart: (Bool) -> Void
+
+    @State private var autostartMessage: String?
+    @State private var confirmReset = false
+
+    private static let accents: [(name: String, hex: String)] = [
+        ("NVIDIA", AppSettings.nvidiaGreen),
+        ("Cyan", "3DDCFF"),
+        ("White", "FFFFFF"),
+        ("Orange", "FF9F0A")
+    ]
 
     var body: some View {
         TabView {
             general
                 .tabItem { Label("General", systemImage: "slider.horizontal.3") }
-            sensors
+            sensorsTab
                 .tabItem { Label("Sensors", systemImage: "thermometer") }
             appearance
                 .tabItem { Label("Appearance", systemImage: "paintpalette") }
         }
-        .padding(16)
-        .frame(minWidth: 520, minHeight: 480)
+        .frame(minWidth: 520, minHeight: 440)
+        .confirmationDialog(
+            "Reset settings to defaults?",
+            isPresented: $confirmReset,
+            titleVisibility: .visible
+        ) {
+            Button("Reset", role: .destructive) { resetDefaults() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Overlay position and visibility stay as they are.")
+        }
     }
 
     private var general: some View {
-        // VStack instead of Form: macOS Form squeezes custom rows into a
-        // trailing column, which truncated "Top right" / "Bottom right".
-        VStack(alignment: .leading, spacing: 14) {
-            Toggle("Show overlay", isOn: $store.settings.overlayVisible)
-                .onChange(of: store.settings.overlayVisible) { _, visible in
+        settingsScroll {
+            SettingsSection("Overlay") {
+                SettingsToggleRow("Show overlay", isOn: $store.settings.overlayVisible) { visible in
                     if visible { overlay.show() } else { overlay.hide() }
                 }
-            Toggle("Lock overlay (click-through)", isOn: $store.settings.locked)
-                .onChange(of: store.settings.locked) { _, _ in overlay.applyLock() }
-            Toggle("Start with macOS", isOn: $store.settings.startWithOs)
-                .onChange(of: store.settings.startWithOs) { _, value in onAutostart(value) }
-
-            Text("Position")
-                .font(.headline)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(CornerPreset.allCases, id: \.self) { preset in
-                    Button(action: { overlay.applyPreset(preset) }) {
-                        Text(preset.title)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Lock overlay",
+                    isOn: $store.settings.locked,
+                    help: "When locked, clicks pass through the HUD."
+                ) { _ in
+                    overlay.applyLock()
+                }
+                SettingsRowDivider()
+                SettingsToggleRow("Start with macOS", isOn: $store.settings.startWithOs) { value in
+                    autostartMessage = AutostartService.apply(value)
+                }
+            } caption: {
+                if let autostartMessage, !autostartMessage.isEmpty {
+                    SettingsCallout(autostartMessage)
+                } else {
+                    SettingsCaption("May ask for permission in System Settings → General → Login Items.")
                 }
             }
 
-            HStack {
-                Text("Toggle overlay")
-                Spacer()
-                Text(store.settings.toggleHotkey.display)
-                    .monospaced()
-                    .foregroundStyle(.secondary)
+            SettingsSection("Position") {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
+                    spacing: 8
+                ) {
+                    ForEach(CornerPreset.allCases, id: \.self) { preset in
+                        Button(action: { overlay.applyPreset(preset) }) {
+                            Label(preset.title, systemImage: preset.symbol)
+                                .labelStyle(.titleAndIcon)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 5)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.regular)
+                        .help("Move the HUD to the \(preset.title.lowercased()) corner.")
+                    }
+                }
+                .padding(.vertical, 10)
+            } caption: {
+                SettingsCaption("Unlock, then drag the HUD. It snaps to edges and remembers the corner.")
             }
-            HStack {
-                Text("Edit layout")
-                Spacer()
-                Text(store.settings.editHotkey.display)
-                    .monospaced()
-                    .foregroundStyle(.secondary)
+
+            SettingsSection("Shortcuts") {
+                SettingsKeyRow("Toggle overlay", chord: store.settings.toggleHotkey.display)
+                SettingsRowDivider()
+                SettingsKeyRow("Edit layout", chord: store.settings.editHotkey.display)
+            } caption: {
+                SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
             }
-            Text("Default shortcuts: ⌃⇧T show/hide, ⌃⇧E unlock and drag.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
+
+            HStack {
+                Button("Reset to defaults…") { confirmReset = true }
+                Spacer()
+            }
+            .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onAppear {
+            autostartMessage = AutostartService.statusMessage()
+        }
     }
 
-    private var sensors: some View {
-        Form {
-            Toggle("CPU", isOn: $store.settings.showCpu)
-            Toggle("GPU", isOn: $store.settings.showGpu)
-            Toggle("SSD", isOn: $store.settings.showSsd)
-            Toggle("Motherboard / board", isOn: $store.settings.showBoard)
-            Toggle("RAM (only if a sensor exists)", isOn: $store.settings.showRam)
+    private var sensorsTab: some View {
+        settingsScroll {
+            SettingsSection("Show in HUD") {
+                SettingsToggleRow("CPU", isOn: $store.settings.showCpu)
+                SettingsRowDivider()
+                SettingsToggleRow("GPU", isOn: $store.settings.showGpu)
+                SettingsRowDivider()
+                SettingsToggleRow("SSD", isOn: $store.settings.showSsd)
+                SettingsRowDivider()
+                SettingsToggleRow("Motherboard", isOn: $store.settings.showBoard)
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "RAM",
+                    isOn: $store.settings.showRam,
+                    help: "Hidden in the HUD when this Mac has no RAM temperature sensor."
+                )
+            } caption: {
+                if !anySensorEnabled {
+                    SettingsCallout("Turn on at least one sensor or the HUD shows NO SENSORS.")
+                } else if sensors.snapshot.readings.isEmpty {
+                    SettingsCallout("No temperature sensors found on this Mac yet. The HUD fills in after the first poll.")
+                } else {
+                    SettingsCaption("RAM is omitted from the HUD when this Mac has no sensor for it.")
+                }
+            }
 
-            thresholdRow("CPU", kind: .cpu)
-            thresholdRow("GPU", kind: .gpu)
-            thresholdRow("SSD", kind: .ssd)
-            thresholdRow("Board", kind: .board)
+            SettingsSection("Thresholds") {
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                    GridRow {
+                        Text("Sensor")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        Text("Warn")
+                            .gridColumnAlignment(.center)
+                            .frame(width: 72)
+                        Text("Crit")
+                            .gridColumnAlignment(.center)
+                            .frame(width: 72)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
 
-            Stepper(value: $store.settings.pollIntervalMs, in: 400...3000, step: 100) {
-                // Text("… \(Int)") uses LocalizedStringKey and groups 1000 as "1.000".
-                Text(verbatim: "Poll interval: \(Int(store.settings.pollIntervalMs)) ms")
+                    GridRow {
+                        Text("CPU")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.cpu, isWarn: true)
+                        thresholdField(.cpu, isWarn: false)
+                    }
+                    GridRow {
+                        Text("GPU")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.gpu, isWarn: true)
+                        thresholdField(.gpu, isWarn: false)
+                    }
+                    GridRow {
+                        Text("SSD")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.ssd, isWarn: true)
+                        thresholdField(.ssd, isWarn: false)
+                    }
+                    GridRow {
+                        Text("Board")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.board, isWarn: true)
+                        thresholdField(.board, isWarn: false)
+                    }
+                    GridRow {
+                        Text("RAM")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.ram, isWarn: true)
+                        thresholdField(.ram, isWarn: false)
+                    }
+                }
+                .padding(.vertical, 10)
+            } caption: {
+                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Values are always in °C.")
+            }
+
+            SettingsSection("Polling") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Poll interval")
+                        Spacer()
+                        Text(verbatim: "\(Int(store.settings.pollIntervalMs)) ms")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $store.settings.pollIntervalMs, in: 400...3000, step: 100)
+                        .accessibilityLabel("Poll interval")
+                }
+                .padding(.vertical, 10)
+            } caption: {
+                SettingsCaption("How often sensors are read. 1000 ms is a good default.")
             }
         }
     }
 
     private var appearance: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Toggle("Use Fahrenheit", isOn: $store.settings.useFahrenheit)
-
-            HStack {
-                Text("Opacity")
-                Spacer()
-                Text(verbatim: "\(Int((store.settings.overlayOpacity * 100).rounded()))%")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            Slider(value: $store.settings.overlayOpacity, in: 0.4...0.95)
-                .accessibilityLabel("Opacity")
-
-            HStack {
-                Text("Font size")
-                Spacer()
-                Text(verbatim: "\(Int(store.settings.fontSize.rounded())) pt")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            Slider(value: $store.settings.fontSize, in: 11...18)
-                .accessibilityLabel("Font size")
-
-            Picker("Accent", selection: $store.settings.accentHex) {
-                Text("NVIDIA green").tag(AppSettings.nvidiaGreen)
-                Text("Cyan").tag("3DDCFF")
-                Text("White").tag("FFFFFF")
-                Text("Orange").tag("FF9F0A")
+        settingsScroll {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Preview")
+                    .font(.headline)
+                HStack {
+                    Spacer(minLength: 0)
+                    OverlayView(store: store, sensors: sensors)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 20)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, minHeight: 96)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.black.opacity(0.55))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
             }
 
-            Spacer(minLength: 0)
+            SettingsSection("Display") {
+                SettingsToggleRow("Use Fahrenheit", isOn: $store.settings.useFahrenheit)
+                SettingsRowDivider()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Opacity")
+                        Spacer()
+                        Text(verbatim: "\(Int((store.settings.overlayOpacity * 100).rounded()))%")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $store.settings.overlayOpacity, in: 0.4...0.95, step: 0.01)
+                        .accessibilityLabel("Opacity")
+                }
+                .padding(.vertical, 10)
+                SettingsRowDivider()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Font size")
+                        Spacer()
+                        Text(verbatim: "\(Int(store.settings.fontSize.rounded())) pt")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $store.settings.fontSize, in: 11...18, step: 1)
+                        .accessibilityLabel("Font size")
+                }
+                .padding(.vertical, 10)
+            }
+
+            SettingsSection("Accent") {
+                HStack(spacing: 8) {
+                    ForEach(Self.accents, id: \.hex) { item in
+                        let selected = AppSettings.normalizeHex(store.settings.accentHex)
+                            == AppSettings.normalizeHex(item.hex)
+                        Button {
+                            store.settings.accentHex = item.hex
+                        } label: {
+                            VStack(spacing: 8) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(Color(hex: item.hex) ?? .green)
+                                        .frame(height: 28)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .strokeBorder(
+                                                    Color.primary.opacity(item.hex == "FFFFFF" ? 0.28 : 0.12),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                    if selected {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(item.hex == "FFFFFF" ? Color.black : Color.white)
+                                    }
+                                }
+                                Text(item.name)
+                                    .font(.caption)
+                                    .foregroundStyle(selected ? .primary : .secondary)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color.primary.opacity(selected ? 0.08 : 0.04))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(
+                                        selected
+                                            ? (Color(hex: item.hex) ?? .accentColor)
+                                            : Color.primary.opacity(0.08),
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(item.name)
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, 10)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func thresholdRow(_ title: String, kind: SensorKind) -> some View {
-        let current = store.settings.thresholds(for: kind)
-        return HStack {
-            Text("\(title) warn/crit")
-            Spacer()
-            TextField("warn", value: Binding(
-                get: { current.warn },
-                set: { store.settings.thresholds[kind.rawValue] = Thresholds(warn: $0, critical: current.critical) }
-            ), format: .number)
-            .frame(width: 50)
-            TextField("crit", value: Binding(
-                get: { current.critical },
-                set: { store.settings.thresholds[kind.rawValue] = Thresholds(warn: current.warn, critical: $0) }
-            ), format: .number)
-            .frame(width: 50)
+    private var anySensorEnabled: Bool {
+        store.settings.showCpu
+            || store.settings.showGpu
+            || store.settings.showSsd
+            || store.settings.showBoard
+            || store.settings.showRam
+    }
+
+    private func settingsScroll<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                content()
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+    }
+
+
+    private func thresholdField(_ kind: SensorKind, isWarn: Bool) -> some View {
+        TextField(
+            isWarn ? "Warn" : "Crit",
+            value: Binding(
+                get: {
+                    let t = store.settings.thresholds(for: kind)
+                    return isWarn ? t.warn : t.critical
+                },
+                set: { newValue in
+                    if isWarn {
+                        store.settings.setThresholds(for: kind, warn: newValue)
+                    } else {
+                        store.settings.setThresholds(for: kind, critical: newValue)
+                    }
+                }
+            ),
+            format: .number.precision(.fractionLength(0))
+        )
+        .multilineTextAlignment(.center)
+        .frame(width: 72)
+        .textFieldStyle(.roundedBorder)
+        .gridColumnAlignment(.center)
+        .accessibilityLabel("\(kind.hudLabel) \(isWarn ? "warn" : "critical")")
+    }
+
+    private func resetDefaults() {
+        let position = store.settings.position
+        let visible = store.settings.overlayVisible
+        var next = AppSettings.default
+        next.position = position
+        next.overlayVisible = visible
+        store.settings = next
+        autostartMessage = AutostartService.apply(next.startWithOs)
+        overlay.applyLock()
+        if visible { overlay.show() } else { overlay.hide() }
+    }
+}
+
+private struct SettingsSection<Content: View, Caption: View>: View {
+    let title: String
+    @ViewBuilder var content: () -> Content
+    @ViewBuilder var caption: () -> Caption
+
+    init(
+        _ title: String,
+        @ViewBuilder content: @escaping () -> Content,
+        @ViewBuilder caption: @escaping () -> Caption
+    ) {
+        self.title = title
+        self.content = content
+        self.caption = caption
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+            if Caption.self != EmptyView.self {
+                caption()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+            }
+        }
+    }
+}
+
+extension SettingsSection where Caption == EmptyView {
+    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.init(title, content: content, caption: { EmptyView() })
+    }
+}
+
+private struct SettingsToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    var help: String?
+    var onChange: ((Bool) -> Void)?
+
+    init(
+        _ title: String,
+        isOn: Binding<Bool>,
+        help: String? = nil,
+        onChange: ((Bool) -> Void)? = nil
+    ) {
+        self.title = title
+        self._isOn = isOn
+        self.help = help
+        self.onChange = onChange
+    }
+
+    var body: some View {
+        // Label leading, switch trailing. A bare Toggle+.switch in a VStack
+        // lays out iOS-style (switch on the left) and looks broken in a
+        // macOS settings window.
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Toggle(title, isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.regular)
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .help(help ?? "")
+        .accessibilityElement(children: .combine)
+        .onChange(of: isOn) { _, value in
+            onChange?(value)
+        }
+    }
+}
+
+private struct SettingsRowDivider: View {
+    var body: some View {
+        Divider()
+            .opacity(0.7)
+    }
+}
+
+private struct SettingsKeyRow: View {
+    let title: String
+    let chord: String
+
+    init(_ title: String, chord: String) {
+        self.title = title
+        self.chord = chord
+    }
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 12)
+            Text(chord)
+                .font(.body.monospaced())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.primary.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+                .accessibilityLabel(chord)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+private struct SettingsCaption: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct SettingsCallout: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(text)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.caption)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.orange.opacity(0.14))
+        )
     }
 }

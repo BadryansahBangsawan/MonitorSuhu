@@ -1,7 +1,5 @@
 using System.Runtime.InteropServices;
-using System.Windows;
 using System.Windows.Interop;
-using Window = System.Windows.Window;
 using MonitorSuhu.Core.Models;
 
 namespace MonitorSuhu.Core.Services;
@@ -11,24 +9,50 @@ public sealed class HotkeyService : IDisposable
     private const int WmHotkey = 0x0312;
     private const int ToggleId = 1;
     private const int EditId = 2;
+    private const uint ModNorepeat = 0x4000;
+    private static readonly IntPtr HwndMessage = new(-3);
 
     private HwndSource? _source;
     private Action? _onToggle;
     private Action? _onEdit;
 
-    public void Start(Window window, KeyChord toggle, KeyChord edit, Action onToggle, Action onEdit)
+    public string? FailedMessage { get; private set; }
+
+    public void Start(KeyChord toggle, KeyChord edit, Action onToggle, Action onEdit)
     {
         Stop();
         _onToggle = onToggle;
         _onEdit = onEdit;
+        FailedMessage = null;
 
-        var helper = new WindowInteropHelper(window);
-        helper.EnsureHandle();
-        _source = HwndSource.FromHwnd(helper.Handle);
-        _source?.AddHook(Hook);
+        var parameters = new HwndSourceParameters("MonitorSuhuHotkeys")
+        {
+            Width = 0,
+            Height = 0,
+            PositionX = 0,
+            PositionY = 0,
+            WindowStyle = 0
+        };
+        parameters.ParentWindow = HwndMessage;
+        _source = new HwndSource(parameters);
+        _source.AddHook(Hook);
 
-        Native.RegisterHotKey(helper.Handle, ToggleId, toggle.Modifiers, toggle.VirtualKey);
-        Native.RegisterHotKey(helper.Handle, EditId, edit.Modifiers, edit.VirtualKey);
+        var hwnd = _source.Handle;
+        var toggleOk = Native.RegisterHotKey(hwnd, ToggleId, toggle.Modifiers | ModNorepeat, toggle.VirtualKey);
+        var editOk = Native.RegisterHotKey(hwnd, EditId, edit.Modifiers | ModNorepeat, edit.VirtualKey);
+
+        if (!toggleOk && !editOk)
+        {
+            FailedMessage = "Ctrl+Shift+T and Ctrl+Shift+E are already in use.";
+        }
+        else if (!toggleOk)
+        {
+            FailedMessage = "Ctrl+Shift+T is already in use — overlay toggle was not registered.";
+        }
+        else if (!editOk)
+        {
+            FailedMessage = "Ctrl+Shift+E is already in use — edit-layout was not registered.";
+        }
     }
 
     public void Stop()
@@ -38,6 +62,7 @@ public sealed class HotkeyService : IDisposable
         Native.UnregisterHotKey(hwnd, ToggleId);
         Native.UnregisterHotKey(hwnd, EditId);
         _source.RemoveHook(Hook);
+        _source.Dispose();
         _source = null;
     }
 

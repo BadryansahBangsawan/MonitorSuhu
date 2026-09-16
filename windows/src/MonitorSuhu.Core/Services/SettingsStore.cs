@@ -13,6 +13,9 @@ public sealed class SettingsStore
     };
 
     private readonly string _path;
+    private readonly object _saveGate = new();
+    private CancellationTokenSource? _debounce;
+
     public AppSettings Settings { get; private set; }
 
     public SettingsStore()
@@ -27,13 +30,44 @@ public sealed class SettingsStore
 
     public void Save()
     {
-        File.WriteAllText(_path, JsonSerializer.Serialize(Settings, JsonOptions));
+        _debounce?.Cancel();
+        WriteNow();
+    }
+
+    public void SaveDebounced(int milliseconds = 250)
+    {
+        _debounce?.Cancel();
+        _debounce?.Dispose();
+        var cts = new CancellationTokenSource();
+        _debounce = cts;
+        _ = WriteAfter(milliseconds, cts.Token);
     }
 
     public void Replace(AppSettings settings)
     {
         Settings = settings;
         Save();
+    }
+
+    private async Task WriteAfter(int milliseconds, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(milliseconds, token).ConfigureAwait(false);
+            WriteNow();
+        }
+        catch (OperationCanceledException)
+        {
+            // replaced by a newer debounce or an immediate Save()
+        }
+    }
+
+    private void WriteNow()
+    {
+        lock (_saveGate)
+        {
+            File.WriteAllText(_path, JsonSerializer.Serialize(Settings, JsonOptions));
+        }
     }
 
     private AppSettings? Load()

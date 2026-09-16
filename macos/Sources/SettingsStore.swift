@@ -14,7 +14,9 @@ final class SettingsStore: ObservableObject {
             .appendingPathComponent("MonitorSuhu", isDirectory: true)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         fileURL = root.appendingPathComponent("settings.json")
-        settings = SettingsStore.read(from: fileURL) ?? .default
+        var loaded = SettingsStore.read(from: fileURL) ?? .default
+        loaded.sanitize()
+        settings = loaded
     }
 
     func saveNow() {

@@ -12,9 +12,27 @@ namespace MonitorSuhu.App.ViewModels;
 public sealed class OverlayRow : ObservableObject
 {
     public required string Id { get; init; }
-    public required string Label { get; init; }
-    public required string Value { get; init; }
-    public required Brush Color { get; init; }
+
+    private string _label = "";
+    public string Label
+    {
+        get => _label;
+        set => SetProperty(ref _label, value);
+    }
+
+    private string _value = "";
+    public string Value
+    {
+        get => _value;
+        set => SetProperty(ref _value, value);
+    }
+
+    private Brush _color = Brushes.LimeGreen;
+    public Brush Color
+    {
+        get => _color;
+        set => SetProperty(ref _color, value);
+    }
 }
 
 public sealed class OverlayViewModel : ObservableObject
@@ -32,7 +50,10 @@ public sealed class OverlayViewModel : ObservableObject
         _store = store;
         sensors.Updated += snapshot =>
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() => Apply(snapshot));
+            var app = System.Windows.Application.Current;
+            if (app?.Dispatcher is not { } dispatcher) return;
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
+            dispatcher.BeginInvoke(() => Apply(snapshot));
         };
         Apply(sensors.Snapshot);
     }
@@ -47,28 +68,55 @@ public sealed class OverlayViewModel : ObservableObject
         _last = snapshot;
         var settings = _store.Settings;
         var visible = snapshot.Readings.Where(r => settings.IsKindVisible(r.Kind)).ToList();
-        Rows.Clear();
-        foreach (var reading in visible)
+        var sameIds = Rows.Count == visible.Count
+            && Rows.Select((row, i) => row.Id == visible[i].Id).All(x => x);
+
+        if (!sameIds)
         {
-            Rows.Add(new OverlayRow
+            Rows.Clear();
+            foreach (var reading in visible)
             {
-                Id = reading.Id,
-                Label = reading.Label,
-                Value = settings.FormatTemperature(reading.Celsius),
-                Color = ColorFor(reading)
-            });
+                Rows.Add(MakeRow(reading));
+            }
         }
+        else
+        {
+            for (var i = 0; i < visible.Count; i++)
+            {
+                var reading = visible[i];
+                var row = Rows[i];
+                row.Label = reading.Label;
+                row.Value = settings.FormatTemperature(reading.Celsius);
+                row.Color = ColorFor(reading);
+            }
+        }
+
         OnPropertyChanged(nameof(Accent));
         OnPropertyChanged(nameof(Opacity));
         OnPropertyChanged(nameof(FontSize));
         OnPropertyChanged(nameof(Locked));
     }
 
+    private OverlayRow MakeRow(SensorReading reading) => new()
+    {
+        Id = reading.Id,
+        Label = reading.Label,
+        Value = _store.Settings.FormatTemperature(reading.Celsius),
+        Color = ColorFor(reading)
+    };
+
     private Brush ColorFor(SensorReading reading)
     {
         var t = _store.Settings.ThresholdsFor(reading.Kind);
-        if (reading.Celsius >= t.Critical) return (Brush)System.Windows.Application.Current.FindResource("CritBrush");
-        if (reading.Celsius >= t.Warn) return (Brush)System.Windows.Application.Current.FindResource("WarnBrush");
+        var app = System.Windows.Application.Current;
+        if (reading.Celsius >= t.Critical)
+        {
+            return app?.TryFindResource("CritBrush") as Brush ?? Brushes.Red;
+        }
+        if (reading.Celsius >= t.Warn)
+        {
+            return app?.TryFindResource("WarnBrush") as Brush ?? Brushes.Gold;
+        }
         return Parse(_store.Settings.AccentHex);
     }
 

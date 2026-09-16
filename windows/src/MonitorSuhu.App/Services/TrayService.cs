@@ -28,6 +28,11 @@ public sealed class TrayService : IDisposable
         _icon.TrayMouseDoubleClick += (_, _) => openSettings();
     }
 
+    public void ShowWarning(string message)
+    {
+        _icon.ShowBalloonTip("MonitorSuhu", message, BalloonIcon.Warning);
+    }
+
     public void Dispose() => _icon.Dispose();
 
     private static System.Windows.Controls.MenuItem Item(string header, Action action)

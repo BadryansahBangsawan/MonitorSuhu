@@ -17,7 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installStatusItem()
         registerHotkeys()
         if store.settings.startWithOs {
-            AutostartService.apply(true)
+            if let message = AutostartService.apply(true) {
+                NSLog("MonitorSuhu: autostart: \(message)")
+            }
         }
 
         store.$settings
@@ -93,17 +95,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openSettings() {
         if settingsWindow == nil {
-            let root = SettingsView(store: store, overlay: overlay) { [weak self] enabled in
-                AutostartService.apply(enabled)
-                self?.store.settings.startWithOs = enabled
-            }
+            let root = SettingsView(store: store, sensors: sensors, overlay: overlay)
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
             window.title = "MonitorSuhu Settings"
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             window.isReleasedWhenClosed = false
-            window.setContentSize(NSSize(width: 540, height: 520))
-            window.minSize = NSSize(width: 480, height: 420)
+            window.setContentSize(NSSize(width: 560, height: 640))
+            window.minSize = NSSize(width: 520, height: 500)
             window.center()
             window.delegate = self
             settingsWindow = window

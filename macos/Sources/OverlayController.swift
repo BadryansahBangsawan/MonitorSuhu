@@ -280,4 +280,13 @@ enum CornerPreset: String, CaseIterable {
         case .bottomRight: return "Bottom right"
         }
     }
+
+    var symbol: String {
+        switch self {
+        case .topLeft: return "arrow.up.left"
+        case .topRight: return "arrow.up.right"
+        case .bottomLeft: return "arrow.down.left"
+        case .bottomRight: return "arrow.down.right"
+        }
+    }
 }

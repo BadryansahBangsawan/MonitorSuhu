@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using Application = System.Windows.Application;
 using MonitorSuhu.App.Services;
@@ -10,6 +11,7 @@ namespace MonitorSuhu.App;
 
 public partial class App : Application
 {
+    private Mutex? _mutex;
     private SettingsStore? _store;
     private SensorService? _sensors;
     private HotkeyService? _hotkeys;
@@ -21,6 +23,25 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        _mutex = CreateInstanceMutex(out var created);
+        if (!created)
+        {
+            try
+            {
+                if (!_mutex.WaitOne(TimeSpan.Zero))
+                {
+                    _mutex.Dispose();
+                    _mutex = null;
+                    Shutdown();
+                    return;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // previous instance crashed; we now own the mutex
+            }
+        }
 
         _store = new SettingsStore();
         _sensors = new SensorService();
@@ -41,7 +62,11 @@ public partial class App : Application
             exit: Shutdown);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
-        _hotkeys.Start(_overlay, _store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
+        _hotkeys.Start(_store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
+        if (_hotkeys.FailedMessage is { } message)
+        {
+            _tray.ShowWarning(message);
+        }
     }
 
     public void ToggleOverlay()
@@ -88,6 +113,23 @@ public partial class App : Application
         _hotkeys?.Dispose();
         _sensors?.Dispose();
         _tray?.Dispose();
+        if (_mutex is not null)
+        {
+            try { _mutex.ReleaseMutex(); } catch (ApplicationException) { /* not owned */ }
+            _mutex.Dispose();
+        }
         base.OnExit(e);
+    }
+
+    private static Mutex CreateInstanceMutex(out bool created)
+    {
+        try
+        {
+            return new Mutex(true, @"Global\MonitorSuhu", out created);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new Mutex(true, @"Local\MonitorSuhu", out created);
+        }
     }
 }

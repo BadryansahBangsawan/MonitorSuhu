@@ -110,6 +110,12 @@ struct AppSettings: Codable, Equatable {
 
     static let nvidiaGreen = "76B900"
 
+    static func normalizeHex(_ hex: String) -> String {
+        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if s.hasPrefix("#") { s.removeFirst() }
+        return s
+    }
+
     static var `default`: AppSettings {
         AppSettings(
             overlayOpacity: 0.80,
@@ -152,6 +158,38 @@ struct AppSettings: Codable, Equatable {
         thresholds[kind.rawValue] ?? Thresholds(warn: 75, critical: 90)
     }
 
+    mutating func setThresholds(for kind: SensorKind, warn: Double? = nil, critical: Double? = nil) {
+        var t = thresholds(for: kind)
+        if let warn { t.warn = Self.clamp(warn, 1, 120) }
+        if let critical { t.critical = Self.clamp(critical, 2, 130) }
+        if t.warn >= t.critical {
+            t.critical = min(130, t.warn + 5)
+        }
+        thresholds[kind.rawValue] = t
+    }
+
+    mutating func sanitize() {
+        overlayOpacity = Self.clamp(overlayOpacity, 0.4, 0.95)
+        fontSize = Self.clamp(fontSize, 11, 18)
+        pollIntervalMs = Self.clamp(pollIntervalMs, 400, 3000)
+        let hex = Self.normalizeHex(accentHex)
+        accentHex = hex.count == 6 ? hex : Self.nvidiaGreen
+        var next = Self.default.thresholds
+        for (key, value) in thresholds {
+            var t = value
+            t.warn = Self.clamp(t.warn, 1, 120)
+            t.critical = Self.clamp(t.critical, 2, 130)
+            if t.warn >= t.critical { t.critical = min(130, t.warn + 5) }
+            next[key] = t
+        }
+        thresholds = next
+    }
+
+
+    private static func clamp(_ value: Double, _ lo: Double, _ hi: Double) -> Double {
+        min(hi, max(lo, value))
+    }
+
     func displayTemperature(_ celsius: Double) -> String {
         if useFahrenheit {
             return "\(Int((celsius * 9 / 5 + 32).rounded()))°F"
@@ -161,6 +199,31 @@ struct AppSettings: Codable, Equatable {
 
     var accentColor: Color {
         Color(hex: accentHex) ?? Color(red: 0.46, green: 0.73, blue: 0)
+    }
+}
+
+extension AppSettings {
+    init(from decoder: Decoder) throws {
+        let d = AppSettings.default
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        overlayOpacity = try c.decodeIfPresent(Double.self, forKey: .overlayOpacity) ?? d.overlayOpacity
+        fontSize = try c.decodeIfPresent(Double.self, forKey: .fontSize) ?? d.fontSize
+        accentHex = try c.decodeIfPresent(String.self, forKey: .accentHex) ?? d.accentHex
+        useFahrenheit = try c.decodeIfPresent(Bool.self, forKey: .useFahrenheit) ?? d.useFahrenheit
+        pollIntervalMs = try c.decodeIfPresent(Double.self, forKey: .pollIntervalMs) ?? d.pollIntervalMs
+        locked = try c.decodeIfPresent(Bool.self, forKey: .locked) ?? d.locked
+        overlayVisible = try c.decodeIfPresent(Bool.self, forKey: .overlayVisible) ?? d.overlayVisible
+        startWithOs = try c.decodeIfPresent(Bool.self, forKey: .startWithOs) ?? d.startWithOs
+        showCpu = try c.decodeIfPresent(Bool.self, forKey: .showCpu) ?? d.showCpu
+        showGpu = try c.decodeIfPresent(Bool.self, forKey: .showGpu) ?? d.showGpu
+        showSsd = try c.decodeIfPresent(Bool.self, forKey: .showSsd) ?? d.showSsd
+        showBoard = try c.decodeIfPresent(Bool.self, forKey: .showBoard) ?? d.showBoard
+        showRam = try c.decodeIfPresent(Bool.self, forKey: .showRam) ?? d.showRam
+        position = try c.decodeIfPresent(OverlayPosition.self, forKey: .position) ?? d.position
+        thresholds = try c.decodeIfPresent([String: Thresholds].self, forKey: .thresholds) ?? d.thresholds
+        toggleHotkey = try c.decodeIfPresent(KeyChord.self, forKey: .toggleHotkey) ?? d.toggleHotkey
+        editHotkey = try c.decodeIfPresent(KeyChord.self, forKey: .editHotkey) ?? d.editHotkey
+        sanitize()
     }
 }
 
