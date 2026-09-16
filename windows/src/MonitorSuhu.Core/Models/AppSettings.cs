@@ -121,8 +121,8 @@ public sealed class AppSettings
 
     public string FormatValue(SensorReading r) =>
         r.Kind == SensorKind.Fan
-            ? $"{Math.Round(r.Celsius)} RPM"
-            : FormatTemperature(r.Celsius);
+            ? $"{Math.Round(r.Value)} RPM"
+            : FormatTemperature(r.Value);
 
     public string MenuBarTitle(double? cpuCelsius)
     {

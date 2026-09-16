@@ -70,6 +70,35 @@ jobs:
           if-no-files-found: error
 
   # ─────────────────────────────────────────────
+  # Linux — artifact-only; not a Release gate
+  # ─────────────────────────────────────────────
+  linux:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test hwmon fixtures
+        run: dotnet test linux/MonitorSuhu.Linux.Tests/MonitorSuhu.Linux.Tests.csproj --nologo
+
+      - name: Publish self-contained app
+        run: dotnet publish linux/MonitorSuhu.Linux.csproj -c Release -r linux-x64 --self-contained true -o linux/dist/linux-x64
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: linux/dist/linux-x64
+          if-no-files-found: error
+
+
+  # ─────────────────────────────────────────────
   # Release — only on v* tags; requires both builds to succeed
   # ─────────────────────────────────────────────
   release:

@@ -22,7 +22,35 @@ struct SensorReading: Identifiable, Hashable {
     let id: String
     let kind: SensorKind
     let label: String
-    let celsius: Double
+    let value: Double
+}
+
+enum ReadingLevel: Int, Comparable {
+    case ok = 0
+    case warn = 1
+    case critical = 2
+
+    static func < (lhs: ReadingLevel, rhs: ReadingLevel) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    static func of(value: Double, thresholds: Thresholds) -> ReadingLevel {
+        if value >= thresholds.critical { return .critical }
+        if value >= thresholds.warn { return .warn }
+        return .ok
+    }
+
+    static func of(_ reading: SensorReading, settings: AppSettings) -> ReadingLevel {
+        of(value: reading.value, thresholds: settings.thresholds(for: reading.kind))
+    }
+
+    static func worst(_ levels: [ReadingLevel]) -> ReadingLevel {
+        levels.max() ?? .ok
+    }
+
+    static func worst(_ readings: [SensorReading], settings: AppSettings) -> ReadingLevel {
+        worst(readings.map { of($0, settings: settings) })
+    }
 }
 
 struct HardwareSnapshot {
@@ -224,9 +252,9 @@ struct AppSettings: Codable, Equatable {
 
     func displayValue(_ reading: SensorReading) -> String {
         if reading.kind == .fan {
-            return "\(Int(reading.celsius.rounded())) RPM"
+            return "\(Int(reading.value.rounded())) RPM"
         }
-        return displayTemperature(reading.celsius)
+        return displayTemperature(reading.value)
     }
 
     func menuBarTitle(cpuCelsius: Double?) -> String {

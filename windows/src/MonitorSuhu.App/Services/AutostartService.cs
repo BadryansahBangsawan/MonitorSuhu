@@ -1,6 +1,6 @@
 using Microsoft.Win32.TaskScheduler;
 
-namespace MonitorSuhu.Core.Services;
+namespace MonitorSuhu.App.Services;
 
 public static class AutostartService
 {

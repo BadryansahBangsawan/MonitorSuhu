@@ -19,9 +19,9 @@ struct OverlayView: View {
                     Text("NO SENSORS")
                         .font(.system(size: store.settings.fontSize - 1, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.55))
-                } else if store.settings.compactHud, let hottest = rows.max(by: { $0.celsius < $1.celsius }) {
+                } else if store.settings.compactHud {
                     Text(rows.map { "\($0.label) \(store.settings.displayValue($0))" }.joined(separator: "  "))
-                        .foregroundStyle(color(for: hottest))
+                        .foregroundStyle(color(for: ReadingLevel.worst(rows, settings: store.settings)))
                 } else {
                     ForEach(rows) { row in
                         HStack(spacing: 16) {
@@ -55,10 +55,15 @@ struct OverlayView: View {
     }
 
     private func color(for row: SensorReading) -> Color {
-        let t = store.settings.thresholds(for: row.kind)
-        if row.celsius >= t.critical { return Color(red: 1, green: 0.23, blue: 0.19) }
-        if row.celsius >= t.warn { return Color(red: 0.96, green: 0.77, blue: 0.09) }
-        return store.settings.accentColor
+        color(for: ReadingLevel.of(row, settings: store.settings))
+    }
+
+    private func color(for level: ReadingLevel) -> Color {
+        switch level {
+        case .critical: return Color(red: 1, green: 0.23, blue: 0.19)
+        case .warn: return Color(red: 0.96, green: 0.77, blue: 0.09)
+        case .ok: return store.settings.accentColor
+        }
     }
 }
 

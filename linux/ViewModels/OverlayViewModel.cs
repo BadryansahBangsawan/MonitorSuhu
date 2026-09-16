@@ -1,13 +1,13 @@
 using System.Collections.ObjectModel;
-using System.Windows.Media;
-using Brush = System.Windows.Media.Brush;
-using Brushes = System.Windows.Media.Brushes;
+using Avalonia;
+using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MonitorSuhu.Core.Models;
 using MonitorSuhu.Core.Services;
-using MonitorSuhu.Sensors;
+using MonitorSuhu.Linux.Services;
 
-namespace MonitorSuhu.App.ViewModels;
+namespace MonitorSuhu.Linux.ViewModels;
 
 public sealed class OverlayRow : ObservableObject
 {
@@ -27,15 +27,15 @@ public sealed class OverlayRow : ObservableObject
         set => SetProperty(ref _value, value);
     }
 
-    private Brush _color = Brushes.LimeGreen;
-    public Brush Color
+    private IBrush _color = Brushes.LimeGreen;
+    public IBrush Color
     {
         get => _color;
         set => SetProperty(ref _color, value);
     }
 
-    private PointCollection _points = new();
-    public PointCollection Points
+    private Points _points = new();
+    public Points Points
     {
         get => _points;
         set => SetProperty(ref _points, value);
@@ -45,17 +45,22 @@ public sealed class OverlayRow : ObservableObject
 public sealed class OverlayViewModel : ObservableObject
 {
     private readonly SettingsStore _store;
-    private readonly SensorService _sensors;
+    private readonly HwmonSensorService _sensors;
     private HardwareSnapshot _last = new();
-    public ObservableCollection<OverlayRow> Rows { get; } = [];
-    public Brush Accent => AccentBrush;
     private string _accentHex = "";
-    private Brush _accentBrush = Brushes.LimeGreen;
+    private IBrush _accentBrush = Brushes.LimeGreen;
+
+    public ObservableCollection<OverlayRow> Rows { get; } = [];
+    public IBrush Accent => AccentBrush;
     public double Opacity => _store.Settings.OverlayOpacity;
     public double FontSize => _store.Settings.FontSize;
     public bool Locked => _store.Settings.Locked;
     public bool CompactHud => _store.Settings.CompactHud;
     public bool ShowSparkline => _store.Settings.ShowSparkline;
+    public bool ShowEmpty => Rows.Count == 0;
+    public bool ShowCompact => CompactHud && Rows.Count > 0;
+    public bool ShowStacked => !CompactHud && Rows.Count > 0;
+    public IBrush ChromeBrush => Locked ? Brushes.Transparent : Accent;
 
     private string _compactLine = "";
     public string CompactLine
@@ -64,23 +69,26 @@ public sealed class OverlayViewModel : ObservableObject
         private set => SetProperty(ref _compactLine, value);
     }
 
-    private Brush _compactColor = Brushes.LimeGreen;
-    public Brush CompactColor
+    private IBrush _compactColor = Brushes.LimeGreen;
+    public IBrush CompactColor
     {
         get => _compactColor;
         private set => SetProperty(ref _compactColor, value);
     }
 
-    public OverlayViewModel(SettingsStore store, SensorService sensors)
+    public OverlayViewModel(SettingsStore store, HwmonSensorService sensors)
     {
         _store = store;
         _sensors = sensors;
         sensors.Updated += snapshot =>
         {
-            var app = System.Windows.Application.Current;
-            if (app?.Dispatcher is not { } dispatcher) return;
-            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
-            dispatcher.BeginInvoke(() => Apply(snapshot));
+            var ui = Dispatcher.UIThread;
+            if (ui.CheckAccess())
+            {
+                Apply(snapshot);
+                return;
+            }
+            ui.Post(() => Apply(snapshot));
         };
         Apply(sensors.Snapshot);
     }
@@ -96,6 +104,10 @@ public sealed class OverlayViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowSparkline));
         OnPropertyChanged(nameof(CompactLine));
         OnPropertyChanged(nameof(CompactColor));
+        OnPropertyChanged(nameof(ShowEmpty));
+        OnPropertyChanged(nameof(ShowCompact));
+        OnPropertyChanged(nameof(ShowStacked));
+        OnPropertyChanged(nameof(ChromeBrush));
     }
 
     public void Apply(HardwareSnapshot snapshot)
@@ -129,12 +141,16 @@ public sealed class OverlayViewModel : ObservableObject
             }
         }
 
-        CompactLine = string.Join("  ", visible.Select(r => $"{r.Label} {settings.FormatValue(r)}"));
+        CompactLine = string.Join("  ", visible.Select(r => r.Label + " " + settings.FormatValue(r)));
         CompactColor = visible.Count == 0
             ? AccentBrush
             : ColorFor(ReadingLevelUtil.Worst(visible, settings));
         OnPropertyChanged(nameof(CompactHud));
         OnPropertyChanged(nameof(ShowSparkline));
+        OnPropertyChanged(nameof(ShowEmpty));
+        OnPropertyChanged(nameof(ShowCompact));
+        OnPropertyChanged(nameof(ShowStacked));
+        OnPropertyChanged(nameof(ChromeBrush));
     }
 
     private OverlayRow MakeRow(SensorReading reading) => new()
@@ -146,16 +162,16 @@ public sealed class OverlayViewModel : ObservableObject
         Points = BuildPoints(_sensors.History(reading.Kind))
     };
 
-    private static PointCollection BuildPoints(IReadOnlyList<double> history)
+    private static Points BuildPoints(IReadOnlyList<double> history)
     {
-        if (history.Count <= 1) return new PointCollection();
+        if (history.Count <= 1) return new Points();
         const double width = 36;
         const double height = 12;
         var min = history.Min();
         var max = history.Max();
         var range = max - min;
         var midline = range == 0;
-        var points = new PointCollection(history.Count);
+        var points = new Points();
         var last = history.Count - 1;
         for (var i = 0; i < history.Count; i++)
         {
@@ -163,26 +179,22 @@ public sealed class OverlayViewModel : ObservableObject
             var y = midline
                 ? height / 2
                 : (height - 1) * (1 - (history[i] - min) / range);
-            points.Add(new System.Windows.Point(x, y));
+            points.Add(new Point(x, y));
         }
         return points;
     }
 
-    private Brush ColorFor(SensorReading reading) =>
+    private IBrush ColorFor(SensorReading reading) =>
         ColorFor(ReadingLevelUtil.Of(reading, _store.Settings));
 
-    private Brush ColorFor(ReadingLevel level)
+    private IBrush ColorFor(ReadingLevel level) => level switch
     {
-        var app = System.Windows.Application.Current;
-        return level switch
-        {
-            ReadingLevel.Critical => app?.TryFindResource("CritBrush") as Brush ?? Brushes.Red,
-            ReadingLevel.Warn => app?.TryFindResource("WarnBrush") as Brush ?? Brushes.Gold,
-            _ => AccentBrush
-        };
-    }
+        ReadingLevel.Critical => ResourceBrush("CritBrush", Brushes.Red),
+        ReadingLevel.Warn => ResourceBrush("WarnBrush", Brushes.Gold),
+        _ => AccentBrush
+    };
 
-    private Brush AccentBrush
+    private IBrush AccentBrush
     {
         get
         {
@@ -196,15 +208,23 @@ public sealed class OverlayViewModel : ObservableObject
         }
     }
 
-    private static Brush Parse(string hex)
+    private static IBrush ResourceBrush(string key, IBrush fallback)
     {
-        try
+        var app = Application.Current;
+        if (app is null) return fallback;
+        if (app.TryGetResource(key, app.ActualThemeVariant, out var value) && value is IBrush brush)
         {
-            return (Brush)new BrushConverter().ConvertFromString(hex)!;
+            return brush;
         }
-        catch
+        return fallback;
+    }
+
+    private static IBrush Parse(string hex)
+    {
+        if (Color.TryParse(hex, out var color))
         {
-            return Brushes.LimeGreen;
+            return new SolidColorBrush(color);
         }
+        return Brushes.LimeGreen;
     }
 }

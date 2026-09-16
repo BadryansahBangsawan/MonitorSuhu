@@ -1,7 +1,6 @@
-using System.Media;
 using MonitorSuhu.Core.Models;
 
-namespace MonitorSuhu.App.Services;
+namespace MonitorSuhu.Linux.Services;
 
 public sealed class AlertGate
 {
@@ -21,6 +20,6 @@ public sealed class AlertGate
         _inCritical.Clear();
         _inCritical.UnionWith(now);
         if (entered)
-            SystemSounds.Exclamation.Play();
+            Console.Beep();
     }
 }

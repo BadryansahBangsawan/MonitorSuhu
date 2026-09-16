@@ -10,6 +10,11 @@ windows/**/bin/
 windows/**/obj/
 windows/.vs/
 windows/dist/
+
+# Linux / .NET
+linux/**/bin/
+linux/**/obj/
+linux/dist/
 *.user
 *.suo
 *.cache

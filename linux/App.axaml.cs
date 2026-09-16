@@ -1,21 +1,22 @@
-using System.Threading;
-using System.Windows;
-using Application = System.Windows.Application;
-using MonitorSuhu.App.Services;
-using MonitorSuhu.App.ViewModels;
-using MonitorSuhu.App.Views;
+using System.ComponentModel;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using MonitorSuhu.Core.Models;
 using MonitorSuhu.Core.Services;
-using MonitorSuhu.Sensors;
+using MonitorSuhu.Linux.Services;
+using MonitorSuhu.Linux.ViewModels;
+using MonitorSuhu.Linux.Views;
 
-namespace MonitorSuhu.App;
+namespace MonitorSuhu.Linux;
 
 public partial class App : Application
 {
-    private Mutex? _mutex;
     private SettingsStore? _store;
-    private SensorService? _sensors;
-    private HotkeyService? _hotkeys;
+    private HwmonSensorService? _sensors;
+    private X11HotkeyService? _hotkeys;
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
     private TrayService? _tray;
@@ -23,78 +24,76 @@ public partial class App : Application
     private UpdateChecker? _updates;
     private AlertGate? _alertGate;
 
-    protected override void OnStartup(StartupEventArgs e)
+    public override void Initialize()
     {
-        base.OnStartup(e);
+        AvaloniaXamlLoader.Load(this);
+    }
 
-        _mutex = CreateInstanceMutex(out var created);
-        if (!created)
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            try
-            {
-                if (!_mutex.WaitOne(TimeSpan.Zero))
-                {
-                    _mutex.Dispose();
-                    _mutex = null;
-                    Shutdown();
-                    return;
-                }
-            }
-            catch (AbandonedMutexException)
-            {
-                // previous instance crashed; we now own the mutex
-            }
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            desktop.Exit += (_, _) => OnDesktopExit();
+            StartDesktop(desktop);
         }
 
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop)
+    {
         _store = new SettingsStore();
-        _sensors = new SensorService(() => _store!.Settings.SensorBindings);
+        _sensors = new HwmonSensorService(() => _store.Settings.SensorBindings);
         _alertGate = new AlertGate();
+        _overlayVm = new OverlayViewModel(_store, _sensors);
+        _overlay = new OverlayWindow(_overlayVm, _store);
+        _updates = new UpdateChecker();
+        _hotkeys = new X11HotkeyService();
+
         _sensors.Updated += snapshot =>
         {
-            var app = System.Windows.Application.Current;
-            if (app?.Dispatcher is not { } dispatcher) return;
-            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
-            dispatcher.BeginInvoke(() => ApplyTrayStatus(snapshot));
+            Dispatcher.UIThread.Post(() => ApplyTrayStatus(snapshot));
         };
-        _hotkeys = new HotkeyService();
-        _overlayVm = new OverlayViewModel(_store, _sensors);
-        _updates = new UpdateChecker();
 
-        _overlay = new OverlayWindow(_overlayVm, _store);
+        desktop.MainWindow = _overlay;
         _overlay.Show();
         if (!_store.Settings.OverlayVisible)
-        {
             _overlay.Hide();
-        }
 
         _tray = new TrayService(
             toggleOverlay: ToggleOverlay,
             editLayout: EditLayout,
             openSettings: OpenSettings,
             checkUpdates: () => _ = CheckForUpdatesAsync(),
-            exit: Shutdown);
+            exit: () => desktop.Shutdown());
         ApplyTrayStatus(_sensors.Snapshot);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
-        _hotkeys.Start(_store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
-        if (_hotkeys.FailedMessage is { } message)
-        {
-            _tray.ShowWarning(message);
-        }
 
-        _updates.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(UpdateChecker.HasUpdate) && _updates.HasUpdate)
-            {
-                _tray?.ShowInfo($"MonitorSuhu {_updates.LatestVersion} is available.");
-            }
-        };
+        _hotkeys.Start(
+            _overlay,
+            _store.Settings.ToggleHotkey,
+            _store.Settings.EditHotkey,
+            ToggleOverlay,
+            EditLayout);
+        if (_hotkeys.FailedMessage is { } message)
+            _tray.ShowWarning(message);
+
+        _updates.PropertyChanged += OnUpdateCheckerPropertyChanged;
         _ = _updates.CheckAsync();
+    }
+
+    private void OnUpdateCheckerPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(UpdateChecker.HasUpdate) && _updates is { HasUpdate: true })
+            _tray?.ShowInfo($"MonitorSuhu {_updates.LatestVersion} is available.");
     }
 
     public void ToggleOverlay()
     {
-        if (_overlay is null || _store is null) return;
+        if (_overlay is null || _store is null)
+            return;
         if (_overlay.IsVisible)
         {
             _overlay.Hide();
@@ -110,7 +109,8 @@ public partial class App : Application
 
     public void EditLayout()
     {
-        if (_overlay is null || _store is null) return;
+        if (_overlay is null || _store is null)
+            return;
         _store.Settings.Locked = false;
         _store.Save();
         _overlay.ApplyLock();
@@ -119,7 +119,8 @@ public partial class App : Application
 
     public void OpenSettings()
     {
-        if (_store is null || _sensors is null || _overlay is null || _updates is null) return;
+        if (_store is null || _sensors is null || _overlay is null || _updates is null)
+            return;
         if (_settingsWindow is null)
         {
             var vm = new SettingsViewModel(_store, _overlay, _sensors, _updates);
@@ -132,7 +133,8 @@ public partial class App : Application
 
     private async Task CheckForUpdatesAsync()
     {
-        if (_updates is null) return;
+        if (_updates is null)
+            return;
         if (_updates.HasUpdate)
         {
             _updates.OpenDownloadPage();
@@ -144,7 +146,8 @@ public partial class App : Application
     private void ApplyTrayStatus(HardwareSnapshot snapshot)
     {
         var settings = _store?.Settings;
-        if (settings is null) return;
+        if (settings is null)
+            return;
         double? cpu = snapshot.Readings.FirstOrDefault(r => r.Kind == SensorKind.Cpu) is { } reading
             && settings.IsKindVisible(SensorKind.Cpu)
                 ? reading.Value
@@ -155,29 +158,11 @@ public partial class App : Application
         _alertGate?.Evaluate(snapshot.Readings, settings);
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    private void OnDesktopExit()
     {
         _store?.Save();
         _hotkeys?.Dispose();
         _sensors?.Dispose();
         _tray?.Dispose();
-        if (_mutex is not null)
-        {
-            try { _mutex.ReleaseMutex(); } catch (ApplicationException) { /* not owned */ }
-            _mutex.Dispose();
-        }
-        base.OnExit(e);
-    }
-
-    private static Mutex CreateInstanceMutex(out bool created)
-    {
-        try
-        {
-            return new Mutex(true, @"Global\MonitorSuhu", out created);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return new Mutex(true, @"Local\MonitorSuhu", out created);
-        }
     }
 }

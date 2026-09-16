@@ -1,61 +1,47 @@
-using LibreHardwareMonitor.Hardware;
 using MonitorSuhu.Core.Models;
+using MonitorSuhu.Linux.Sensors;
 
-namespace MonitorSuhu.Sensors;
+namespace MonitorSuhu.Linux.Services;
 
-public sealed class SensorService : IDisposable
+public sealed class HwmonSensorService : IDisposable
 {
     private const int HistoryCap = 30;
 
-    private readonly Computer? _computer;
     private readonly System.Timers.Timer _timer;
     private readonly object _gate = new();
     private readonly Func<IReadOnlyDictionary<string, string>>? _bindings;
+    private readonly string _hwmonRoot;
+    private readonly string _thermalRoot;
     private readonly Dictionary<SensorKind, List<double>> _rings = new();
+    private readonly bool _isLinux;
 
     public HardwareSnapshot Snapshot { get; private set; } = new();
-    public IReadOnlyList<CatalogEntry> LastCatalog { get; private set; } = [];
-    public string? LastError { get; }
+    public IReadOnlyList<HwmonCatalogEntry> LastCatalog { get; private set; } = [];
+    public string? LastError { get; private set; }
     public event Action<HardwareSnapshot>? Updated;
 
-    public SensorService(Func<IReadOnlyDictionary<string, string>>? bindings = null)
+    public HwmonSensorService(
+        Func<IReadOnlyDictionary<string, string>>? bindings = null,
+        string hwmonRoot = "/sys/class/hwmon",
+        string thermalRoot = "/sys/class/thermal")
     {
         _bindings = bindings;
+        _hwmonRoot = hwmonRoot;
+        _thermalRoot = thermalRoot;
         _timer = new System.Timers.Timer(1000);
         _timer.AutoReset = true;
         _timer.Elapsed += (_, _) => Tick();
 
-        if (!OperatingSystem.IsWindows())
+        _isLinux = OperatingSystem.IsLinux();
+        if (!_isLinux)
         {
-            LastError = "Hardware sensors require Windows.";
-            return;
-        }
-
-        try
-        {
-            _computer = new Computer
-            {
-                IsCpuEnabled = true,
-                IsGpuEnabled = true,
-                IsMotherboardEnabled = true,
-                IsMemoryEnabled = true,
-                IsStorageEnabled = true,
-                IsControllerEnabled = true
-            };
-            _computer.Open();
-        }
-        catch (Exception ex)
-        {
-            _computer = null;
-            LastError = string.IsNullOrWhiteSpace(ex.Message)
-                ? "Could not open hardware sensors. Run as Administrator and allow the LibreHardwareMonitor driver."
-                : $"Could not open hardware sensors: {ex.Message}";
+            LastError = "Hardware sensors require Linux.";
         }
     }
 
     public void Start(int intervalMs)
     {
-        _timer.Interval = Math.Clamp(intervalMs, 400, 5000);
+        _timer.Interval = Math.Clamp(intervalMs, 400, 3000);
         _timer.Start();
         Tick();
     }
@@ -75,7 +61,7 @@ public sealed class SensorService : IDisposable
         HardwareSnapshot snapshot;
         lock (_gate)
         {
-            if (_computer is null)
+            if (!_isLinux)
             {
                 LastCatalog = [];
                 snapshot = new HardwareSnapshot { Readings = [], Timestamp = DateTime.Now };
@@ -83,12 +69,25 @@ public sealed class SensorService : IDisposable
             else
             {
                 var bindings = _bindings?.Invoke() ?? new Dictionary<string, string>();
-                LastCatalog = SensorMapper.MapCatalog(_computer);
-                snapshot = new HardwareSnapshot
+                try
                 {
-                    Readings = SensorMapper.Map(_computer, bindings),
-                    Timestamp = DateTime.Now
-                };
+                    var mapped = HwmonMapper.Map(_hwmonRoot, bindings, _thermalRoot);
+                    LastCatalog = mapped.Catalog ?? [];
+                    LastError = mapped.Error;
+                    snapshot = new HardwareSnapshot
+                    {
+                        Readings = mapped.Readings ?? [],
+                        Timestamp = DateTime.Now
+                    };
+                }
+                catch (Exception ex)
+                {
+                    LastCatalog = [];
+                    LastError = string.IsNullOrWhiteSpace(ex.Message)
+                        ? "No hwmon sensors."
+                        : ex.Message;
+                    snapshot = new HardwareSnapshot { Readings = [], Timestamp = DateTime.Now };
+                }
             }
 
             foreach (var reading in snapshot.Readings)
@@ -98,6 +97,7 @@ public sealed class SensorService : IDisposable
                     ring = new List<double>(HistoryCap);
                     _rings[reading.Kind] = ring;
                 }
+
                 ring.Add(reading.Value);
                 if (ring.Count > HistoryCap)
                 {
@@ -107,12 +107,9 @@ public sealed class SensorService : IDisposable
 
             Snapshot = snapshot;
         }
+
         Updated?.Invoke(snapshot);
     }
 
-    public void Dispose()
-    {
-        _timer.Dispose();
-        try { _computer?.Close(); } catch { /* driver already gone */ }
-    }
+    public void Dispose() => _timer.Dispose();
 }

@@ -111,8 +111,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let cpu: SensorReading? = store.settings.isKindVisible(.cpu)
             ? sensors.snapshot.readings.first(where: { $0.kind == .cpu })
             : nil
-        let title = store.settings.menuBarTitle(cpuCelsius: cpu?.celsius)
-        let critical = cpu.map { $0.celsius >= store.settings.thresholds(for: .cpu).critical } ?? false
+        let title = store.settings.menuBarTitle(cpuCelsius: cpu?.value)
+        let critical = cpu.map { $0.value >= store.settings.thresholds(for: .cpu).critical } ?? false
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: [
