@@ -26,6 +26,7 @@ public sealed class SettingsStore
         Directory.CreateDirectory(root);
         _path = Path.Combine(root, "settings.json");
         Settings = Load() ?? new AppSettings();
+        Settings.Sanitize();
     }
 
     public void Save()
@@ -78,11 +79,7 @@ public sealed class SettingsStore
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path), JsonOptions);
             if (settings is not null)
             {
-                if (settings.SensorBindings is null)
-                    settings.SensorBindings = new();
-                settings.Thresholds ??= new();
-                if (!settings.Thresholds.ContainsKey(nameof(SensorKind.Fan)))
-                    settings.Thresholds[nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 };
+                settings.Sanitize();
             }
             return settings;
         }

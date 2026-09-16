@@ -30,9 +30,14 @@ public static class SensorMapper
 
     public static IReadOnlyList<SensorReading> Map(
         IComputer computer,
+        IReadOnlyDictionary<string, string> bindings) =>
+        Map(MapCatalog(computer), computer, bindings);
+
+    public static IReadOnlyList<SensorReading> Map(
+        IReadOnlyList<CatalogEntry> catalog,
+        IComputer computer,
         IReadOnlyDictionary<string, string> bindings)
     {
-        var catalog = MapCatalog(computer);
         var catalogById = new Dictionary<string, CatalogEntry>(StringComparer.Ordinal);
         foreach (var entry in catalog)
         {
