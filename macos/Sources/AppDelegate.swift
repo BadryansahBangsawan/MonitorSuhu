@@ -120,7 +120,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .foregroundColor: critical ? NSColor.systemRed : NSColor.labelColor
             ]
         )
-        button.toolTip = cpu.map { store.settings.displayValue($0) } ?? "MonitorSuhu"
+        var tip = cpu.map { store.settings.displayValue($0) } ?? "MonitorSuhu"
+        if let failed = hotkeys.failedMessage {
+            tip += "\n" + failed
+        }
+        button.toolTip = tip
     }
 
     private func buildMenu() -> NSMenu {
@@ -154,6 +158,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onToggle: { [weak self] in self?.toggleOverlay() },
             onEdit: { [weak self] in self?.editLayout() }
         )
+        if let message = hotkeys.failedMessage {
+            NSLog("MonitorSuhu: hotkeys: \(message)")
+            refreshStatusItem()
+        }
     }
 
     @objc func toggleOverlay() {
@@ -176,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openSettings() {
         if settingsWindow == nil {
-            let root = SettingsView(store: store, sensors: sensors, updates: updates, overlay: overlay)
+            let root = SettingsView(store: store, sensors: sensors, updates: updates, overlay: overlay, hotkeyMessage: hotkeys.failedMessage)
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
             window.title = "MonitorSuhu Settings"

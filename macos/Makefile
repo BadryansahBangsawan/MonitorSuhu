@@ -17,7 +17,11 @@ SWIFT_FRAMEWORKS := \
 	-framework Combine \
 	-framework ServiceManagement
 
-.PHONY: all app run clean dmg
+TEST_DIR    := Tests
+TEST_BIN    := $(BUILD_DIR)/logic-tests
+LOGIC_SOURCES := $(SRC_DIR)/Models.swift $(SRC_DIR)/Versioning.swift $(TEST_DIR)/LogicTests.swift
+
+.PHONY: all app run clean dmg test
 
 all: app
 
@@ -44,6 +48,19 @@ $(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist Resources/App
 		"$(BUILD_DIR)/$(APP_NAME)-arm64" \
 		"$(BUILD_DIR)/$(APP_NAME)-x86_64" \
 		-output "$@"
+
+test: $(TEST_BIN)
+	"$(TEST_BIN)"
+
+$(TEST_BIN): $(LOGIC_SOURCES)
+	@mkdir -p "$(BUILD_DIR)"
+	$(SWIFTC) -parse-as-library -O \
+		-target $(ARM_TARGET) \
+		-sdk "$(SDK)" \
+		-o "$@" \
+		-framework Foundation \
+		-framework SwiftUI \
+		$(LOGIC_SOURCES)
 
 run: app
 	open "$(APP)"

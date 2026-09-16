@@ -57,6 +57,15 @@ final class HIDTemperatureReader {
         setMatching(client, matching as CFDictionary)
     }
 
+    func close() {
+        if let client {
+            release?(client)
+            self.client = nil
+        }
+    }
+
+    deinit { close() }
+
     func poll() -> [(name: String, celsius: Double)] {
         open()
         guard let client, let copyServices, let copyEvent, let getFloat else { return [] }

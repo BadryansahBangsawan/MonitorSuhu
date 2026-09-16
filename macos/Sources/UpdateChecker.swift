@@ -51,7 +51,7 @@ final class UpdateChecker: ObservableObject {
                 let page = (body["html_url"] as? String).flatMap(URL.init(string:)) ?? Self.releasesPage
                 self.latestVersion = latest
                 self.latestURL = page
-                self.hasUpdate = Self.isNewer(latest, than: self.currentVersion)
+                self.hasUpdate = Versioning.isNewer(latest, than: self.currentVersion)
                 completion?(true)
                 if userInitiated {
                     if self.hasUpdate {
@@ -69,19 +69,7 @@ final class UpdateChecker: ObservableObject {
     }
 
     static func isNewer(_ latest: String, than current: String) -> Bool {
-        let a = parse(latest)
-        let b = parse(current)
-        let n = max(a.count, b.count)
-        for i in 0..<n {
-            let x = i < a.count ? a[i] : 0
-            let y = i < b.count ? b[i] : 0
-            if x != y { return x > y }
-        }
-        return false
-    }
-
-    private static func parse(_ version: String) -> [Int] {
-        version.split(separator: ".").compactMap { Int($0.filter(\.isNumber)) }
+        Versioning.isNewer(latest, than: current)
     }
 
     private static func alert(_ title: String, _ message: String) {

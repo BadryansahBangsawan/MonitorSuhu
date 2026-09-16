@@ -20,8 +20,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Logic tests
+        run: make -C macos test
+
       - name: Build DMG
         run: bash macos/scripts/make-dmg.sh
+
+      - name: Universal binary
+        run: |
+          bin="macos/build/MonitorSuhu.app/Contents/MacOS/MonitorSuhu"
+          archs="$(lipo -archs "$bin")"
+          echo "archs=$archs"
+          echo "$archs" | grep -qw x86_64
+          echo "$archs" | grep -qw arm64
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
@@ -48,6 +59,12 @@ jobs:
       - name: Restore dependencies
         working-directory: windows
         run: dotnet restore
+
+      - name: Test Core and Sensors
+        working-directory: windows
+        run: |
+          dotnet test src/MonitorSuhu.Core.Tests/MonitorSuhu.Core.Tests.csproj --nologo
+          dotnet test src/MonitorSuhu.Sensors.Tests/MonitorSuhu.Sensors.Tests.csproj --nologo
 
       - name: Publish self-contained app
         shell: pwsh
@@ -97,6 +114,30 @@ jobs:
           path: linux/dist/linux-x64
           if-no-files-found: error
 
+  # ─────────────────────────────────────────────
+  # Version — VERSION must match plist / csproj / iss
+  # ─────────────────────────────────────────────
+  version:
+    name: Check VERSION
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compare VERSION pins
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          echo "VERSION=$VERSION"
+          plist="$(python3 -c 'import plistlib; print(plistlib.load(open("macos/Resources/Info.plist","rb"))["CFBundleShortVersionString"])')"
+          app="$(grep -oP '(?<=<Version>)[^<]+' windows/src/MonitorSuhu.App/MonitorSuhu.App.csproj | head -1)"
+          linux="$(grep -oP '(?<=<Version>)[^<]+' linux/MonitorSuhu.Linux.csproj | head -1)"
+          iss="$(grep -oP '(?<=#define MyAppVersion ")[^"]+' windows/installer/MonitorSuhu.iss)"
+          echo "plist=$plist app=$app linux=$linux iss=$iss"
+          test "$plist" = "$VERSION"
+          test "$app" = "$VERSION"
+          test "$linux" = "$VERSION"
+          test "$iss" = "$VERSION"
 
   # ─────────────────────────────────────────────
   # Release — only on v* tags; requires both builds to succeed

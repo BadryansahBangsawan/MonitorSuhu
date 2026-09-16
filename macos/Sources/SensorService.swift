@@ -28,6 +28,7 @@ final class SensorService: ObservableObject {
     func stop() {
         timer?.cancel()
         timer = nil
+        queue.sync { hid.close() }
     }
 
     func history(for kind: SensorKind) -> [Double] {

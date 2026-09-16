@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject var sensors: SensorService
     @ObservedObject var updates: UpdateChecker
     var overlay: OverlayController
+    var hotkeyMessage: String? = nil
 
     @State private var autostartMessage: String?
     @State private var confirmReset = false
@@ -94,7 +95,11 @@ struct SettingsView: View {
                 SettingsRowDivider()
                 SettingsKeyRow("Edit layout", chord: store.settings.editHotkey.display)
             } caption: {
-                SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
+                if let hotkeyMessage, !hotkeyMessage.isEmpty {
+                    SettingsCallout(hotkeyMessage)
+                } else {
+                    SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
+                }
             }
 
             SettingsSection("About") {

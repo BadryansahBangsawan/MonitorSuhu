@@ -7,11 +7,13 @@ final class HotkeyService {
     private var handler: EventHandlerRef?
     private var onToggle: (() -> Void)?
     private var onEdit: (() -> Void)?
+    private(set) var failedMessage: String?
 
     func start(toggle: KeyChord, edit: KeyChord, onToggle: @escaping () -> Void, onEdit: @escaping () -> Void) {
         stop()
         self.onToggle = onToggle
         self.onEdit = onEdit
+        failedMessage = nil
 
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let user = Unmanaged.passUnretained(self).toOpaque()
@@ -26,10 +28,18 @@ final class HotkeyService {
         }, 1, &spec, user, &handler)
 
         let toggleID = EventHotKeyID(signature: fourChar("MSHU"), id: 1)
-        RegisterEventHotKey(toggle.keyCode, toggle.carbonModifiers, toggleID, GetApplicationEventTarget(), 0, &toggleRef)
+        let toggleStatus = RegisterEventHotKey(toggle.keyCode, toggle.carbonModifiers, toggleID, GetApplicationEventTarget(), 0, &toggleRef)
 
         let editID = EventHotKeyID(signature: fourChar("MSHU"), id: 2)
-        RegisterEventHotKey(edit.keyCode, edit.carbonModifiers, editID, GetApplicationEventTarget(), 0, &editRef)
+        let editStatus = RegisterEventHotKey(edit.keyCode, edit.carbonModifiers, editID, GetApplicationEventTarget(), 0, &editRef)
+
+        if toggleStatus != noErr && editStatus != noErr {
+            failedMessage = "⌃⇧T and ⌃⇧E are already in use."
+        } else if toggleStatus != noErr {
+            failedMessage = "⌃⇧T is already in use — overlay toggle was not registered."
+        } else if editStatus != noErr {
+            failedMessage = "⌃⇧E is already in use — edit-layout was not registered."
+        }
     }
 
     func stop() {
