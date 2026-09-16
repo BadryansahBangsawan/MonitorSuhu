@@ -14,5 +14,12 @@ dotnet publish "$PSScriptRoot\src\MonitorSuhu.App\MonitorSuhu.App.csproj" `
     /p:PublishSingleFile=true `
     /p:IncludeNativeLibrariesForSelfExtract=true `
     -o $out
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Published: $out\MonitorSuhu.exe"
+$exe = Join-Path $out "MonitorSuhu.exe"
+if (-not (Test-Path $exe)) {
+    Write-Error "Publish succeeded but $exe was not produced."
+    exit 1
+}
+
+Write-Host "Published: $exe"

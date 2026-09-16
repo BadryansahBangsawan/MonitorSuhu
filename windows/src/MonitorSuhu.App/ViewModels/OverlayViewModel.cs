@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MonitorSuhu.Core.Models;
 using MonitorSuhu.Core.Services;

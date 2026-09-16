@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Window = System.Windows.Window;
 using MonitorSuhu.Core.Models;
 
 namespace MonitorSuhu.Core.Services;

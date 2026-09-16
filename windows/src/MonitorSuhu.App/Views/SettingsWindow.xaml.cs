@@ -1,4 +1,5 @@
 using System.Windows;
+using Window = System.Windows.Window;
 using MonitorSuhu.App.ViewModels;
 
 namespace MonitorSuhu.App.Views;

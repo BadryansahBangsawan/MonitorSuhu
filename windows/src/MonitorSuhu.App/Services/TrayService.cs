@@ -1,4 +1,5 @@
 using System.Windows;
+using Visibility = System.Windows.Visibility;
 using Hardcodet.Wpf.TaskbarNotification;
 
 namespace MonitorSuhu.App.Services;

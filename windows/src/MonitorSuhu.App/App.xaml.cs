@@ -1,4 +1,5 @@
 using System.Windows;
+using Application = System.Windows.Application;
 using MonitorSuhu.App.Services;
 using MonitorSuhu.App.ViewModels;
 using MonitorSuhu.App.Views;
