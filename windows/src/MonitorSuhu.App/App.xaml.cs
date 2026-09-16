@@ -147,7 +147,7 @@ public partial class App : Application
         if (settings is null) return;
         double? cpu = snapshot.Readings.FirstOrDefault(r => r.Kind == SensorKind.Cpu) is { } reading
             && settings.IsKindVisible(SensorKind.Cpu)
-                ? reading.Celsius
+                ? reading.Value
                 : null;
         var title = settings.MenuBarTitle(cpu);
         var crit = cpu is { } c && c >= settings.ThresholdsFor(SensorKind.Cpu).Critical;

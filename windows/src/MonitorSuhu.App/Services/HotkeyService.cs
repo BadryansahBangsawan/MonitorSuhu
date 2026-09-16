@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using MonitorSuhu.Core.Models;
 
-namespace MonitorSuhu.Core.Services;
+namespace MonitorSuhu.App.Services;
 
 public sealed class HotkeyService : IDisposable
 {

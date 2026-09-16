@@ -10,7 +10,7 @@ public enum SensorKind
     Fan
 }
 
-public sealed record SensorReading(string Id, SensorKind Kind, string Label, double Celsius);
+public sealed record SensorReading(string Id, SensorKind Kind, string Label, double Value);
 
 public sealed class HardwareSnapshot
 {

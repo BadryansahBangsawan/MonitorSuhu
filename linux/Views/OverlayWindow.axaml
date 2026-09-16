@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MonitorSuhu.Linux.Views.OverlayWindow"
+        x:Name="HudWindow"
+        Title="MonitorSuhu"
+        SystemDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        CanResize="False"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Inter, Segoe UI Semibold, Noto Sans, DejaVu Sans, sans-serif"
+        PointerPressed="OnDrag">
+    <Border x:Name="HudRoot"
+            CornerRadius="2"
+            BorderThickness="1"
+            BorderBrush="{Binding ChromeBrush}">
+        <Border.Background>
+            <SolidColorBrush Color="Black" Opacity="{Binding Opacity}"/>
+        </Border.Background>
+        <DockPanel>
+            <Rectangle Width="3" Fill="{Binding Accent}" DockPanel.Dock="Left"/>
+            <StackPanel Margin="10,8">
+                <TextBlock Text="NO SENSORS"
+                           Foreground="#8CFFFFFF"
+                           FontSize="{Binding FontSize}"
+                           IsVisible="{Binding ShowEmpty}"/>
+                <TextBlock Text="{Binding CompactLine}"
+                           Foreground="{Binding CompactColor}"
+                           FontSize="{Binding FontSize}"
+                           IsVisible="{Binding ShowCompact}"/>
+                <ItemsControl ItemsSource="{Binding Rows}"
+                              IsVisible="{Binding ShowStacked}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Label}"
+                                           Foreground="#C7FFFFFF"
+                                           FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"/>
+                                <Grid Grid.Column="1"
+                                      Width="36"
+                                      Height="12"
+                                      VerticalAlignment="Center"
+                                      IsVisible="{Binding DataContext.ShowSparkline, ElementName=HudWindow}">
+                                    <Polyline Points="{Binding Points}"
+                                              Stretch="Fill"
+                                              Stroke="{Binding Color}"
+                                              StrokeThickness="1"
+                                              Fill="Transparent"/>
+                                </Grid>
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding Value}"
+                                           Foreground="{Binding Color}"
+                                           FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"
+                                           FontWeight="SemiBold"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

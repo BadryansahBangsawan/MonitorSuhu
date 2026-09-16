@@ -87,6 +87,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (Settings.StartWithWindows == value) return;
             Settings.StartWithWindows = value;
             OnPropertyChanged();
+            var exe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
+            AutostartService.Apply(value, exe);
             _store.SaveDebounced();
         }
     }

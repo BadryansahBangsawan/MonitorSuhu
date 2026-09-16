@@ -23,4 +23,9 @@ if (-not $iscc) {
 & $iscc "$PSScriptRoot\MonitorSuhu.iss"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Installer: $windowsRoot\dist\MonitorSuhu-1.0.0-windows-x64.exe"
+$iss = Get-Content -Raw "$PSScriptRoot\MonitorSuhu.iss"
+if ($iss -notmatch '#define MyAppVersion "([^"]+)"') {
+    throw "Could not read MyAppVersion from MonitorSuhu.iss"
+}
+$version = $Matches[1]
+Write-Host "Installer: $windowsRoot\dist\MonitorSuhu-$version-windows-$Arch.exe"

@@ -28,6 +28,7 @@ final class SensorService: ObservableObject {
     func stop() {
         timer?.cancel()
         timer = nil
+        queue.sync { hid.close() }
     }
 
     func history(for kind: SensorKind) -> [Double] {
@@ -69,7 +70,7 @@ final class SensorService: ObservableObject {
             tokens: Self.cpuTokens,
             excluding: Self.devTokens
         ) {
-            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: cpu))
+            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: cpu))
         }
         if let gpu = Self.boundOrPick(
             kind: .gpu,
@@ -79,7 +80,7 @@ final class SensorService: ObservableObject {
             tokens: Self.gpuTokens,
             excluding: Self.devTokens
         ) {
-            readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", celsius: gpu))
+            readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", value: gpu))
         }
         if let ssd = Self.boundOrPick(
             kind: .ssd,
@@ -89,7 +90,7 @@ final class SensorService: ObservableObject {
             tokens: Self.ssdTokens,
             excluding: []
         ) {
-            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", celsius: ssd))
+            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", value: ssd))
         }
         if let board = Self.boundOrPick(
             kind: .board,
@@ -99,7 +100,7 @@ final class SensorService: ObservableObject {
             tokens: Self.boardTokens,
             excluding: Self.cpuTokens + Self.ssdTokens + Self.devTokens
         ) {
-            readings.append(SensorReading(id: "board", kind: .board, label: "BOARD", celsius: board))
+            readings.append(SensorReading(id: "board", kind: .board, label: "BOARD", value: board))
         }
         if let ram = Self.boundOrPick(
             kind: .ram,
@@ -109,7 +110,7 @@ final class SensorService: ObservableObject {
             tokens: Self.ramTokens,
             excluding: []
         ) {
-            readings.append(SensorReading(id: "ram", kind: .ram, label: "RAM", celsius: ram))
+            readings.append(SensorReading(id: "ram", kind: .ram, label: "RAM", value: ram))
         }
 
         // Intel Mac fallback: SMC keys when HID is empty.
@@ -119,18 +120,18 @@ final class SensorService: ObservableObject {
 
         // Last resort: show the hottest HID sensor as CPU so the HUD is never blank.
         if readings.isEmpty, let hottest = valid.max(by: { $0.celsius < $1.celsius }) {
-            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: hottest.celsius))
+            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: hottest.celsius))
         }
 
         if let rpm = Self.fanValue(bindings: bound, catalog: nextCatalog), rpm > 0 {
-            readings.append(SensorReading(id: "fan", kind: .fan, label: "FAN", celsius: rpm))
+            readings.append(SensorReading(id: "fan", kind: .fan, label: "FAN", value: rpm))
         }
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             for reading in readings {
                 var ring = self.rings[reading.kind, default: []]
-                ring.append(reading.celsius)
+                ring.append(reading.value)
                 if ring.count > 30 {
                     ring.removeFirst()
                 }
@@ -151,7 +152,7 @@ final class SensorService: ObservableObject {
 
     private static func sameDisplay(_ a: [SensorReading], _ b: [SensorReading]) -> Bool {
         a.count == b.count && zip(a, b).allSatisfy {
-            $0.id == $1.id && $0.kind == $1.kind && $0.celsius.rounded() == $1.celsius.rounded()
+            $0.id == $1.id && $0.kind == $1.kind && $0.value.rounded() == $1.value.rounded()
         }
     }
 
@@ -211,13 +212,13 @@ enum SMCTemperatureReader {
 
         var readings: [SensorReading] = []
         if let cpu = readKey(conn, "TC0P") ?? readKey(conn, "TC0D") ?? readKey(conn, "TC0E") {
-            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: cpu))
+            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: cpu))
         }
         if let gpu = readKey(conn, "TG0P") ?? readKey(conn, "TG0D") {
-            readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", celsius: gpu))
+            readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", value: gpu))
         }
         if let ssd = readKey(conn, "TH0P") ?? readKey(conn, "TH0A") {
-            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", celsius: ssd))
+            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", value: ssd))
         }
         return readings.isEmpty ? nil : readings
     }

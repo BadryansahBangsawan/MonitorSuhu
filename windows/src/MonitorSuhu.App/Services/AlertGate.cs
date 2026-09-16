@@ -13,7 +13,7 @@ public sealed class AlertGate
         foreach (var reading in readings)
         {
             if (!settings.IsKindVisible(reading.Kind)) continue;
-            if (reading.Celsius >= settings.ThresholdsFor(reading.Kind).Critical)
+            if (reading.Value >= settings.ThresholdsFor(reading.Kind).Critical)
                 now.Add(reading.Kind);
         }
 

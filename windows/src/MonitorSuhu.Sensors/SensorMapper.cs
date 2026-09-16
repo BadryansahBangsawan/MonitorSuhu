@@ -3,7 +3,7 @@ using MonitorSuhu.Core.Models;
 
 namespace MonitorSuhu.Sensors;
 
-internal static class SensorMapper
+public static class SensorMapper
 {
     public static IReadOnlyList<CatalogEntry> MapCatalog(IComputer computer)
     {
@@ -30,9 +30,14 @@ internal static class SensorMapper
 
     public static IReadOnlyList<SensorReading> Map(
         IComputer computer,
+        IReadOnlyDictionary<string, string> bindings) =>
+        Map(MapCatalog(computer), computer, bindings);
+
+    public static IReadOnlyList<SensorReading> Map(
+        IReadOnlyList<CatalogEntry> catalog,
+        IComputer computer,
         IReadOnlyDictionary<string, string> bindings)
     {
-        var catalog = MapCatalog(computer);
         var catalogById = new Dictionary<string, CatalogEntry>(StringComparer.Ordinal);
         foreach (var entry in catalog)
         {
@@ -203,11 +208,42 @@ internal static class SensorMapper
 
     private static double? PickBoard(IHardware board)
     {
-        var sensors = AllTemps(board).ToList();
-        return First(sensors, "CPU")
-            ?? First(sensors, "System")
-            ?? First(sensors, "Motherboard")
-            ?? Max(sensors);
+        var sensors = AllTemps(board)
+            .Select(s => (s.Name, (double)(s.Value ?? 0)))
+            .ToList();
+        return PickBoard(sensors);
+    }
+
+    /// <summary>
+    /// Prefer board/ambient/chipset temps. A Super-I/O sensor named "CPU"
+    /// is last resort so BOARD does not clone the CPU package reading.
+    /// </summary>
+    public static double? PickBoard(IReadOnlyList<(string Name, double Value)> sensors)
+    {
+        var valid = sensors.Where(s => s.Value is > 0 and < 120).ToList();
+        if (valid.Count == 0) return null;
+
+        var preferred = valid.Where(s => !LooksLikeCpu(s.Name)).ToList();
+        var cpuLike = valid.Where(s => LooksLikeCpu(s.Name)).ToList();
+
+        return FirstNamed(preferred, "System")
+            ?? FirstNamed(preferred, "Motherboard")
+            ?? FirstNamed(preferred, "Ambient")
+            ?? FirstNamed(preferred, "Super I/O")
+            ?? FirstNamed(preferred, "Chipset")
+            ?? MaxValue(preferred)
+            ?? FirstNamed(cpuLike, "CPU")
+            ?? MaxValue(cpuLike);
+    }
+
+    private static bool LooksLikeCpu(string name)
+    {
+        var n = name.ToLowerInvariant();
+        return n.Contains("cpu")
+            || n.Contains("package")
+            || n.Contains("tctl")
+            || n.Contains("tdie")
+            || n.Contains("core");
     }
 
     private static double? PickNamed(IHardware hardware, params string[] names)
@@ -247,6 +283,24 @@ internal static class SensorMapper
     {
         var values = sensors.Select(s => s.Value).Where(v => v is > 0 and < 120).Cast<float>();
         return values.Any() ? values.Max() : null;
+    }
+
+    private static double? FirstNamed(IReadOnlyList<(string Name, double Value)> sensors, string token)
+    {
+        foreach (var sensor in sensors)
+        {
+            if (sensor.Name.Contains(token, StringComparison.OrdinalIgnoreCase))
+            {
+                return sensor.Value;
+            }
+        }
+        return null;
+    }
+
+    private static double? MaxValue(IReadOnlyList<(string Name, double Value)> sensors)
+    {
+        if (sensors.Count == 0) return null;
+        return sensors.Max(s => s.Value);
     }
 
     private static string Shorten(string name)

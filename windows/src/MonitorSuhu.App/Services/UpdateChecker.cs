@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
+using MonitorSuhu.Core;
 
 namespace MonitorSuhu.App.Services;
 
@@ -29,7 +30,7 @@ public sealed partial class UpdateChecker : ObservableObject
         var v = currentVersion
             ?? typeof(UpdateChecker).Assembly.GetName().Version?.ToString()
             ?? "0";
-        CurrentVersion = TrimVersion(v);
+        CurrentVersion = Versioning.Trim(v);
     }
 
     public async Task CheckAsync(bool userInitiated = false)
@@ -65,7 +66,7 @@ public sealed partial class UpdateChecker : ObservableObject
 
             LatestVersion = tag;
             LatestUrl = page;
-            HasUpdate = IsNewer(tag, CurrentVersion);
+            HasUpdate = Versioning.IsNewer(tag, CurrentVersion);
             OnPropertyChanged(nameof(UpdateMessage));
 
             if (userInitiated)
@@ -103,33 +104,8 @@ public sealed partial class UpdateChecker : ObservableObject
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
-    public static bool IsNewer(string latest, string current)
-    {
-        var a = Parse(latest);
-        var b = Parse(current);
-        var n = Math.Max(a.Count, b.Count);
-        for (var i = 0; i < n; i++)
-        {
-            var x = i < a.Count ? a[i] : 0;
-            var y = i < b.Count ? b[i] : 0;
-            if (x != y) return x > y;
-        }
-        return false;
-    }
-
-    private static List<int> Parse(string version) =>
-        version.Split('.')
-            .Select(part => int.TryParse(new string(part.Where(char.IsDigit).ToArray()), out var n) ? n : 0)
-            .ToList();
-
-    private static string TrimVersion(string version)
-    {
-        var parts = Parse(version);
-        while (parts.Count > 3) parts.RemoveAt(parts.Count - 1);
-        while (parts.Count > 1 && parts[^1] == 0 && parts.Count > 3) parts.RemoveAt(parts.Count - 1);
-        if (parts.Count == 4 && parts[3] == 0) parts.RemoveAt(3);
-        return string.Join('.', parts);
-    }
+    public static bool IsNewer(string latest, string current) =>
+        Versioning.IsNewer(latest, current);
 
     private static void Show(string title, string message, string? open = null)
     {

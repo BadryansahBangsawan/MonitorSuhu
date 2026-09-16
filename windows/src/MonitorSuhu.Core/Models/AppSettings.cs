@@ -108,7 +108,56 @@ public sealed class AppSettings
     public void SetThresholds(SensorKind kind, double warn, double critical)
     {
         Thresholds[kind.ToString()] = new Thresholds { Warn = warn, Critical = critical };
+        Sanitize();
     }
+
+    public void Sanitize()
+    {
+        OverlayOpacity = Clamp(OverlayOpacity, 0.4, 0.95);
+        FontSize = Clamp(FontSize, 11, 18);
+        PollIntervalMs = (int)Clamp(PollIntervalMs, 400, 3000);
+        var hex = NormalizeHex(AccentHex);
+        AccentHex = hex.Length == 6 ? "#" + hex : NvidiaGreen;
+
+        var next = new Dictionary<string, Thresholds>
+        {
+            [nameof(SensorKind.Cpu)] = new Thresholds { Warn = 75, Critical = 90 },
+            [nameof(SensorKind.Gpu)] = new Thresholds { Warn = 75, Critical = 90 },
+            [nameof(SensorKind.Ssd)] = new Thresholds { Warn = 60, Critical = 70 },
+            [nameof(SensorKind.Board)] = new Thresholds { Warn = 70, Critical = 85 },
+            [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 },
+            [nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 }
+        };
+        foreach (var (key, value) in Thresholds ?? [])
+        {
+            var t = new Thresholds { Warn = value.Warn, Critical = value.Critical };
+            if (key == nameof(SensorKind.Fan))
+            {
+                t.Warn = Clamp(t.Warn, 500, 8000);
+                t.Critical = Clamp(t.Critical, 600, 10000);
+                if (t.Warn >= t.Critical) t.Critical = Math.Min(10000, t.Warn + 5);
+            }
+            else
+            {
+                t.Warn = Clamp(t.Warn, 1, 120);
+                t.Critical = Clamp(t.Critical, 2, 130);
+                if (t.Warn >= t.Critical) t.Critical = Math.Min(130, t.Warn + 5);
+            }
+            next[key] = t;
+        }
+        Thresholds = next;
+        SensorBindings ??= new();
+    }
+
+    public static string NormalizeHex(string hex)
+    {
+        var s = (hex ?? "").Trim().ToUpperInvariant();
+        if (s.StartsWith('#')) s = s[1..];
+        return s;
+    }
+
+    private static double Clamp(double value, double lo, double hi) =>
+        Math.Min(hi, Math.Max(lo, value));
 
     public string FormatTemperature(double celsius)
     {
@@ -121,8 +170,8 @@ public sealed class AppSettings
 
     public string FormatValue(SensorReading r) =>
         r.Kind == SensorKind.Fan
-            ? $"{Math.Round(r.Celsius)} RPM"
-            : FormatTemperature(r.Celsius);
+            ? $"{Math.Round(r.Value)} RPM"
+            : FormatTemperature(r.Value);
 
     public string MenuBarTitle(double? cpuCelsius)
     {

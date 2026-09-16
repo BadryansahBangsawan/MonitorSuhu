@@ -132,7 +132,7 @@ public sealed class OverlayViewModel : ObservableObject
         CompactLine = string.Join("  ", visible.Select(r => $"{r.Label} {settings.FormatValue(r)}"));
         CompactColor = visible.Count == 0
             ? AccentBrush
-            : ColorFor(visible.MaxBy(r => r.Celsius)!);
+            : ColorFor(ReadingLevelUtil.Worst(visible, settings));
         OnPropertyChanged(nameof(CompactHud));
         OnPropertyChanged(nameof(ShowSparkline));
     }
@@ -168,19 +168,18 @@ public sealed class OverlayViewModel : ObservableObject
         return points;
     }
 
-    private Brush ColorFor(SensorReading reading)
+    private Brush ColorFor(SensorReading reading) =>
+        ColorFor(ReadingLevelUtil.Of(reading, _store.Settings));
+
+    private Brush ColorFor(ReadingLevel level)
     {
-        var t = _store.Settings.ThresholdsFor(reading.Kind);
         var app = System.Windows.Application.Current;
-        if (reading.Celsius >= t.Critical)
+        return level switch
         {
-            return app?.TryFindResource("CritBrush") as Brush ?? Brushes.Red;
-        }
-        if (reading.Celsius >= t.Warn)
-        {
-            return app?.TryFindResource("WarnBrush") as Brush ?? Brushes.Gold;
-        }
-        return AccentBrush;
+            ReadingLevel.Critical => app?.TryFindResource("CritBrush") as Brush ?? Brushes.Red,
+            ReadingLevel.Warn => app?.TryFindResource("WarnBrush") as Brush ?? Brushes.Gold,
+            _ => AccentBrush
+        };
     }
 
     private Brush AccentBrush

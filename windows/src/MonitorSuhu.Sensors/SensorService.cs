@@ -86,7 +86,7 @@ public sealed class SensorService : IDisposable
                 LastCatalog = SensorMapper.MapCatalog(_computer);
                 snapshot = new HardwareSnapshot
                 {
-                    Readings = SensorMapper.Map(_computer, bindings),
+                    Readings = SensorMapper.Map(LastCatalog, _computer, bindings),
                     Timestamp = DateTime.Now
                 };
             }
@@ -98,7 +98,7 @@ public sealed class SensorService : IDisposable
                     ring = new List<double>(HistoryCap);
                     _rings[reading.Kind] = ring;
                 }
-                ring.Add(reading.Celsius);
+                ring.Add(reading.Value);
                 if (ring.Count > HistoryCap)
                 {
                     ring.RemoveAt(0);
