@@ -152,6 +152,12 @@ struct SettingsView: View {
                     isOn: $store.settings.showRam,
                     help: "Hidden in the HUD when this Mac has no RAM temperature sensor."
                 )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Fan",
+                    isOn: $store.settings.showFan,
+                    help: "Hidden in the HUD when this Mac has no fan RPM sensor."
+                )
             } caption: {
                 if !anySensorEnabled {
                     SettingsCallout("Turn on at least one sensor or the HUD shows NO SENSORS.")
@@ -160,6 +166,17 @@ struct SettingsView: View {
                 } else {
                     SettingsCaption("RAM is omitted from the HUD when this Mac has no sensor for it.")
                 }
+            }
+
+            SettingsSection("Assignments") {
+                ForEach(SensorKind.allCases) { kind in
+                    assignmentRow(kind)
+                    if kind != SensorKind.allCases.last {
+                        SettingsRowDivider()
+                    }
+                }
+            } caption: {
+                SettingsCaption("Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor.")
             }
 
             SettingsSection("Thresholds") {
@@ -219,10 +236,18 @@ struct SettingsView: View {
                         thresholdField(.ram, isWarn: true)
                         thresholdField(.ram, isWarn: false)
                     }
+                    GridRow {
+                        Text("Fan")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.fan, isWarn: true)
+                        thresholdField(.fan, isWarn: false)
+                    }
                 }
                 .padding(.vertical, 10)
             } caption: {
-                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Values are always in °C.")
+                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Values are always in °C. Fan thresholds are RPM.")
             }
 
             SettingsSection("Polling") {
@@ -270,6 +295,10 @@ struct SettingsView: View {
             SettingsSection("Display") {
                 SettingsToggleRow("Use Fahrenheit", isOn: $store.settings.useFahrenheit)
                 SettingsRowDivider()
+                SettingsToggleRow("Compact HUD", isOn: $store.settings.compactHud)
+                SettingsRowDivider()
+                SettingsToggleRow("Sparkline (30 samples)", isOn: $store.settings.showSparkline)
+                SettingsRowDivider()
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Opacity")
@@ -295,6 +324,8 @@ struct SettingsView: View {
                         .accessibilityLabel("Font size")
                 }
                 .padding(.vertical, 10)
+            } caption: {
+                SettingsCaption("Compact puts every sensor on one line. Sparkline is the last 30 polls.")
             }
 
             SettingsSection("Accent") {
@@ -359,6 +390,7 @@ struct SettingsView: View {
             || store.settings.showSsd
             || store.settings.showBoard
             || store.settings.showRam
+            || store.settings.showFan
     }
 
     private func settingsScroll<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -395,6 +427,28 @@ struct SettingsView: View {
         .textFieldStyle(.roundedBorder)
         .gridColumnAlignment(.center)
         .accessibilityLabel("\(kind.hudLabel) \(isWarn ? "warn" : "critical")")
+    }
+
+    private func assignmentRow(_ kind: SensorKind) -> some View {
+        let options = sensors.catalog.filter { kind == .fan ? $0.isFan : !$0.isFan }
+        return HStack(alignment: .center, spacing: 12) {
+            Text(kind.hudLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Picker(kind.hudLabel, selection: Binding(
+                get: { store.settings.sensorBindings[kind.rawValue] ?? "" },
+                set: { store.settings.sensorBindings[kind.rawValue] = $0 }
+            )) {
+                Text("Auto").tag("")
+                ForEach(options, id: \.id) { entry in
+                    Text(entry.name).tag(entry.name)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: 240)
+        }
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 
     private func resetDefaults() {

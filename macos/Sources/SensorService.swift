@@ -4,13 +4,17 @@ import IOKit
 
 final class SensorService: ObservableObject {
     @Published private(set) var snapshot = HardwareSnapshot(readings: [], timestamp: Date())
+    @Published private(set) var catalog: [(id: String, name: String, value: Double, isFan: Bool)] = []
 
     private let hid = HIDTemperatureReader()
     private var timer: DispatchSourceTimer?
     private let queue = DispatchQueue(label: "id.monitorsuhu.sensors", qos: .utility)
+    private var bindings: () -> [String: String] = { [:] }
+    private var rings: [SensorKind: [Double]] = [:]
 
-    func start(intervalMs: Double) {
+    func start(intervalMs: Double, bindings: @escaping () -> [String: String] = { [:] }) {
         stop()
+        self.bindings = bindings
         hid.open()
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: max(intervalMs, 400) / 1000)
@@ -26,25 +30,85 @@ final class SensorService: ObservableObject {
         timer = nil
     }
 
+    func history(for kind: SensorKind) -> [Double] {
+        rings[kind] ?? []
+    }
+
     private func tick() {
         let hidRows = hid.poll()
-        var readings: [SensorReading] = []
+        let smcKeys = SMCTemperatureReader.catalogKeys()
+        let fanKeys = SMCFanReader.catalogKeys()
+        let bound = bindings()
+
+        var nextCatalog: [(id: String, name: String, value: Double, isFan: Bool)] = []
+        var seen = Set<String>()
+        for row in hidRows {
+            if seen.insert(row.name).inserted {
+                nextCatalog.append((id: row.name, name: row.name, value: row.celsius, isFan: false))
+            }
+        }
+        for row in smcKeys {
+            if seen.insert(row.id).inserted {
+                nextCatalog.append((id: row.id, name: row.name, value: row.value, isFan: false))
+            }
+        }
+        for row in fanKeys {
+            if seen.insert(row.id).inserted {
+                nextCatalog.append((id: row.id, name: row.name, value: row.value, isFan: true))
+            }
+        }
 
         let valid = hidRows.filter { $0.celsius > 1 && $0.celsius < 110 }
+        var readings: [SensorReading] = []
 
-        if let cpu = Self.pick(valid, matching: Self.cpuTokens, excluding: Self.devTokens) {
+        if let cpu = Self.boundOrPick(
+            kind: .cpu,
+            bindings: bound,
+            valid: valid,
+            catalog: nextCatalog,
+            tokens: Self.cpuTokens,
+            excluding: Self.devTokens
+        ) {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: cpu))
         }
-        if let gpu = Self.pick(valid, matching: Self.gpuTokens, excluding: Self.devTokens) {
+        if let gpu = Self.boundOrPick(
+            kind: .gpu,
+            bindings: bound,
+            valid: valid,
+            catalog: nextCatalog,
+            tokens: Self.gpuTokens,
+            excluding: Self.devTokens
+        ) {
             readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", celsius: gpu))
         }
-        if let ssd = Self.pick(valid, matching: Self.ssdTokens, excluding: []) {
+        if let ssd = Self.boundOrPick(
+            kind: .ssd,
+            bindings: bound,
+            valid: valid,
+            catalog: nextCatalog,
+            tokens: Self.ssdTokens,
+            excluding: []
+        ) {
             readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", celsius: ssd))
         }
-        if let board = Self.pick(valid, matching: Self.boardTokens, excluding: Self.cpuTokens + Self.ssdTokens + Self.devTokens) {
+        if let board = Self.boundOrPick(
+            kind: .board,
+            bindings: bound,
+            valid: valid,
+            catalog: nextCatalog,
+            tokens: Self.boardTokens,
+            excluding: Self.cpuTokens + Self.ssdTokens + Self.devTokens
+        ) {
             readings.append(SensorReading(id: "board", kind: .board, label: "BOARD", celsius: board))
         }
-        if let ram = Self.pick(valid, matching: Self.ramTokens, excluding: []) {
+        if let ram = Self.boundOrPick(
+            kind: .ram,
+            bindings: bound,
+            valid: valid,
+            catalog: nextCatalog,
+            tokens: Self.ramTokens,
+            excluding: []
+        ) {
             readings.append(SensorReading(id: "ram", kind: .ram, label: "RAM", celsius: ram))
         }
 
@@ -58,15 +122,28 @@ final class SensorService: ObservableObject {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: hottest.celsius))
         }
 
+        if let rpm = Self.fanValue(bindings: bound, catalog: nextCatalog), rpm > 0 {
+            readings.append(SensorReading(id: "fan", kind: .fan, label: "FAN", celsius: rpm))
+        }
+
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            for reading in readings {
+                var ring = self.rings[reading.kind, default: []]
+                ring.append(reading.celsius)
+                if ring.count > 30 {
+                    ring.removeFirst()
+                }
+                self.rings[reading.kind] = ring
+            }
+            self.catalog = nextCatalog
             if Self.sameDisplay(self.snapshot.readings, readings) { return }
             self.snapshot = HardwareSnapshot(readings: readings, timestamp: Date())
         }
     }
 
     private static let cpuTokens = ["tdie", "soc", "cpu", "pacc", "eacc"]
-    private static let gpuTokens = ["gpu"]
+    private static let gpuTokens = ["gpu", "agx", "dgpu", "gfx"]
     private static let ssdTokens = ["nand", "ssd", "storage"]
     private static let boardTokens = ["wifi", "airport", "skin", "ambient", "gas gauge"]
     private static let ramTokens = ["dram", "memory"]
@@ -90,6 +167,39 @@ final class SensorService: ObservableObject {
         }
         return hits.map(\.celsius).max()
     }
+
+    private static func boundOrPick(
+        kind: SensorKind,
+        bindings: [String: String],
+        valid: [(name: String, celsius: Double)],
+        catalog: [(id: String, name: String, value: Double, isFan: Bool)],
+        tokens: [String],
+        excluding: [String]
+    ) -> Double? {
+        let name = bindings[kind.rawValue] ?? ""
+        if !name.isEmpty {
+            if let row = valid.first(where: { $0.name == name }) {
+                return row.celsius
+            }
+            if let row = catalog.first(where: { !$0.isFan && ($0.id == name || $0.name == name) }) {
+                return row.value
+            }
+        }
+        return pick(valid, matching: tokens, excluding: excluding)
+    }
+
+    private static func fanValue(
+        bindings: [String: String],
+        catalog: [(id: String, name: String, value: Double, isFan: Bool)]
+    ) -> Double? {
+        let name = bindings[SensorKind.fan.rawValue] ?? ""
+        if !name.isEmpty {
+            if let row = catalog.first(where: { $0.isFan && ($0.id == name || $0.name == name) }) {
+                return row.value
+            }
+        }
+        return catalog.first(where: \.isFan)?.value
+    }
 }
 
 /// Intel Mac SMC reader. Apple Silicon machines typically have no useful SMC temp keys.
@@ -112,7 +222,21 @@ enum SMCTemperatureReader {
         return readings.isEmpty ? nil : readings
     }
 
-    private static func openSMC(_ conn: inout io_connect_t) -> Bool {
+    static func catalogKeys() -> [(id: String, name: String, value: Double)] {
+        var conn: io_connect_t = 0
+        guard openSMC(&conn) else { return [] }
+        defer { IOServiceClose(conn) }
+        let keys = ["TC0P", "TC0D", "TC0E", "TG0P", "TG0D", "TH0P", "TH0A"]
+        var rows: [(id: String, name: String, value: Double)] = []
+        for key in keys {
+            if let value = readKey(conn, key) {
+                rows.append((id: key, name: key, value: value))
+            }
+        }
+        return rows
+    }
+
+    fileprivate static func openSMC(_ conn: inout io_connect_t) -> Bool {
         let matching = IOServiceMatching("AppleSMC")
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else {
@@ -147,19 +271,73 @@ enum SMCTemperatureReader {
         return value
     }
 
-    private static func smcCall(_ conn: io_connect_t, _ index: UInt32, _ input: inout SMCParamStruct, _ output: inout SMCParamStruct) -> Bool {
+    fileprivate static func smcCall(_ conn: io_connect_t, _ index: UInt32, _ input: inout SMCParamStruct, _ output: inout SMCParamStruct) -> Bool {
         let inSize = MemoryLayout<SMCParamStruct>.stride
         var outSize = MemoryLayout<SMCParamStruct>.stride
         let kr = IOConnectCallStructMethod(conn, index, &input, inSize, &output, &outSize)
         return kr == KERN_SUCCESS
     }
 
-    private static func fourChar(_ s: String) -> UInt32 {
+    fileprivate static func fourChar(_ s: String) -> UInt32 {
         var result: UInt32 = 0
         for byte in s.utf8.prefix(4) {
             result = (result << 8) | UInt32(byte)
         }
         return result
+    }
+}
+
+enum SMCFanReader {
+    static func poll() -> Double? {
+        catalogKeys().first?.value
+    }
+
+    static func catalogKeys() -> [(id: String, name: String, value: Double)] {
+        var conn: io_connect_t = 0
+        guard SMCTemperatureReader.openSMC(&conn) else { return [] }
+        defer { IOServiceClose(conn) }
+        var rows: [(id: String, name: String, value: Double)] = []
+        for key in ["F0Ac", "F1Ac"] {
+            if let rpm = readKey(conn, key) {
+                rows.append((id: key, name: key, value: rpm))
+            }
+        }
+        return rows
+    }
+
+    private static func readKey(_ conn: io_connect_t, _ key: String) -> Double? {
+        var input = SMCParamStruct()
+        var output = SMCParamStruct()
+        input.key = SMCTemperatureReader.fourChar(key)
+        input.data8 = 9 // kSMCGetKeyInfo
+        guard SMCTemperatureReader.smcCall(conn, 2, &input, &output) else { return nil }
+
+        var read = SMCParamStruct()
+        var result = SMCParamStruct()
+        read.key = SMCTemperatureReader.fourChar(key)
+        read.data8 = 5 // kSMCReadKey
+        read.keyInfo.dataSize = output.keyInfo.dataSize
+        guard SMCTemperatureReader.smcCall(conn, 2, &read, &result) else { return nil }
+
+        let size = Int(output.keyInfo.dataSize)
+        let bytes = result.bytes
+        let value: Double
+        if size >= 4 {
+            let bits = UInt32(bytes.0) << 24
+                | UInt32(bytes.1) << 16
+                | UInt32(bytes.2) << 8
+                | UInt32(bytes.3)
+            let parsed = Float(bitPattern: bits)
+            guard parsed.isFinite else { return nil }
+            value = Double(parsed)
+        } else if size == 2 {
+            let raw = (Int(bytes.0) << 8) | Int(bytes.1)
+            value = Double(raw) / 256.0
+        } else {
+            return nil
+        }
+        guard value >= 200, value <= 15000 else { return nil }
+        return value
     }
 }
 

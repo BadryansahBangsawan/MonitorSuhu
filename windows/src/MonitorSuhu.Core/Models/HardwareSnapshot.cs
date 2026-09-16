@@ -6,7 +6,8 @@ public enum SensorKind
     Gpu,
     Ssd,
     Board,
-    Ram
+    Ram,
+    Fan
 }
 
 public sealed record SensorReading(string Id, SensorKind Kind, string Label, double Celsius);

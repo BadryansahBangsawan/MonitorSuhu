@@ -19,13 +19,21 @@ struct OverlayView: View {
                     Text("NO SENSORS")
                         .font(.system(size: store.settings.fontSize - 1, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.55))
+                } else if store.settings.compactHud, let hottest = rows.max(by: { $0.celsius < $1.celsius }) {
+                    Text(rows.map { "\($0.label) \(store.settings.displayValue($0))" }.joined(separator: "  "))
+                        .foregroundStyle(color(for: hottest))
                 } else {
                     ForEach(rows) { row in
                         HStack(spacing: 16) {
                             Text(row.label)
                                 .foregroundStyle(.white.opacity(0.78))
+                            if store.settings.showSparkline {
+                                Sparkline(values: sensors.history(for: row.kind))
+                                    .stroke(color(for: row), lineWidth: 1)
+                                    .frame(width: 36, height: 12)
+                            }
                             Spacer(minLength: 12)
-                            Text(store.settings.displayTemperature(row.celsius))
+                            Text(store.settings.displayValue(row))
                                 .foregroundStyle(color(for: row))
                                 .monospacedDigit()
                         }
@@ -51,5 +59,35 @@ struct OverlayView: View {
         if row.celsius >= t.critical { return Color(red: 1, green: 0.23, blue: 0.19) }
         if row.celsius >= t.warn { return Color(red: 0.96, green: 0.77, blue: 0.09) }
         return store.settings.accentColor
+    }
+}
+
+private struct Sparkline: Shape {
+    let values: [Double]
+
+    func path(in rect: CGRect) -> Path {
+        guard values.count >= 2 else { return Path() }
+        let lo = values.min() ?? 0
+        let hi = values.max() ?? 0
+        let span = hi - lo
+        let n = values.count
+        var path = Path()
+        for i in 0..<n {
+            let x = rect.minX + rect.width * CGFloat(i) / CGFloat(n - 1)
+            let y: CGFloat
+            if span == 0 {
+                y = rect.midY
+            } else {
+                let t = (values[i] - lo) / span
+                y = rect.maxY - rect.height * CGFloat(t)
+            }
+            let point = CGPoint(x: x, y: y)
+            if i == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+        return path
     }
 }

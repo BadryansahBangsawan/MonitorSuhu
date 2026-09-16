@@ -213,9 +213,91 @@
                         <CheckBox Content="Motherboard" IsChecked="{Binding ShowBoard}"/>
                         <CheckBox Content="RAM" IsChecked="{Binding ShowRam}"
                                   ToolTip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
+                        <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
+                                  ToolTip="Hidden in the HUD when this PC has no fan RPM sensor."/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="RAM is omitted from the HUD when this PC has no sensor for it."
+                <TextBlock Text="RAM is omitted from the HUD when this PC has no sensor for it. Fan is omitted when there is no RPM reading."
+                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+
+                <TextBlock Text="Assignments" Style="{StaticResource SectionTitle}"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel Margin="0,6,0,6">
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="CPU" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ThermalOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding CpuBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="GPU" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ThermalOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding GpuBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="SSD" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ThermalOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SsdBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Board" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ThermalOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding BoardBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="RAM" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding ThermalOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding RamBinding}"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Fan" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding FanOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding FanBinding}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor."
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Thresholds" Style="{StaticResource SectionTitle}"/>
@@ -228,6 +310,7 @@
                             <ColumnDefinition Width="72"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -255,12 +338,16 @@
                         <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BoardWarn, UpdateSourceTrigger=LostFocus}"/>
                         <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding BoardCrit, UpdateSourceTrigger=LostFocus}"/>
 
-                        <TextBlock Grid.Row="5" Text="RAM" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="5" Text="RAM" VerticalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
                         <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
+
+                        <TextBlock Grid.Row="6" Text="Fan" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Border>
-                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Values are always in °C."
+                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Values are always in °C. Fan thresholds are RPM."
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Polling" Style="{StaticResource SectionTitle}"/>
@@ -285,6 +372,8 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
                         <CheckBox Content="Use Fahrenheit" IsChecked="{Binding UseFahrenheit}"/>
+                        <CheckBox Content="Compact HUD" IsChecked="{Binding CompactHud}"/>
+                        <CheckBox Content="Sparkline (30 samples)" IsChecked="{Binding ShowSparkline}"/>
                         <Grid Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

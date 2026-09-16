@@ -29,6 +29,14 @@ public sealed class TrayService : IDisposable
         _icon.TrayMouseDoubleClick += (_, _) => openSettings();
     }
 
+    public void SetStatus(string title, bool critical)
+    {
+        const string suffix = " — CPU critical";
+        _icon.ToolTipText = !critical || title.Contains(suffix)
+            ? title
+            : $"{title}{suffix}";
+    }
+
     public void ShowWarning(string message)
     {
         _icon.ShowBalloonTip("MonitorSuhu", message, BalloonIcon.Warning);

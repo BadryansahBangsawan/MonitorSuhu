@@ -33,11 +33,19 @@ public sealed class OverlayRow : ObservableObject
         get => _color;
         set => SetProperty(ref _color, value);
     }
+
+    private PointCollection _points = new();
+    public PointCollection Points
+    {
+        get => _points;
+        set => SetProperty(ref _points, value);
+    }
 }
 
 public sealed class OverlayViewModel : ObservableObject
 {
     private readonly SettingsStore _store;
+    private readonly SensorService _sensors;
     private HardwareSnapshot _last = new();
     public ObservableCollection<OverlayRow> Rows { get; } = [];
     public Brush Accent => AccentBrush;
@@ -46,10 +54,27 @@ public sealed class OverlayViewModel : ObservableObject
     public double Opacity => _store.Settings.OverlayOpacity;
     public double FontSize => _store.Settings.FontSize;
     public bool Locked => _store.Settings.Locked;
+    public bool CompactHud => _store.Settings.CompactHud;
+    public bool ShowSparkline => _store.Settings.ShowSparkline;
+
+    private string _compactLine = "";
+    public string CompactLine
+    {
+        get => _compactLine;
+        private set => SetProperty(ref _compactLine, value);
+    }
+
+    private Brush _compactColor = Brushes.LimeGreen;
+    public Brush CompactColor
+    {
+        get => _compactColor;
+        private set => SetProperty(ref _compactColor, value);
+    }
 
     public OverlayViewModel(SettingsStore store, SensorService sensors)
     {
         _store = store;
+        _sensors = sensors;
         sensors.Updated += snapshot =>
         {
             var app = System.Windows.Application.Current;
@@ -67,6 +92,10 @@ public sealed class OverlayViewModel : ObservableObject
         OnPropertyChanged(nameof(Opacity));
         OnPropertyChanged(nameof(FontSize));
         OnPropertyChanged(nameof(Locked));
+        OnPropertyChanged(nameof(CompactHud));
+        OnPropertyChanged(nameof(ShowSparkline));
+        OnPropertyChanged(nameof(CompactLine));
+        OnPropertyChanged(nameof(CompactColor));
     }
 
     public void Apply(HardwareSnapshot snapshot)
@@ -84,28 +113,60 @@ public sealed class OverlayViewModel : ObservableObject
             {
                 Rows.Add(MakeRow(reading));
             }
-            return;
+        }
+        else
+        {
+            for (var i = 0; i < visible.Count; i++)
+            {
+                var reading = visible[i];
+                var row = Rows[i];
+                var value = settings.FormatValue(reading);
+                var color = ColorFor(reading);
+                if (row.Label != reading.Label) row.Label = reading.Label;
+                if (row.Value != value) row.Value = value;
+                if (!ReferenceEquals(row.Color, color)) row.Color = color;
+                row.Points = BuildPoints(_sensors.History(reading.Kind));
+            }
         }
 
-        for (var i = 0; i < visible.Count; i++)
-        {
-            var reading = visible[i];
-            var row = Rows[i];
-            var value = settings.FormatTemperature(reading.Celsius);
-            var color = ColorFor(reading);
-            if (row.Label != reading.Label) row.Label = reading.Label;
-            if (row.Value != value) row.Value = value;
-            if (!ReferenceEquals(row.Color, color)) row.Color = color;
-        }
+        CompactLine = string.Join("  ", visible.Select(r => $"{r.Label} {settings.FormatValue(r)}"));
+        CompactColor = visible.Count == 0
+            ? AccentBrush
+            : ColorFor(visible.MaxBy(r => r.Celsius)!);
+        OnPropertyChanged(nameof(CompactHud));
+        OnPropertyChanged(nameof(ShowSparkline));
     }
 
     private OverlayRow MakeRow(SensorReading reading) => new()
     {
         Id = reading.Id,
         Label = reading.Label,
-        Value = _store.Settings.FormatTemperature(reading.Celsius),
-        Color = ColorFor(reading)
+        Value = _store.Settings.FormatValue(reading),
+        Color = ColorFor(reading),
+        Points = BuildPoints(_sensors.History(reading.Kind))
     };
+
+    private static PointCollection BuildPoints(IReadOnlyList<double> history)
+    {
+        if (history.Count <= 1) return new PointCollection();
+        const double width = 36;
+        const double height = 12;
+        var min = history.Min();
+        var max = history.Max();
+        var range = max - min;
+        var midline = range == 0;
+        var points = new PointCollection(history.Count);
+        var last = history.Count - 1;
+        for (var i = 0; i < history.Count; i++)
+        {
+            var x = i * (width - 1) / last;
+            var y = midline
+                ? height / 2
+                : (height - 1) * (1 - (history[i] - min) / range);
+            points.Add(new System.Windows.Point(x, y));
+        }
+        return points;
+    }
 
     private Brush ColorFor(SensorReading reading)
     {

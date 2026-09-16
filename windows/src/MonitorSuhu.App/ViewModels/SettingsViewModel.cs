@@ -11,6 +11,8 @@ namespace MonitorSuhu.App.ViewModels;
 
 public sealed record AccentOption(string Name, string Hex);
 
+public sealed record CatalogOption(string Id, string Label);
+
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsStore _store;
@@ -94,6 +96,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool ShowSsd { get => Settings.ShowSsd; set => SetFlag(v => Settings.ShowSsd = v, Settings.ShowSsd, value); }
     public bool ShowBoard { get => Settings.ShowBoard; set => SetFlag(v => Settings.ShowBoard = v, Settings.ShowBoard, value); }
     public bool ShowRam { get => Settings.ShowRam; set => SetFlag(v => Settings.ShowRam = v, Settings.ShowRam, value); }
+    public bool ShowFan { get => Settings.ShowFan; set => SetFlag(v => Settings.ShowFan = v, Settings.ShowFan, value); }
+
 
     public bool UseFahrenheit
     {
@@ -102,6 +106,32 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             if (Settings.UseFahrenheit == value) return;
             Settings.UseFahrenheit = value;
+            OnPropertyChanged();
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool CompactHud
+    {
+        get => Settings.CompactHud;
+        set
+        {
+            if (Settings.CompactHud == value) return;
+            Settings.CompactHud = value;
+            OnPropertyChanged();
+            _overlay.ApplyTheme();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool ShowSparkline
+    {
+        get => Settings.ShowSparkline;
+        set
+        {
+            if (Settings.ShowSparkline == value) return;
+            Settings.ShowSparkline = value;
             OnPropertyChanged();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
@@ -180,6 +210,61 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double BoardCrit { get => Crit(SensorKind.Board); set => SetCrit(SensorKind.Board, value); }
     public double RamWarn { get => Warn(SensorKind.Ram); set => SetWarn(SensorKind.Ram, value); }
     public double RamCrit { get => Crit(SensorKind.Ram); set => SetCrit(SensorKind.Ram, value); }
+    public double FanWarn { get => Warn(SensorKind.Fan); set => SetWarn(SensorKind.Fan, value); }
+    public double FanCrit { get => Crit(SensorKind.Fan); set => SetCrit(SensorKind.Fan, value); }
+
+    public IReadOnlyList<CatalogOption> ThermalOptions { get; private set; } = [new("", "Auto")];
+    public IReadOnlyList<CatalogOption> FanOptions { get; private set; } = [new("", "Auto")];
+
+    public string CpuBinding { get => GetBinding("Cpu"); set => SetBinding("Cpu", value); }
+    public string GpuBinding { get => GetBinding("Gpu"); set => SetBinding("Gpu", value); }
+    public string SsdBinding { get => GetBinding("Ssd"); set => SetBinding("Ssd", value); }
+    public string BoardBinding { get => GetBinding("Board"); set => SetBinding("Board", value); }
+    public string RamBinding { get => GetBinding("Ram"); set => SetBinding("Ram", value); }
+    public string FanBinding { get => GetBinding("Fan"); set => SetBinding("Fan", value); }
+
+    public void RefreshCatalog()
+    {
+        var catalog = _sensors.LastCatalog ?? [];
+        CatalogOption auto = new("", "Auto");
+        ThermalOptions =
+        [
+            auto,
+            .. catalog.Where(e => !e.IsFan).Select(e => new CatalogOption(e.Id, e.Name))
+        ];
+        FanOptions =
+        [
+            auto,
+            .. catalog.Where(e => e.IsFan).Select(e => new CatalogOption(e.Id, e.Name))
+        ];
+        OnPropertyChanged(nameof(ThermalOptions));
+        OnPropertyChanged(nameof(FanOptions));
+        OnPropertyChanged(nameof(CpuBinding));
+        OnPropertyChanged(nameof(GpuBinding));
+        OnPropertyChanged(nameof(SsdBinding));
+        OnPropertyChanged(nameof(BoardBinding));
+        OnPropertyChanged(nameof(RamBinding));
+        OnPropertyChanged(nameof(FanBinding));
+    }
+
+    private string GetBinding(string key)
+    {
+        var bindings = Settings.SensorBindings ??= new();
+        return bindings.TryGetValue(key, out var id) ? id ?? "" : "";
+    }
+
+    private void SetBinding(string key, string? value, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        if (value is null) return;
+        var bindings = Settings.SensorBindings ??= new();
+        var current = bindings.TryGetValue(key, out var existing) ? existing ?? "" : "";
+        if (current == value) return;
+        if (string.IsNullOrEmpty(value)) bindings.Remove(key);
+        else bindings[key] = value;
+        OnPropertyChanged(propertyName);
+        _store.SaveDebounced();
+    }
+
 
     [RelayCommand]
     private void Save()

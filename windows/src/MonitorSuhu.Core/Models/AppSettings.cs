@@ -71,6 +71,10 @@ public sealed class AppSettings
     public bool ShowSsd { get; set; } = true;
     public bool ShowBoard { get; set; } = true;
     public bool ShowRam { get; set; } = true;
+    public bool CompactHud { get; set; }
+    public bool ShowSparkline { get; set; }
+    public bool ShowFan { get; set; } = true;
+    public Dictionary<string, string> SensorBindings { get; set; } = new();
     public OverlayPosition? Position { get; set; }
     public Dictionary<string, Thresholds> Thresholds { get; set; } = new()
     {
@@ -78,7 +82,8 @@ public sealed class AppSettings
         [nameof(SensorKind.Gpu)] = new Thresholds { Warn = 75, Critical = 90 },
         [nameof(SensorKind.Ssd)] = new Thresholds { Warn = 60, Critical = 70 },
         [nameof(SensorKind.Board)] = new Thresholds { Warn = 70, Critical = 85 },
-        [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 }
+        [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 },
+        [nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 }
     };
     public KeyChord ToggleHotkey { get; set; } = new() { VirtualKey = 0x54, Control = true, Shift = true };
     public KeyChord EditHotkey { get; set; } = new() { VirtualKey = 0x45, Control = true, Shift = true };
@@ -90,6 +95,7 @@ public sealed class AppSettings
         SensorKind.Ssd => ShowSsd,
         SensorKind.Board => ShowBoard,
         SensorKind.Ram => ShowRam,
+        SensorKind.Fan => ShowFan,
         _ => true
     };
 
@@ -111,5 +117,17 @@ public sealed class AppSettings
             return $"{Math.Round(celsius * 9 / 5 + 32)}°F";
         }
         return $"{Math.Round(celsius)}°C";
+    }
+
+    public string FormatValue(SensorReading r) =>
+        r.Kind == SensorKind.Fan
+            ? $"{Math.Round(r.Celsius)} RPM"
+            : FormatTemperature(r.Celsius);
+
+    public string MenuBarTitle(double? cpuCelsius)
+    {
+        if (cpuCelsius is not double c) return "Suhu";
+        var n = UseFahrenheit ? Math.Round(c * 9 / 5 + 32) : Math.Round(c);
+        return $"Suhu {n}°";
     }
 }

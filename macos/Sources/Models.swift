@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum SensorKind: String, Codable, CaseIterable, Identifiable {
-    case cpu, gpu, ssd, board, ram
+    case cpu, gpu, ssd, board, ram, fan
 
     var id: String { rawValue }
 
@@ -13,6 +13,7 @@ enum SensorKind: String, Codable, CaseIterable, Identifiable {
         case .ssd: return "SSD"
         case .board: return "BOARD"
         case .ram: return "RAM"
+        case .fan: return "FAN"
         }
     }
 }
@@ -103,8 +104,12 @@ struct AppSettings: Codable, Equatable {
     var showSsd: Bool
     var showBoard: Bool
     var showRam: Bool
+    var compactHud: Bool
+    var showSparkline: Bool
+    var showFan: Bool
     var position: OverlayPosition?
     var thresholds: [String: Thresholds]
+    var sensorBindings: [String: String]
     var toggleHotkey: KeyChord
     var editHotkey: KeyChord
 
@@ -131,14 +136,19 @@ struct AppSettings: Codable, Equatable {
             showSsd: true,
             showBoard: true,
             showRam: true,
+            compactHud: false,
+            showSparkline: false,
+            showFan: true,
             position: nil,
             thresholds: [
                 SensorKind.cpu.rawValue: Thresholds(warn: 75, critical: 90),
                 SensorKind.gpu.rawValue: Thresholds(warn: 75, critical: 90),
                 SensorKind.ssd.rawValue: Thresholds(warn: 60, critical: 70),
                 SensorKind.board.rawValue: Thresholds(warn: 70, critical: 85),
-                SensorKind.ram.rawValue: Thresholds(warn: 70, critical: 85)
+                SensorKind.ram.rawValue: Thresholds(warn: 70, critical: 85),
+                SensorKind.fan.rawValue: Thresholds(warn: 4000, critical: 5500)
             ],
+            sensorBindings: [:],
             toggleHotkey: KeyChord(keyCode: 0x11, control: true, option: false, shift: true, command: false),
             editHotkey: KeyChord(keyCode: 0x0E, control: true, option: false, shift: true, command: false)
         )
@@ -151,6 +161,7 @@ struct AppSettings: Codable, Equatable {
         case .ssd: return showSsd
         case .board: return showBoard
         case .ram: return showRam
+        case .fan: return showFan
         }
     }
 
@@ -160,10 +171,18 @@ struct AppSettings: Codable, Equatable {
 
     mutating func setThresholds(for kind: SensorKind, warn: Double? = nil, critical: Double? = nil) {
         var t = thresholds(for: kind)
-        if let warn { t.warn = Self.clamp(warn, 1, 120) }
-        if let critical { t.critical = Self.clamp(critical, 2, 130) }
-        if t.warn >= t.critical {
-            t.critical = min(130, t.warn + 5)
+        if kind == .fan {
+            if let warn { t.warn = Self.clamp(warn, 500, 8000) }
+            if let critical { t.critical = Self.clamp(critical, 600, 10000) }
+            if t.warn >= t.critical {
+                t.critical = min(10000, t.warn + 5)
+            }
+        } else {
+            if let warn { t.warn = Self.clamp(warn, 1, 120) }
+            if let critical { t.critical = Self.clamp(critical, 2, 130) }
+            if t.warn >= t.critical {
+                t.critical = min(130, t.warn + 5)
+            }
         }
         thresholds[kind.rawValue] = t
     }
@@ -177,9 +196,15 @@ struct AppSettings: Codable, Equatable {
         var next = Self.default.thresholds
         for (key, value) in thresholds {
             var t = value
-            t.warn = Self.clamp(t.warn, 1, 120)
-            t.critical = Self.clamp(t.critical, 2, 130)
-            if t.warn >= t.critical { t.critical = min(130, t.warn + 5) }
+            if key == SensorKind.fan.rawValue {
+                t.warn = Self.clamp(t.warn, 500, 8000)
+                t.critical = Self.clamp(t.critical, 600, 10000)
+                if t.warn >= t.critical { t.critical = min(10000, t.warn + 5) }
+            } else {
+                t.warn = Self.clamp(t.warn, 1, 120)
+                t.critical = Self.clamp(t.critical, 2, 130)
+                if t.warn >= t.critical { t.critical = min(130, t.warn + 5) }
+            }
             next[key] = t
         }
         thresholds = next
@@ -195,6 +220,19 @@ struct AppSettings: Codable, Equatable {
             return "\(Int((celsius * 9 / 5 + 32).rounded()))°F"
         }
         return "\(Int(celsius.rounded()))°C"
+    }
+
+    func displayValue(_ reading: SensorReading) -> String {
+        if reading.kind == .fan {
+            return "\(Int(reading.celsius.rounded())) RPM"
+        }
+        return displayTemperature(reading.celsius)
+    }
+
+    func menuBarTitle(cpuCelsius: Double?) -> String {
+        guard let cpuCelsius else { return "Suhu" }
+        let converted = useFahrenheit ? cpuCelsius * 9 / 5 + 32 : cpuCelsius
+        return "Suhu \(Int(converted.rounded()))°"
     }
 
     var accentColor: Color {
@@ -219,8 +257,12 @@ extension AppSettings {
         showSsd = try c.decodeIfPresent(Bool.self, forKey: .showSsd) ?? d.showSsd
         showBoard = try c.decodeIfPresent(Bool.self, forKey: .showBoard) ?? d.showBoard
         showRam = try c.decodeIfPresent(Bool.self, forKey: .showRam) ?? d.showRam
+        compactHud = try c.decodeIfPresent(Bool.self, forKey: .compactHud) ?? d.compactHud
+        showSparkline = try c.decodeIfPresent(Bool.self, forKey: .showSparkline) ?? d.showSparkline
+        showFan = try c.decodeIfPresent(Bool.self, forKey: .showFan) ?? d.showFan
         position = try c.decodeIfPresent(OverlayPosition.self, forKey: .position) ?? d.position
         thresholds = try c.decodeIfPresent([String: Thresholds].self, forKey: .thresholds) ?? d.thresholds
+        sensorBindings = try c.decodeIfPresent([String: String].self, forKey: .sensorBindings) ?? d.sensorBindings
         toggleHotkey = try c.decodeIfPresent(KeyChord.self, forKey: .toggleHotkey) ?? d.toggleHotkey
         editHotkey = try c.decodeIfPresent(KeyChord.self, forKey: .editHotkey) ?? d.editHotkey
         sanitize()

@@ -75,7 +75,16 @@ public sealed class SettingsStore
         try
         {
             if (!File.Exists(_path)) return null;
-            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path), JsonOptions);
+            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path), JsonOptions);
+            if (settings is not null)
+            {
+                if (settings.SensorBindings is null)
+                    settings.SensorBindings = new();
+                settings.Thresholds ??= new();
+                if (!settings.Thresholds.ContainsKey(nameof(SensorKind.Fan)))
+                    settings.Thresholds[nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 };
+            }
+            return settings;
         }
         catch
         {

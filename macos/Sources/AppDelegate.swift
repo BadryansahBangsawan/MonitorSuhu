@@ -5,6 +5,7 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore()
     private let sensors = SensorService()
+    private let alertGate = AlertGate()
     private let hotkeys = HotkeyService()
     private let updates = UpdateChecker()
     private var overlay: OverlayController!
@@ -15,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         overlay = OverlayController(store: store, sensors: sensors)
-        sensors.start(intervalMs: store.settings.pollIntervalMs)
+        restartSensors()
         installStatusItem()
         registerHotkeys()
         if store.settings.startWithOs {
@@ -27,7 +28,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.$settings
             .map(\.pollIntervalMs)
             .removeDuplicates()
-            .sink { [weak self] ms in self?.sensors.start(intervalMs: ms) }
+            .sink { [weak self] _ in self?.restartSensors() }
+            .store(in: &cancellables)
+
+        store.$settings
+            .map(\.sensorBindings)
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.restartSensors() }
+            .store(in: &cancellables)
+
+        sensors.$snapshot
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.refreshStatusItem()
+                self.alertGate.evaluate(readings: self.sensors.snapshot.readings, settings: self.store.settings)
+            }
+            .store(in: &cancellables)
+
+        store.$settings
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.refreshStatusItem() }
             .store(in: &cancellables)
 
         if store.settings.overlayVisible {
@@ -71,14 +92,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sensors.stop()
     }
 
+    private func restartSensors() {
+        sensors.start(
+            intervalMs: store.settings.pollIntervalMs,
+            bindings: { [weak self] in self?.store.settings.sensorBindings ?? [:] }
+        )
+    }
+
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = item.button {
-            button.title = "Suhu"
-            button.toolTip = "MonitorSuhu"
-        }
         item.menu = buildMenu()
         statusItem = item
+        refreshStatusItem()
+    }
+
+    private func refreshStatusItem() {
+        guard let button = statusItem?.button else { return }
+        let cpu: SensorReading? = store.settings.isKindVisible(.cpu)
+            ? sensors.snapshot.readings.first(where: { $0.kind == .cpu })
+            : nil
+        let title = store.settings.menuBarTitle(cpuCelsius: cpu?.celsius)
+        let critical = cpu.map { $0.celsius >= store.settings.thresholds(for: .cpu).critical } ?? false
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.menuBarFont(ofSize: 0),
+                .foregroundColor: critical ? NSColor.systemRed : NSColor.labelColor
+            ]
+        )
+        button.toolTip = cpu.map { store.settings.displayValue($0) } ?? "MonitorSuhu"
     }
 
     private func buildMenu() -> NSMenu {

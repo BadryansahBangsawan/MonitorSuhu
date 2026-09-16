@@ -5,11 +5,10 @@ namespace MonitorSuhu.Sensors;
 
 internal static class SensorMapper
 {
-    public static IReadOnlyList<SensorReading> Map(IComputer computer)
+    public static IReadOnlyList<CatalogEntry> MapCatalog(IComputer computer)
     {
-        var readings = new List<SensorReading>();
-        var gpuIndex = 0;
-        var ssdIndex = 0;
+        var list = new List<CatalogEntry>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var hardware in computer.Hardware)
         {
@@ -19,10 +18,45 @@ internal static class SensorMapper
                 sub.Update();
             }
 
+            AddCatalogRows(list, seen, hardware);
+            foreach (var sub in hardware.SubHardware)
+            {
+                AddCatalogRows(list, seen, sub);
+            }
+        }
+
+        return list;
+    }
+
+    public static IReadOnlyList<SensorReading> Map(
+        IComputer computer,
+        IReadOnlyDictionary<string, string> bindings)
+    {
+        var catalog = MapCatalog(computer);
+        var catalogById = new Dictionary<string, CatalogEntry>(StringComparer.Ordinal);
+        foreach (var entry in catalog)
+        {
+            catalogById.TryAdd(entry.Id, entry);
+        }
+
+        var readings = new List<SensorReading>();
+        var bound = new HashSet<SensorKind>();
+
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Cpu, "cpu", "CPU", wantFan: false);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Gpu, "gpu-0", "GPU", wantFan: false);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Ssd, "ssd-0", "SSD", wantFan: false);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Board, "board", "BOARD", wantFan: false);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Ram, "ram", "RAM", wantFan: false);
+
+        var gpuIndex = 0;
+        var ssdIndex = 0;
+
+        foreach (var hardware in computer.Hardware)
+        {
             switch (hardware.HardwareType)
             {
                 case HardwareType.Cpu:
-                    if (PickCpu(hardware) is { } cpu)
+                    if (!bound.Contains(SensorKind.Cpu) && PickCpu(hardware) is { } cpu)
                     {
                         readings.Add(new SensorReading("cpu", SensorKind.Cpu, "CPU", cpu));
                     }
@@ -31,6 +65,10 @@ internal static class SensorMapper
                 case HardwareType.GpuNvidia:
                 case HardwareType.GpuAmd:
                 case HardwareType.GpuIntel:
+                    if (bound.Contains(SensorKind.Gpu))
+                    {
+                        break;
+                    }
                     if (PickNamed(hardware, "GPU Core", "GPU Hot Spot", "Temperature") is { } gpu)
                     {
                         var label = gpuIndex == 0 ? "GPU" : $"GPU {gpuIndex}";
@@ -40,6 +78,10 @@ internal static class SensorMapper
                     break;
 
                 case HardwareType.Storage:
+                    if (bound.Contains(SensorKind.Ssd))
+                    {
+                        break;
+                    }
                     if (PickNamed(hardware, "Temperature", "Composite") is { } ssd)
                     {
                         var shortName = Shorten(hardware.Name);
@@ -54,14 +96,14 @@ internal static class SensorMapper
                     break;
 
                 case HardwareType.Motherboard:
-                    if (PickBoard(hardware) is { } board)
+                    if (!bound.Contains(SensorKind.Board) && PickBoard(hardware) is { } board)
                     {
                         readings.Add(new SensorReading("board", SensorKind.Board, "BOARD", board));
                     }
                     break;
 
                 case HardwareType.Memory:
-                    if (PickNamed(hardware, "Temperature") is { } ram)
+                    if (!bound.Contains(SensorKind.Ram) && PickNamed(hardware, "Temperature") is { } ram)
                     {
                         readings.Add(new SensorReading("ram", SensorKind.Ram, "RAM", ram));
                     }
@@ -69,7 +111,84 @@ internal static class SensorMapper
             }
         }
 
+        double? rpm = null;
+        if (bindings.TryGetValue(nameof(SensorKind.Fan), out var fanId)
+            && !string.IsNullOrWhiteSpace(fanId)
+            && catalogById.TryGetValue(fanId, out var fanHit)
+            && fanHit.IsFan
+            && fanHit.Value > 0)
+        {
+            rpm = fanHit.Value;
+        }
+        else
+        {
+            var max = 0d;
+            foreach (var entry in catalog)
+            {
+                if (entry.IsFan && entry.Value > max)
+                {
+                    max = entry.Value;
+                }
+            }
+            if (max > 0)
+            {
+                rpm = max;
+            }
+        }
+
+        if (rpm is > 0)
+        {
+            readings.Add(new SensorReading("fan", SensorKind.Fan, "FAN", rpm.Value));
+        }
+
         return readings;
+    }
+
+    private static void AddCatalogRows(List<CatalogEntry> list, HashSet<string> seen, IHardware hardware)
+    {
+        foreach (var sensor in hardware.Sensors)
+        {
+            var isFan = sensor.SensorType == SensorType.Fan;
+            if (!isFan && sensor.SensorType != SensorType.Temperature)
+            {
+                continue;
+            }
+            if (sensor.Value is not float raw || !float.IsFinite(raw) || raw <= 0)
+            {
+                continue;
+            }
+
+            var id = sensor.Identifier.ToString();
+            if (string.IsNullOrEmpty(id) || !seen.Add(id))
+            {
+                continue;
+            }
+
+            list.Add(new CatalogEntry(id, $"{hardware.Name} / {sensor.Name}", raw, isFan));
+        }
+    }
+
+    private static void TryBind(
+        List<SensorReading> readings,
+        HashSet<SensorKind> bound,
+        IReadOnlyDictionary<string, CatalogEntry> catalogById,
+        IReadOnlyDictionary<string, string> bindings,
+        SensorKind kind,
+        string id,
+        string label,
+        bool wantFan)
+    {
+        if (!bindings.TryGetValue(kind.ToString(), out var boundId) || string.IsNullOrWhiteSpace(boundId))
+        {
+            return;
+        }
+        if (!catalogById.TryGetValue(boundId, out var entry) || entry.IsFan != wantFan || entry.Value <= 0)
+        {
+            return;
+        }
+
+        readings.Add(new SensorReading(id, kind, label, entry.Value));
+        bound.Add(kind);
     }
 
     private static double? PickCpu(IHardware cpu)

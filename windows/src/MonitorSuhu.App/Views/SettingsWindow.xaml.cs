@@ -10,5 +10,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         DataContext = vm;
+        vm.RefreshCatalog();
+        Activated += (_, _) => vm.RefreshCatalog();
     }
 }

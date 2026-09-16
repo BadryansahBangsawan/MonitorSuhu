@@ -4,6 +4,7 @@ using Application = System.Windows.Application;
 using MonitorSuhu.App.Services;
 using MonitorSuhu.App.ViewModels;
 using MonitorSuhu.App.Views;
+using MonitorSuhu.Core.Models;
 using MonitorSuhu.Core.Services;
 using MonitorSuhu.Sensors;
 
@@ -20,6 +21,7 @@ public partial class App : Application
     private TrayService? _tray;
     private OverlayViewModel? _overlayVm;
     private UpdateChecker? _updates;
+    private AlertGate? _alertGate;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -45,7 +47,15 @@ public partial class App : Application
         }
 
         _store = new SettingsStore();
-        _sensors = new SensorService();
+        _sensors = new SensorService(() => _store!.Settings.SensorBindings);
+        _alertGate = new AlertGate();
+        _sensors.Updated += snapshot =>
+        {
+            var app = System.Windows.Application.Current;
+            if (app?.Dispatcher is not { } dispatcher) return;
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
+            dispatcher.BeginInvoke(() => ApplyTrayStatus(snapshot));
+        };
         _hotkeys = new HotkeyService();
         _overlayVm = new OverlayViewModel(_store, _sensors);
         _updates = new UpdateChecker();
@@ -63,6 +73,7 @@ public partial class App : Application
             openSettings: OpenSettings,
             checkUpdates: () => _ = CheckForUpdatesAsync(),
             exit: Shutdown);
+        ApplyTrayStatus(_sensors.Snapshot);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
         _hotkeys.Start(_store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
@@ -128,6 +139,20 @@ public partial class App : Application
             return;
         }
         await _updates.CheckAsync(userInitiated: true);
+    }
+
+    private void ApplyTrayStatus(HardwareSnapshot snapshot)
+    {
+        var settings = _store?.Settings;
+        if (settings is null) return;
+        double? cpu = snapshot.Readings.FirstOrDefault(r => r.Kind == SensorKind.Cpu) is { } reading
+            && settings.IsKindVisible(SensorKind.Cpu)
+                ? reading.Celsius
+                : null;
+        var title = settings.MenuBarTitle(cpu);
+        var crit = cpu is { } c && c >= settings.ThresholdsFor(SensorKind.Cpu).Critical;
+        _tray?.SetStatus(title, crit);
+        _alertGate?.Evaluate(snapshot.Readings, settings);
     }
 
     protected override void OnExit(ExitEventArgs e)

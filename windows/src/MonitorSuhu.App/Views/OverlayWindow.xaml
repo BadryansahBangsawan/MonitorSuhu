@@ -26,52 +26,96 @@
         </Border.Background>
         <DockPanel>
             <Rectangle Width="3" Fill="{Binding Accent}" DockPanel.Dock="Left"/>
-            <TextBlock Text="NO SENSORS" Foreground="#8CFFFFFF" Margin="10,8"
-                       FontFamily="{StaticResource HudFont}"
-                       FontSize="{Binding FontSize}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Rows.Count}" Value="0">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ItemsControl ItemsSource="{Binding Rows}" Margin="10,8">
-                <ItemsControl.Style>
-                    <Style TargetType="ItemsControl">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Rows.Count}" Value="0">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ItemsControl.Style>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Label}"
-                                       Foreground="#C7FFFFFF"
-                                       FontFamily="{StaticResource HudFont}"
-                                       FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding Value}"
-                                       Foreground="{Binding Color}"
-                                       FontFamily="{StaticResource HudFont}"
-                                       FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       FontWeight="SemiBold"/>
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel Margin="10,8">
+                <TextBlock Text="NO SENSORS" Foreground="#8CFFFFFF"
+                           FontFamily="{StaticResource HudFont}"
+                           FontSize="{Binding FontSize}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Rows.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding CompactLine}"
+                           Foreground="{Binding CompactColor}"
+                           FontFamily="{StaticResource HudFont}"
+                           FontSize="{Binding FontSize}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CompactHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Rows.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Rows.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding CompactHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Label}"
+                                           Foreground="#C7FFFFFF"
+                                           FontFamily="{StaticResource HudFont}"
+                                           FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Grid Grid.Column="1" Height="12" VerticalAlignment="Center">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Width" Value="36"/>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.ShowSparkline, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                                    <Setter Property="Width" Value="0"/>
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Polyline Points="{Binding Points}"
+                                              Stretch="Fill"
+                                              Stroke="{Binding Color}"
+                                              StrokeThickness="1"
+                                              Fill="Transparent"/>
+                                </Grid>
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding Value}"
+                                           Foreground="{Binding Color}"
+                                           FontFamily="{StaticResource HudFont}"
+                                           FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           FontWeight="SemiBold"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </DockPanel>
     </Border>
 </Window>
