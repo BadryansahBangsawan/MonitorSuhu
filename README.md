@@ -8,15 +8,23 @@ NVIDIA-style temperature HUD for **macOS** and **Windows**. Small dark overlay, 
 
 1. Download `MonitorSuhu-*-macos.dmg` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases).
 2. Open the DMG and drag **MonitorSuhu** onto **Applications**.
-3. First launch: right-click the app → **Open** (unsigned local / GitHub build).
-4. Look for **°C** in the menu bar.
+3. First launch (unsigned GitHub build):
+
+```bash
+xattr -cr /Applications/MonitorSuhu.app
+open /Applications/MonitorSuhu.app
+```
+
+Or right-click the app → **Open**. If macOS still blocks it: **System Settings → Privacy & Security → Open Anyway**.
+
+4. The thermometer icon appears in the Dock and Launchpad. Menu bar extra is **Suhu**. Click the Dock icon again to open Settings.
 
 Build a DMG yourself:
 
 ```bash
 cd macos
 make dmg
-# → macos/dist/MonitorSuhu-1.0.0-macos.dmg
+# → macos/dist/MonitorSuhu-1.0.1-macos.dmg
 ```
 
 ### Windows
@@ -30,7 +38,7 @@ Build the installer yourself (needs [.NET 8 SDK](https://dotnet.microsoft.com/do
 ```powershell
 cd windows
 .\installer\build.ps1
-# → windows\dist\MonitorSuhu-1.0.0-windows-x64.exe
+# → windows\dist\MonitorSuhu-1.0.1-windows-x64.exe
 ```
 
 Portable exe without installer: `.\publish.ps1` → `windows\dist\win-x64\MonitorSuhu.exe`.
@@ -55,7 +63,7 @@ make run
 
 Build only: `make app` → `macos/build/MonitorSuhu.app`
 
-Menu bar extra `°C` → Show/Hide, Edit Layout, Settings, Quit.
+Menu bar extra `Suhu` → Show/Hide, Edit Layout, Settings, Quit.
 
 | Shortcut | Action |
 |---|---|

@@ -40,7 +40,9 @@ public sealed class OverlayViewModel : ObservableObject
     private readonly SettingsStore _store;
     private HardwareSnapshot _last = new();
     public ObservableCollection<OverlayRow> Rows { get; } = [];
-    public Brush Accent => Parse(_store.Settings.AccentHex);
+    public Brush Accent => AccentBrush;
+    private string _accentHex = "";
+    private Brush _accentBrush = Brushes.LimeGreen;
     public double Opacity => _store.Settings.OverlayOpacity;
     public double FontSize => _store.Settings.FontSize;
     public bool Locked => _store.Settings.Locked;
@@ -61,6 +63,10 @@ public sealed class OverlayViewModel : ObservableObject
     public void RefreshTheme()
     {
         Apply(_last);
+        OnPropertyChanged(nameof(Accent));
+        OnPropertyChanged(nameof(Opacity));
+        OnPropertyChanged(nameof(FontSize));
+        OnPropertyChanged(nameof(Locked));
     }
 
     public void Apply(HardwareSnapshot snapshot)
@@ -78,23 +84,19 @@ public sealed class OverlayViewModel : ObservableObject
             {
                 Rows.Add(MakeRow(reading));
             }
-        }
-        else
-        {
-            for (var i = 0; i < visible.Count; i++)
-            {
-                var reading = visible[i];
-                var row = Rows[i];
-                row.Label = reading.Label;
-                row.Value = settings.FormatTemperature(reading.Celsius);
-                row.Color = ColorFor(reading);
-            }
+            return;
         }
 
-        OnPropertyChanged(nameof(Accent));
-        OnPropertyChanged(nameof(Opacity));
-        OnPropertyChanged(nameof(FontSize));
-        OnPropertyChanged(nameof(Locked));
+        for (var i = 0; i < visible.Count; i++)
+        {
+            var reading = visible[i];
+            var row = Rows[i];
+            var value = settings.FormatTemperature(reading.Celsius);
+            var color = ColorFor(reading);
+            if (row.Label != reading.Label) row.Label = reading.Label;
+            if (row.Value != value) row.Value = value;
+            if (!ReferenceEquals(row.Color, color)) row.Color = color;
+        }
     }
 
     private OverlayRow MakeRow(SensorReading reading) => new()
@@ -117,7 +119,21 @@ public sealed class OverlayViewModel : ObservableObject
         {
             return app?.TryFindResource("WarnBrush") as Brush ?? Brushes.Gold;
         }
-        return Parse(_store.Settings.AccentHex);
+        return AccentBrush;
+    }
+
+    private Brush AccentBrush
+    {
+        get
+        {
+            var hex = _store.Settings.AccentHex;
+            if (!string.Equals(hex, _accentHex, StringComparison.OrdinalIgnoreCase))
+            {
+                _accentHex = hex;
+                _accentBrush = Parse(hex);
+            }
+            return _accentBrush;
+        }
     }
 
     private static Brush Parse(string hex)

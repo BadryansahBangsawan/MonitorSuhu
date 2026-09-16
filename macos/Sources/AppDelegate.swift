@@ -38,6 +38,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               store.settings.editHotkey.display)
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings()
+        return true
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         store.saveNow()
         hotkeys.stop()
@@ -47,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.title = "°C"
+            button.title = "Suhu"
             button.toolTip = "MonitorSuhu"
         }
         item.menu = buildMenu()

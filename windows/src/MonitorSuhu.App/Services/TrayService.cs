@@ -21,7 +21,7 @@ public sealed class TrayService : IDisposable
         _icon = new TaskbarIcon
         {
             ToolTipText = "MonitorSuhu",
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = LoadAppIcon(),
             ContextMenu = menu,
             Visibility = Visibility.Visible
         };
@@ -40,5 +40,23 @@ public sealed class TrayService : IDisposable
         var item = new System.Windows.Controls.MenuItem { Header = header };
         item.Click += (_, _) => action();
         return item;
+    }
+
+    private static System.Drawing.Icon LoadAppIcon()
+    {
+        try
+        {
+            var path = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(path)
+                && System.Drawing.Icon.ExtractAssociatedIcon(path) is { } extracted)
+            {
+                return extracted;
+            }
+        }
+        catch
+        {
+            // Fall back to the generic application icon.
+        }
+        return System.Drawing.SystemIcons.Application;
     }
 }

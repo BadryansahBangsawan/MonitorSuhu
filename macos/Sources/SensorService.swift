@@ -58,9 +58,10 @@ final class SensorService: ObservableObject {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: hottest.celsius))
         }
 
-        let snap = HardwareSnapshot(readings: readings, timestamp: Date())
         DispatchQueue.main.async { [weak self] in
-            self?.snapshot = snap
+            guard let self else { return }
+            if Self.sameDisplay(self.snapshot.readings, readings) { return }
+            self.snapshot = HardwareSnapshot(readings: readings, timestamp: Date())
         }
     }
 
@@ -70,6 +71,12 @@ final class SensorService: ObservableObject {
     private static let boardTokens = ["wifi", "airport", "skin", "ambient", "gas gauge"]
     private static let ramTokens = ["dram", "memory"]
     private static let devTokens = ["tdev"]
+
+    private static func sameDisplay(_ a: [SensorReading], _ b: [SensorReading]) -> Bool {
+        a.count == b.count && zip(a, b).allSatisfy {
+            $0.id == $1.id && $0.kind == $1.kind && $0.celsius.rounded() == $1.celsius.rounded()
+        }
+    }
 
     private static func pick(
         _ rows: [(name: String, celsius: Double)],

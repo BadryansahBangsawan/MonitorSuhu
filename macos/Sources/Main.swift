@@ -10,7 +10,7 @@ enum MonitorSuhuMain {
         let delegate = AppDelegate()
         Self.delegate = delegate
         app.delegate = delegate
-        app.setActivationPolicy(.accessory)
+        app.setActivationPolicy(.regular)
         app.run()
     }
 }

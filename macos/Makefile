@@ -15,9 +15,10 @@ all: app
 
 app: $(APP)/Contents/MacOS/$(APP_NAME)
 
-$(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist
+$(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist Resources/AppIcon.icns
 	@mkdir -p "$(MACOS_DIR)" "$(RES_DIR)"
 	@cp Resources/Info.plist "$(APP)/Contents/Info.plist"
+	@cp Resources/AppIcon.icns "$(RES_DIR)/AppIcon.icns"
 	@printf 'APPL????' > "$(APP)/Contents/PkgInfo"
 	$(SWIFTC) -parse-as-library -O \
 		-target $(TARGET) \

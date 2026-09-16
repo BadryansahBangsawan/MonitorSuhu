@@ -1,5 +1,5 @@
 #define MyAppName "MonitorSuhu"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "MonitorSuhu"
 #define MyAppURL "https://github.com/BadryansahBangsawan/MonitorSuhu"
 #define MyAppExeName "MonitorSuhu.exe"
@@ -20,6 +20,7 @@ OutputBaseFilename=MonitorSuhu-{#MyAppVersion}-windows-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\MonitorSuhu.App\Assets\MonitorSuhu.ico
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

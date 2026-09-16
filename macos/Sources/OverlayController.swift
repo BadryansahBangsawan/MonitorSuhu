@@ -116,7 +116,9 @@ final class OverlayController: NSObject {
 
     private func relayout() {
         guard let window, let hosting else { return }
-        hosting.rootView = OverlayView(store: store, sensors: sensors)
+        // OverlayView already observes store/sensors. Replacing rootView
+        // every HID poll rebuilt the SwiftUI tree for a 1°C text change.
+        hosting.layoutSubtreeIfNeeded()
         var size = hosting.fittingSize
         if size.width < 96 { size.width = 96 }
         if size.height < 28 { size.height = 28 }
