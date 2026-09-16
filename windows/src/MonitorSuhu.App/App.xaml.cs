@@ -135,7 +135,10 @@ public partial class App : Application
         if (_updates is null) return;
         if (_updates.HasUpdate)
         {
-            _updates.OpenDownloadPage();
+            if (_updates.LatestAsset is not null)
+                await _updates.ApplyAsync();
+            else
+                _updates.OpenDownloadPage();
             return;
         }
         await _updates.CheckAsync(userInitiated: true);

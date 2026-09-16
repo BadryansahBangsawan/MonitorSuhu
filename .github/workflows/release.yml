@@ -164,7 +164,7 @@ jobs:
           body: |
             ## MonitorSuhu ${{ github.ref_name }}
 
-            Lightweight hardware temperature overlay for macOS and Windows.
+            Lightweight hardware temperature overlay for macOS and Windows. Install newer releases from Settings.
 
             ---
 
@@ -208,8 +208,11 @@ jobs:
 
             ### 🔄 Upgrading
 
-            - **macOS:** drag the new app into Applications (replace the old one)
-            - **Windows:** run the new installer — it replaces the previous version automatically
+            From Settings (or the tray / menu bar) choose **Install …** — the app downloads this release and replaces itself.
+
+            - **macOS:** installs the DMG over the current `.app`; settings stay in Application Support
+            - **Windows:** runs this setup silently and relaunches; settings stay in `%AppData%`
+            - Manual fallback: drag the new app into Applications, or run the `.exe` installer
 
             ---
 

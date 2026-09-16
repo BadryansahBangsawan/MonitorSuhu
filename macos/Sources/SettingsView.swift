@@ -112,9 +112,21 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 8)
                 SettingsRowDivider()
-                if updates.hasUpdate, let latest = updates.latestVersion {
-                    Button("Download \(latest)…") { updates.openDownloadPage() }
-                        .padding(.vertical, 8)
+                if updates.installing {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Installing \(updates.latestVersion ?? "update")…")
+                        ProgressView(value: updates.progress)
+                    }
+                    .padding(.vertical, 8)
+                } else if updates.hasUpdate, let latest = updates.latestVersion {
+                    Button(updates.latestAsset == nil ? "Download \(latest)…" : "Install \(latest)…") {
+                        if updates.latestAsset == nil {
+                            updates.openDownloadPage()
+                        } else {
+                            updates.apply()
+                        }
+                    }
+                    .padding(.vertical, 8)
                 } else {
                     Button(updates.checking ? "Checking…" : "Check for Updates…") {
                         updates.check(userInitiated: true)
@@ -124,9 +136,13 @@ struct SettingsView: View {
                 }
             } caption: {
                 if updates.hasUpdate, let latest = updates.latestVersion {
-                    SettingsCallout("MonitorSuhu \(latest) is available. Download it from GitHub, then replace the app in Applications.")
+                    SettingsCallout(
+                        updates.latestAsset == nil
+                            ? "MonitorSuhu \(latest) is available. Download it from GitHub, then replace the app in Applications."
+                            : "MonitorSuhu \(latest) is available. Install from here — settings stay put."
+                    )
                 } else {
-                    SettingsCaption("Checks GitHub Releases. Updates are not installed automatically.")
+                    SettingsCaption("Checks GitHub Releases and can install the macOS disk image from this window.")
                 }
             }
 

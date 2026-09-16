@@ -96,9 +96,10 @@ Both platforms share the same settings surface:
 
 | Setting | Description |
 |---|---|
-| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM rows |
-| **Thresholds** | Custom warn (yellow) and critical (red) temperatures per sensor |
-| **Appearance** | Opacity, font size, accent color (NVIDIA green / cyan / white / orange), °C / °F |
+| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM / Fan rows |
+| **Assignments** | Pin a HUD row to a named sensor, or leave Auto |
+| **Thresholds** | Warn (yellow) and critical (red) per sensor. Fan uses RPM |
+| **Appearance** | Compact one-line HUD, 30-sample sparkline, opacity, font, accent, °C / °F |
 | **Position** | Corner presets or drag-to-place with edge snap |
 | **Poll interval** | How often sensors are read (400 ms – 3 s, default 1 s) |
 | **Start with OS** | Launch automatically on login |
@@ -116,7 +117,7 @@ Overlay position is stored as **relative corner edges**, so resizing the font or
 
 MonitorSuhu checks [GitHub Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases) automatically on launch. When a new version is available, a banner appears in Settings and a tray notification pops up on Windows.
 
-Updates are **not installed automatically** — download the latest release and replace the app (macOS) or run the new installer (Windows).
+**Install from the app** on macOS and Windows: Settings → **Install …** downloads the matching DMG or setup exe and replaces the current install. Settings in `Application Support` / `%AppData%` stay put. Linux still opens the GitHub page until a packaged tarball ships with the release.
 
 ---
 
