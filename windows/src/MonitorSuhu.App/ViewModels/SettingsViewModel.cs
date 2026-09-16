@@ -1,6 +1,7 @@
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MonitorSuhu.App.Services;
 using MonitorSuhu.App.Views;
 using MonitorSuhu.Core.Models;
 using MonitorSuhu.Core.Services;
@@ -18,6 +19,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public AppSettings Settings => _store.Settings;
 
+    public UpdateChecker Updates { get; }
+
     public IReadOnlyList<AccentOption> Accents { get; } =
     [
         new("NVIDIA", AppSettings.NvidiaGreen),
@@ -34,12 +37,19 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string EditHotkeyDisplay => Settings.EditHotkey.Display;
 
-    public SettingsViewModel(SettingsStore store, OverlayWindow overlay, SensorService sensors)
+    public SettingsViewModel(SettingsStore store, OverlayWindow overlay, SensorService sensors, UpdateChecker updates)
     {
         _store = store;
         _overlay = overlay;
         _sensors = sensors;
+        Updates = updates;
     }
+
+    [RelayCommand]
+    private Task CheckUpdates() => Updates.CheckAsync(userInitiated: true);
+
+    [RelayCommand]
+    private void OpenUpdate() => Updates.OpenDownloadPage();
 
     public bool OverlayVisible
     {

@@ -19,6 +19,7 @@ public partial class App : Application
     private SettingsWindow? _settingsWindow;
     private TrayService? _tray;
     private OverlayViewModel? _overlayVm;
+    private UpdateChecker? _updates;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -47,6 +48,7 @@ public partial class App : Application
         _sensors = new SensorService();
         _hotkeys = new HotkeyService();
         _overlayVm = new OverlayViewModel(_store, _sensors);
+        _updates = new UpdateChecker();
 
         _overlay = new OverlayWindow(_overlayVm, _store);
         _overlay.Show();
@@ -59,6 +61,7 @@ public partial class App : Application
             toggleOverlay: ToggleOverlay,
             editLayout: EditLayout,
             openSettings: OpenSettings,
+            checkUpdates: () => _ = CheckForUpdatesAsync(),
             exit: Shutdown);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
@@ -67,6 +70,15 @@ public partial class App : Application
         {
             _tray.ShowWarning(message);
         }
+
+        _updates.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(UpdateChecker.HasUpdate) && _updates.HasUpdate)
+            {
+                _tray?.ShowInfo($"MonitorSuhu {_updates.LatestVersion} is available.");
+            }
+        };
+        _ = _updates.CheckAsync();
     }
 
     public void ToggleOverlay()
@@ -96,15 +108,26 @@ public partial class App : Application
 
     public void OpenSettings()
     {
-        if (_store is null || _sensors is null || _overlay is null) return;
+        if (_store is null || _sensors is null || _overlay is null || _updates is null) return;
         if (_settingsWindow is null)
         {
-            var vm = new SettingsViewModel(_store, _overlay, _sensors);
+            var vm = new SettingsViewModel(_store, _overlay, _sensors, _updates);
             _settingsWindow = new SettingsWindow(vm);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (_updates is null) return;
+        if (_updates.HasUpdate)
+        {
+            _updates.OpenDownloadPage();
+            return;
+        }
+        await _updates.CheckAsync(userInitiated: true);
     }
 
     protected override void OnExit(ExitEventArgs e)

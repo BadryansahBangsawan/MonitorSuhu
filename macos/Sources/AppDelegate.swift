@@ -6,9 +6,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore()
     private let sensors = SensorService()
     private let hotkeys = HotkeyService()
+    private let updates = UpdateChecker()
     private var overlay: OverlayController!
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
+    private var updateMenuItem: NSMenuItem?
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,6 +32,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if store.settings.overlayVisible {
             overlay.show()
+        }
+
+        updates.$hasUpdate
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] available in
+                guard let self else { return }
+                if available, let latest = self.updates.latestVersion {
+                    self.updateMenuItem?.title = "Download \(latest)…"
+                } else {
+                    self.updateMenuItem?.title = "Check for Updates…"
+                }
+            }
+            .store(in: &cancellables)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            self?.updates.check()
         }
         NSLog("MonitorSuhu: launched overlayVisible=%@ sensors=%d toggle=%@ edit=%@",
               store.settings.overlayVisible ? "yes" : "no",
@@ -69,6 +87,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Edit Layout", #selector(editLayout), key: "e"))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(openSettings), key: ","))
+        let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        check.target = self
+        menu.addItem(check)
+        updateMenuItem = check
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit MonitorSuhu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.keyEquivalentModifierMask = [.command]
@@ -102,9 +124,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlay.show()
     }
 
+    @objc func checkForUpdates() {
+        if updates.hasUpdate {
+            updates.openDownloadPage()
+            return
+        }
+        updates.check(userInitiated: true)
+    }
+
     @objc func openSettings() {
         if settingsWindow == nil {
-            let root = SettingsView(store: store, sensors: sensors, overlay: overlay)
+            let root = SettingsView(store: store, sensors: sensors, updates: updates, overlay: overlay)
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
             window.title = "MonitorSuhu Settings"

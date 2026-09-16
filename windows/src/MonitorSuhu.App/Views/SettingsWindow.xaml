@@ -114,6 +114,26 @@
         </StackPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <Border Style="{StaticResource Card}" Background="#243018">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Setter Property="Background" Value="#243018"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Updates.HasUpdate}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Margin="0,6,0,6">
+                        <TextBlock Text="{Binding Updates.UpdateMessage}" TextWrapping="Wrap"/>
+                        <Button Content="Download update…" Command="{Binding OpenUpdateCommand}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="Overlay" Style="{StaticResource SectionTitle}"/>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
@@ -291,6 +311,24 @@
                                   SelectedValue="{Binding AccentHex}"/>
                     </StackPanel>
                 </Border>
+
+                <TextBlock Text="About" Style="{StaticResource SectionTitle}" Margin="0,16,0,8"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel Margin="0,6,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Version" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" Foreground="#8A8A8A" FontFamily="Consolas"/>
+                        </Grid>
+                        <Button Content="Check for Updates…" Command="{Binding CheckUpdatesCommand}"
+                                HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="Checks GitHub Releases. Updates are not installed automatically."
+                           Style="{StaticResource Caption}" Margin="2,0,0,8"/>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

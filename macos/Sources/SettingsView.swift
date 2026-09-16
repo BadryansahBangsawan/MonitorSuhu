@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var store: SettingsStore
     @ObservedObject var sensors: SensorService
+    @ObservedObject var updates: UpdateChecker
     var overlay: OverlayController
 
     @State private var autostartMessage: String?
@@ -94,6 +95,34 @@ struct SettingsView: View {
                 SettingsKeyRow("Edit layout", chord: store.settings.editHotkey.display)
             } caption: {
                 SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
+            }
+
+            SettingsSection("About") {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text(updates.currentVersion)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                .padding(.vertical, 8)
+                SettingsRowDivider()
+                if updates.hasUpdate, let latest = updates.latestVersion {
+                    Button("Download \(latest)…") { updates.openDownloadPage() }
+                        .padding(.vertical, 8)
+                } else {
+                    Button(updates.checking ? "Checking…" : "Check for Updates…") {
+                        updates.check(userInitiated: true)
+                    }
+                    .disabled(updates.checking)
+                    .padding(.vertical, 8)
+                }
+            } caption: {
+                if updates.hasUpdate, let latest = updates.latestVersion {
+                    SettingsCallout("MonitorSuhu \(latest) is available. Download it from GitHub, then replace the app in Applications.")
+                } else {
+                    SettingsCaption("Checks GitHub Releases. Updates are not installed automatically.")
+                }
             }
 
             HStack {

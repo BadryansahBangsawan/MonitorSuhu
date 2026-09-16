@@ -19,12 +19,14 @@ Or right-click the app → **Open**. If macOS still blocks it: **System Settings
 
 4. The thermometer icon appears in the Dock and Launchpad. Menu bar extra is **Suhu**. Click the Dock icon again to open Settings.
 
+The app checks [GitHub Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases) on launch. **Suhu** menu / Settings → About shows **Check for Updates…**. Download is still manual (replace the app in Applications, or run the Windows installer).
+
 Build a DMG yourself:
 
 ```bash
 cd macos
 make dmg
-# → macos/dist/MonitorSuhu-1.0.1-macos.dmg
+# → macos/dist/MonitorSuhu-1.0.2-macos.dmg
 ```
 
 ### Windows
@@ -38,7 +40,7 @@ Build the installer yourself (needs [.NET 8 SDK](https://dotnet.microsoft.com/do
 ```powershell
 cd windows
 .\installer\build.ps1
-# → windows\dist\MonitorSuhu-1.0.1-windows-x64.exe
+# → windows\dist\MonitorSuhu-1.0.2-windows-x64.exe
 ```
 
 Portable exe without installer: `.\publish.ps1` → `windows\dist\win-x64\MonitorSuhu.exe`.
