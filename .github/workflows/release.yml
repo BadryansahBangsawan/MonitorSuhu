@@ -1,4 +1,4 @@
-name: Build installers
+name: Build & Release
 
 on:
   push:
@@ -10,48 +10,141 @@ permissions:
   contents: write
 
 jobs:
+  # ─────────────────────────────────────────────
+  # macOS — build DMG on macOS 14 runner
+  # ─────────────────────────────────────────────
   macos:
+    name: Build macOS DMG
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build DMG
         run: bash macos/scripts/make-dmg.sh
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
           path: macos/dist/*.dmg
+          if-no-files-found: error
 
+  # ─────────────────────────────────────────────
+  # Windows — publish self-contained exe, then wrap with Inno Setup
+  # ─────────────────────────────────────────────
   windows:
+    name: Build Windows Installer
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - name: Publish app
+
+      - name: Restore dependencies
+        working-directory: windows
+        run: dotnet restore
+
+      - name: Publish self-contained app
         shell: pwsh
         run: ./windows/publish.ps1
+
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
+
       - name: Build installer
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $iscc "windows\installer\MonitorSuhu.iss"
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
         with:
           name: windows-setup
           path: windows/dist/MonitorSuhu-*-windows-x64.exe
+          if-no-files-found: error
 
+  # ─────────────────────────────────────────────
+  # Release — only on v* tags; requires both builds to succeed
+  # ─────────────────────────────────────────────
   release:
+    name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
-      - uses: softprops/action-gh-release@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          generate_release_notes: true
+          merge-multiple: true
+          path: dist
+
+      - name: List release assets
+        run: ls -lh dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: false
+          body: |
+            ## MonitorSuhu ${{ github.ref_name }}
+
+            Lightweight hardware temperature overlay for macOS and Windows.
+
+            ---
+
+            ### ⬇️ Downloads
+
+            | Platform | File |
+            |---|---|
+            | **macOS** (Apple Silicon, macOS 14+) | `MonitorSuhu-*-macos.dmg` |
+            | **Windows** (x64, Windows 10 / 11) | `MonitorSuhu-*-windows-x64.exe` |
+
+            ---
+
+            ### 🍎 macOS — First Launch
+
+            macOS may block the app on first open (unsigned build). Run this once:
+
+            ```bash
+            xattr -cr /Applications/MonitorSuhu.app && open /Applications/MonitorSuhu.app
+            ```
+
+            Or right-click → **Open** → **Open**. Still blocked? **System Settings → Privacy & Security → Open Anyway**.
+
+            ---
+
+            ### 🪟 Windows — First Launch
+
+            Run the installer as **Administrator** (UAC prompt appears). The installer registers a Task Scheduler task at highest privileges so the overlay retains sensor access after reboot.
+
+            > **Antivirus alert?** LibreHardwareMonitor uses a kernel driver to read hardware sensors. Allow the driver if your antivirus flags it — the HUD will otherwise show no readings.
+
+            ---
+
+            ### ⌨️ Keyboard Shortcuts
+
+            | Shortcut | Action |
+            |---|---|
+            | `⌃⇧T` / `Ctrl+Shift+T` | Show / hide overlay |
+            | `⌃⇧E` / `Ctrl+Shift+E` | Unlock overlay for dragging |
+
+            ---
+
+            ### 🔄 Upgrading
+
+            - **macOS:** drag the new app into Applications (replace the old one)
+            - **Windows:** run the new installer — it replaces the previous version automatically
+
+            ---
+
+            > Full changelog auto-generated below ↓
+          append_body: true
           files: |
-            macos-dmg/*
-            windows-setup/*
+            dist/*.dmg
+            dist/*.exe

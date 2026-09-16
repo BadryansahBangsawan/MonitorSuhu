@@ -1,145 +1,127 @@
-# MonitorSuhu
+<div align="center">
 
-NVIDIA-style temperature HUD for **macOS** and **Windows**. Small dark overlay, green accent bar, always on top, drag to any corner.
+# 🌡️ MonitorSuhu
 
-## Install
+**Lightweight hardware temperature overlay for macOS and Windows.**  
+Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to edges, survives display changes.
 
-### macOS
+<br/>
 
-1. Download `MonitorSuhu-*-macos.dmg` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases).
-2. Open the DMG and drag **MonitorSuhu** onto **Applications**.
-3. First launch (unsigned GitHub build):
+[![Latest Release](https://img.shields.io/github/v/release/BadryansahBangsawan/MonitorSuhu?style=flat-square&color=76B900&label=latest)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
 
-```bash
-xattr -cr /Applications/MonitorSuhu.app
-open /Applications/MonitorSuhu.app
-```
-
-Or right-click the app → **Open**. If macOS still blocks it: **System Settings → Privacy & Security → Open Anyway**.
-
-4. The thermometer icon appears in the Dock and Launchpad. Menu bar extra is **Suhu**. Click the Dock icon again to open Settings.
-
-The app checks [GitHub Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases) on launch. **Suhu** menu / Settings → About shows **Check for Updates…**. Download is still manual (replace the app in Applications, or run the Windows installer).
-
-Build a DMG yourself:
-
-```bash
-cd macos
-make dmg
-# → macos/dist/MonitorSuhu-1.0.2-macos.dmg
-```
-
-### Windows
-
-1. Download `MonitorSuhu-*-windows-x64.exe` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases).
-2. Run the installer (UAC / Administrator is required so hardware sensors can open).
-3. Overlay appears top-right; tray icon in the notification area.
-
-Build the installer yourself (needs [.NET 8 SDK](https://dotnet.microsoft.com/download) + [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
-
-```powershell
-cd windows
-.\installer\build.ps1
-# → windows\dist\MonitorSuhu-1.0.2-windows-x64.exe
-```
-
-Portable exe without installer: `.\publish.ps1` → `windows\dist\win-x64\MonitorSuhu.exe`.
-
-Sensor rows that the machine does not actually expose (RAM on most PCs, motherboard SuperIO on many laptops) are hidden, not shown as `N/A`.
+<br/>
 
 ```
-│ CPU          58°C
-│ GPU          64°C
-│ SSD          42°C
-│ BOARD        36°C
+┃ CPU          58°C
+┃ GPU          64°C
+┃ SSD          42°C
+┃ BOARD        36°C
 ```
 
-## macOS
+</div>
 
-Native Swift / AppKit menu-bar app. Reads Apple Silicon HID temperature sensors (`IOHIDEventSystemClient`, usage page `0xff00` / usage `0x0005`). Intel Macs fall back to SMC keys.
+---
 
-```bash
-cd macos
-make run
-```
+## ⬇️ Download
 
-Build only: `make app` → `macos/build/MonitorSuhu.app`
+| Platform | File | Requirements |
+|---|---|---|
+| **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14 Sonoma or later |
+| **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 (64-bit) |
 
-Menu bar extra `Suhu` → Show/Hide, Edit Layout, Settings, Quit.
+👉 **[Go to Releases →](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)**
+
+---
+
+## 🍎 macOS — Installation
+
+1. Download `MonitorSuhu-*-macos.dmg` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+2. Open the DMG and drag **MonitorSuhu** into **Applications**
+3. On first launch, macOS may block the app (unsigned build). To open it:
+
+   ```bash
+   xattr -cr /Applications/MonitorSuhu.app && open /Applications/MonitorSuhu.app
+   ```
+
+   Or: right-click the app → **Open** → **Open** again. Still blocked? **System Settings → Privacy & Security → Open Anyway**.
+
+4. A **Suhu** icon appears in the menu bar. Click it to show/hide the overlay or open Settings.
+
+> **Tip:** Click the Dock icon at any time to reopen the Settings window.
+
+### Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| ⌃⇧T | Show / hide overlay |
-| ⌃⇧E | Unlock overlay so you can drag it |
+| `⌃ ⇧ T` | Show / hide overlay |
+| `⌃ ⇧ E` | Unlock overlay for dragging |
 
-Unlock, drag, it snaps to corners. Position is saved per display.
+### Notes
 
-**Notes**
+- Sensors are read natively via Apple Silicon HID (`IOHIDEventSystemClient`) or SMC keys on Intel.
+- RAM temperature only appears when a hardware sensor reports it.
+- **Start with macOS** uses `SMAppService` — the first enable may prompt you in **System Settings → General → Login Items**.
+- This is a desktop HUD, not a game capture overlay. Exclusive fullscreen games may cover it.
 
-- This is a desktop HUD, not a game-capture overlay. Exclusive fullscreen games can cover it.
-- RAM temperature only appears if a HID/SMC sensor exists.
-- Start with macOS uses `SMAppService` (macOS 13+). The first enable may ask you to allow a login item in System Settings.
-- Unsigned local build: macOS may ask you to allow it under Privacy & Security.
+---
 
-## Windows
+## 🪟 Windows — Installation
 
-C# / WPF on .NET 8. Sensors via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Needs **Administrator** so CPU/motherboard drivers can open.
+1. Download `MonitorSuhu-*-windows-x64.exe` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+2. Run the installer — **UAC / Administrator** is required so hardware sensor drivers can open
+3. The overlay appears in the top-right corner; a tray icon appears in the notification area
 
-On a Windows PC with the .NET 8 SDK:
-
-```powershell
-cd windows
-dotnet restore
-dotnet run --project src\MonitorSuhu.App
-```
-
-Single-file exe (no SDK on the target PC):
-
-```powershell
-cd windows
-.\publish.ps1          # win-x64
-.\publish.ps1 -Arch arm64
-```
-
-Output: `windows/dist/win-x64/MonitorSuhu.exe`
+### Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| Ctrl+Shift+T | Show / hide overlay |
-| Ctrl+Shift+E | Unlock overlay so you can drag it |
+| `Ctrl + Shift + T` | Show / hide overlay |
+| `Ctrl + Shift + E` | Unlock overlay for dragging |
 
-Tray icon → Show/Hide, Edit Layout, Settings, Exit.
+### Notes
 
-A second launch exits immediately (one overlay only). Global hotkeys are registered on a message-only window so hiding the HUD does not drop Ctrl+Shift+T. If another app already owns those chords, a tray balloon says so.
+- Sensors are read via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Antivirus software may flag its kernel driver — allow it if the HUD shows no readings.
+- A second launch exits immediately (only one overlay instance runs at a time).
+- **Start with Windows** creates a Task Scheduler task at highest privileges so the overlay retains sensor access after reboot. The task is applied when you press **Save** in Settings.
+- RAM temperature is rare on most consumer DIMMs.
+- Use **borderless windowed** mode in games — exclusive fullscreen will cover the overlay.
 
-Start with Windows registers a **Task Scheduler** task at highest privileges so the overlay still has admin after reboot (a normal Startup-folder shortcut would lose elevation). The task is created or removed when you press **Save**, not while dragging sliders.
+---
 
-**Notes**
+## ⚙️ Settings
 
-- Exclusive fullscreen games hide this overlay. Use borderless windowed.
-- RAM temperature is rare on consumer DIMMs.
-- Antivirus may flag LibreHardwareMonitor’s kernel driver. Allow it if the HUD stays empty — Settings also shows the Open() error instead of a silent `NO SENSORS`.
-- First launch triggers UAC.
+Both platforms share the same settings surface:
 
-## Settings (both)
+| Setting | Description |
+|---|---|
+| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM rows |
+| **Thresholds** | Custom warn (yellow) and critical (red) temperatures per sensor |
+| **Appearance** | Opacity, font size, accent color (NVIDIA green / cyan / white / orange), °C / °F |
+| **Position** | Corner presets or drag-to-place with edge snap |
+| **Poll interval** | How often sensors are read (400 ms – 3 s, default 1 s) |
+| **Start with OS** | Launch automatically on login |
 
-- Which sensors to show
-- Warn / critical colors (green → yellow → red) — per CPU / GPU / SSD / board
-- Opacity, font size, accent color (NVIDIA green / cyan / white / orange), °C / °F
-- Corner presets and drag-to-place
-- Poll interval
-- Start with OS
+Overlay position is stored as **relative corner edges**, so resizing the font or adding a sensor row keeps a corner HUD anchored to that corner. On Windows, position is DPI-aware — 125% / 150% scaling does not park the HUD off-screen.
 
-Overlay position is stored as relative edges (not only top-left), so growing the font or adding a sensor row keeps a corner HUD on that corner. Windows also converts the monitor work area through the current DPI so 125% / 150% scaling does not park the HUD off-screen.
+**Settings file locations:**
 
-Settings file:
-
-- macOS: `~/Library/Application Support/MonitorSuhu/settings.json`
+- macOS: `~/Library/Application Support/MonitorSuhu/settings.json`  
 - Windows: `%AppData%\MonitorSuhu\settings.json`
 
-## Layout
+---
 
-```
-macos/          Swift overlay you can run on this Mac
-windows/        WPF overlay, build on a Windows PC
-```
+## 🔄 Updates
+
+MonitorSuhu checks [GitHub Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases) automatically on launch. When a new version is available, a banner appears in Settings and a tray notification pops up on Windows.
+
+Updates are **not installed automatically** — download the latest release and replace the app (macOS) or run the new installer (Windows).
+
+---
+
+<div align="center">
+
+Made with ♥ for people who want to know how hot their machine is.
+
+</div>
