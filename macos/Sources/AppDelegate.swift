@@ -2,7 +2,6 @@ import AppKit
 import SwiftUI
 import Combine
 
-@main
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SettingsStore()
     private let sensors = SensorService()
@@ -17,7 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sensors.start(intervalMs: store.settings.pollIntervalMs)
         installStatusItem()
         registerHotkeys()
-        AutostartService.apply(store.settings.startWithOs)
+        if store.settings.startWithOs {
+            AutostartService.apply(true)
+        }
 
         store.$settings
             .map(\.pollIntervalMs)
@@ -28,6 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if store.settings.overlayVisible {
             overlay.show()
         }
+        NSLog("MonitorSuhu: launched overlayVisible=%@ sensors=%d toggle=%@ edit=%@",
+              store.settings.overlayVisible ? "yes" : "no",
+              sensors.snapshot.readings.count,
+              store.settings.toggleHotkey.display,
+              store.settings.editHotkey.display)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -94,12 +100,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
             window.title = "MonitorSuhu Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 480, height: 440))
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.isReleasedWhenClosed = false
+            window.setContentSize(NSSize(width: 540, height: 520))
+            window.minSize = NSSize(width: 480, height: 420)
             window.center()
+            window.delegate = self
             settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        if notification.object as? NSWindow === settingsWindow {
+            settingsWindow = nil
+        }
     }
 }

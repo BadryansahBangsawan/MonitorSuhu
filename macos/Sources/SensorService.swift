@@ -30,27 +30,21 @@ final class SensorService: ObservableObject {
         let hidRows = hid.poll()
         var readings: [SensorReading] = []
 
-        if let cpu = Self.pick(hidRows, matching: Self.cpuTokens) {
+        let valid = hidRows.filter { $0.celsius > 1 && $0.celsius < 110 }
+
+        if let cpu = Self.pick(valid, matching: Self.cpuTokens, excluding: Self.devTokens) {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: cpu))
         }
-        if let gpu = Self.pick(hidRows, matching: Self.gpuTokens) {
+        if let gpu = Self.pick(valid, matching: Self.gpuTokens, excluding: Self.devTokens) {
             readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", celsius: gpu))
         }
-
-        let nand = hidRows.filter { row in
-            let n = row.name.lowercased()
-            return n.contains("nand") || n.contains("ssd") || n.contains("storage")
+        if let ssd = Self.pick(valid, matching: Self.ssdTokens, excluding: []) {
+            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", celsius: ssd))
         }
-        if let hottest = nand.max(by: { $0.celsius < $1.celsius }) {
-            readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", celsius: hottest.celsius))
-        }
-
-        if let board = Self.pick(hidRows, matching: Self.boardTokens) {
+        if let board = Self.pick(valid, matching: Self.boardTokens, excluding: Self.cpuTokens + Self.ssdTokens + Self.devTokens) {
             readings.append(SensorReading(id: "board", kind: .board, label: "BOARD", celsius: board))
         }
-
-        // RAM die sensors are uncommon; only surface a real HID match.
-        if let ram = Self.pick(hidRows, matching: Self.ramTokens) {
+        if let ram = Self.pick(valid, matching: Self.ramTokens, excluding: []) {
             readings.append(SensorReading(id: "ram", kind: .ram, label: "RAM", celsius: ram))
         }
 
@@ -60,7 +54,7 @@ final class SensorService: ObservableObject {
         }
 
         // Last resort: show the hottest HID sensor as CPU so the HUD is never blank.
-        if readings.isEmpty, let hottest = hidRows.max(by: { $0.celsius < $1.celsius }) {
+        if readings.isEmpty, let hottest = valid.max(by: { $0.celsius < $1.celsius }) {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", celsius: hottest.celsius))
         }
 
@@ -70,14 +64,21 @@ final class SensorService: ObservableObject {
         }
     }
 
-    private static let cpuTokens = ["soc", "cpu", "pacc", "eacc", "die"]
+    private static let cpuTokens = ["tdie", "soc", "cpu", "pacc", "eacc"]
     private static let gpuTokens = ["gpu"]
-    private static let boardTokens = ["wifi", "airport", "gas gauge", "pmu", "skin", "ambient"]
+    private static let ssdTokens = ["nand", "ssd", "storage"]
+    private static let boardTokens = ["wifi", "airport", "skin", "ambient", "gas gauge"]
     private static let ramTokens = ["dram", "memory"]
+    private static let devTokens = ["tdev"]
 
-    private static func pick(_ rows: [(name: String, celsius: Double)], matching tokens: [String]) -> Double? {
+    private static func pick(
+        _ rows: [(name: String, celsius: Double)],
+        matching tokens: [String],
+        excluding: [String]
+    ) -> Double? {
         let hits = rows.filter { row in
             let n = row.name.lowercased()
+            if excluding.contains(where: { n.contains($0) }) { return false }
             return tokens.contains { n.contains($0) }
         }
         return hits.map(\.celsius).max()

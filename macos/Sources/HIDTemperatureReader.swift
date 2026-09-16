@@ -12,13 +12,13 @@ final class HIDTemperatureReader {
     private typealias CreateFn = @convention(c) (CFAllocator?) -> EventSystemClient?
     private typealias SetMatchingFn = @convention(c) (EventSystemClient, CFDictionary) -> Void
     private typealias CopyServicesFn = @convention(c) (EventSystemClient) -> Unmanaged<CFArray>?
-    private typealias CopyEventFn = @convention(c) (ServiceClient, Int64, Int32, Int64) -> HIDEvent?
-    private typealias GetFloatFn = @convention(c) (HIDEvent, Int32) -> Double
+    private typealias CopyEventFn = @convention(c) (ServiceClient, UInt32, UInt32, UInt64) -> HIDEvent?
+    private typealias GetFloatFn = @convention(c) (HIDEvent, UInt32) -> Double
     private typealias CopyPropertyFn = @convention(c) (ServiceClient, CFString) -> Unmanaged<CFTypeRef>?
     private typealias ReleaseFn = @convention(c) (UnsafeRawPointer) -> Void
 
-    private static let temperatureEventType: Int64 = 15
-    private static let temperatureField: Int32 = Int32(15 << 16)
+    private static let temperatureEventType: UInt32 = 15
+    private static let temperatureField: UInt32 = 15 << 16
 
     private var handle: UnsafeMutableRawPointer?
     private var client: EventSystemClient?
@@ -69,10 +69,12 @@ final class HIDTemperatureReader {
         for (index, object) in services.enumerated() {
             let service = Unmanaged.passUnretained(object as AnyObject).toOpaque()
             var name = "Sensor \(index + 1)"
-            if let copyProperty,
-               let prop = copyProperty(service, "Product" as CFString)?.takeRetainedValue() {
-                if let string = prop as? String, !string.isEmpty {
-                    name = string
+            if let copyProperty {
+                for key in ["Product", "ProductName"] as [CFString] {
+                    if let prop = copyProperty(service, key)?.takeRetainedValue() as? String, !prop.isEmpty {
+                        name = prop
+                        break
+                    }
                 }
             }
 
