@@ -1,0 +1,12 @@
+<Application x:Class="MonitorSuhu.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#76B900"/>
+        <SolidColorBrush x:Key="WarnBrush" Color="#F5C518"/>
+        <SolidColorBrush x:Key="CritBrush" Color="#FF3B30"/>
+        <SolidColorBrush x:Key="HudBg" Color="#CC000000"/>
+        <FontFamily x:Key="HudFont">Segoe UI Semibold</FontFamily>
+    </Application.Resources>
+</Application>

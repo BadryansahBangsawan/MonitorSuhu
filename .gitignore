@@ -1,0 +1,19 @@
+# macOS
+macos/build/
+macos/.build/
+macos/dist/
+*.dSYM
+.DS_Store
+
+# Windows / .NET
+windows/**/bin/
+windows/**/obj/
+windows/.vs/
+windows/dist/
+*.user
+*.suo
+*.cache
+
+# IDE
+.idea/
+*.swp
