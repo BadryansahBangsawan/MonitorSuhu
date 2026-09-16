@@ -114,7 +114,7 @@
         </StackPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <Border Style="{StaticResource Card}" Background="#243018">
+                <Border>
                     <Border.Style>
                         <Style TargetType="Border" BasedOn="{StaticResource Card}">
                             <Setter Property="Visibility" Value="Collapsed"/>
