@@ -126,6 +126,8 @@ Settings: `~/.config/MonitorSuhu/settings.json`
 
 ## ⚙️ Settings
 
+> **Tip — Assignments:** if Auto picks the wrong sensor (e.g. an ambient probe instead of the die temperature), open **Settings → Assignments**, expand the row, and pick the named sensor from the dropdown. The choice persists across restarts and updates.
+
 | Setting | Description |
 |---|---|
 | **Overlay** | Show, lock (click-through), start with OS, hide in fullscreen / capture |
