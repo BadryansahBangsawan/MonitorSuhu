@@ -2,8 +2,8 @@
 
 # 🌡️ MonitorSuhu
 
-**Lightweight hardware temperature overlay for macOS, Windows, and Linux.**  
-Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to edges, survives display changes.
+**Always-on-top hardware temperature HUD for macOS, Windows, and Linux.**  
+NVIDIA-style dark overlay — drag to a corner, snap to edges, survives display changes.
 
 <br/>
 
@@ -21,81 +21,88 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 ┃ BOARD        36°C
 ```
 
+The `58°C` block is example layout only. Runtime numbers come from the machine.
+
 </div>
+
+---
+
+## What you get
+
+| Piece | Behavior |
+|---|---|
+| **HUD** | Always-on-top overlay. CPU / GPU / SSD / BOARD / RAM / FAN. Optional CPU%, GPU%, PWR. |
+| **Extra / tray** | CPU only: `Suhu 46°` (no `C`/`F` suffix). Missing CPU → `Suhu`. |
+| **Lock** | Clicks pass through the HUD. Unlock to drag; it snaps to edges. |
+| **Compact** | One line, worst-threshold color (RPM is never compared to °C). Default off. |
+| **Sparkline** | Last 30 polls on stacked rows. Default off. |
+| **Alerts** | One system sound on rising-edge critical. Mute 15 minutes from the extra/tray or Settings. |
+
+No dummy temperatures. Empty HUD is `NO SENSORS`.
 
 ---
 
 ## ⬇️ Download
 
-Each OS has its own file on the same GitHub Release. The in-app updater only follows a tag that ships **this** platform’s file.
+Same GitHub Release, three files. The in-app updater only treats a tag as “latest” if it ships **this OS** file (a Windows-only tag is not a Mac update).
 
 | Platform | File | Requirements |
 |---|---|---|
-| **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14 Sonoma or later (Apple Silicon + Intel) |
-| **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 (64-bit), Administrator |
-| **Linux** | `MonitorSuhu-*-linux-x64.tar.gz` | x64, `/sys/class/hwmon` |
+| **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14+ (universal: Apple Silicon + Intel) |
+| **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 x64, run as Administrator |
+| **Linux** | `MonitorSuhu-*-linux-x64.tar.gz` | x64, `/sys/class/hwmon` (or `/sys/class/thermal`) |
 
-👉 **[Go to Releases →](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)**
+👉 **[Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)**
+
+Default shortcuts on every OS: **Ctrl+Shift+T** (toggle overlay), **Ctrl+Shift+E** (unlock to drag). Rebind in Settings.
 
 ---
 
-## 🍎 macOS — Installation
+## 🍎 macOS
 
-1. Download `MonitorSuhu-*-macos.dmg` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
-2. Open the DMG. The volume **is** `MonitorSuhu.app` — drag that into **Applications**
-3. On first launch, macOS may block the unsigned build. Run once:
+1. Download `MonitorSuhu-*-macos.dmg`.
+2. Open it. The disk volume **is** `MonitorSuhu.app` (bundle at the volume root). Drag that into **Applications**.
+3. Unsigned build — first open:
 
    ```bash
    xattr -cr /Applications/MonitorSuhu.app && open /Applications/MonitorSuhu.app
    ```
 
-   Or: right-click the app → **Open** → **Open** again. Still blocked? **System Settings → Privacy & Security → Open Anyway**.
+   Or right-click → **Open** → **Open**. Still blocked: **System Settings → Privacy & Security → Open Anyway**.
 
-4. A **Suhu** item appears in the menu bar. Click it to show/hide the overlay or open Settings.
+4. Menu extra title is **Suhu** (right side of the menu bar). Dock icon reopens Settings; closing Settings does not quit the HUD.
 
-> **Tip:** Click the Dock icon to reopen Settings. The HUD stays when Settings closes.
+**Sensors:** Apple Silicon HID (`IOHIDEventSystemClient`, usage page `0xff00` / usage `0x0005`). Intel fallback: SMC. CPU pick ranks pACC / eACC / SoC over PMU `tdie`. BOARD is wifi / skin / ambient — not the battery (`gas gauge`). No GPU row unless a HID product name contains `gpu` / `agx` / `dgpu` / `gfx`. FAN from SMC `F0Ac` / `F1Ac` (200–15000 RPM).
 
-### Keyboard Shortcuts
+**Start with macOS:** `SMAppService`. First enable may prompt **System Settings → General → Login Items**.
 
-| Shortcut | Action |
-|---|---|
-| `⌃ ⇧ T` | Show / hide overlay (rebindable in Settings) |
-| `⌃ ⇧ E` | Unlock overlay for dragging (rebindable in Settings) |
+**Auto-hide:** exclusive fullscreen. Screen-share hide needs Screen Recording on macOS 14+; the app never prompts for it.
 
-### Notes
-
-- Temps are live HID on Apple Silicon (`IOHIDEventSystemClient`) or SMC on Intel. HUD labels are name-token picks (CPU prefers pACC / eACC / SoC over PMU tdie). BOARD is not the battery. Missing GPU usually means no HID name contains `gpu` / `agx`.
-- RAM, CPU%, GPU%, and PWR stay off until you enable them **and** hardware reports them.
-- **Start with macOS** uses `SMAppService` — the first enable may prompt **System Settings → General → Login Items**.
-- Native fullscreen hides the HUD while **Hide in fullscreen** is on. Screen-share hide needs Screen Recording on macOS 14+; MonitorSuhu never prompts for it.
+Settings: `~/Library/Application Support/MonitorSuhu/settings.json`
 
 ---
 
-## 🪟 Windows — Installation
+## 🪟 Windows
 
-1. Download `MonitorSuhu-*-windows-x64.exe` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
-2. Run the installer — **UAC / Administrator** is required so hardware sensor drivers can open
-3. The overlay appears in the top-right corner; a tray icon appears in the notification area
+1. Download `MonitorSuhu-*-windows-x64.exe`.
+2. Run it with **UAC / Administrator** so LibreHardwareMonitor can load its driver.
+3. HUD top-right; tray icon in the notification area.
 
-### Keyboard Shortcuts
+**Sensors:** [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Empty HUD is usually driver/UAC, not fake zeros. Antivirus may flag the kernel driver — allow it. BOARD skips Super-I/O sensors named like CPU. FAN is the highest real RPM.
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl + Shift + T` | Show / hide overlay (rebindable in Settings) |
-| `Ctrl + Shift + E` | Unlock overlay for dragging (rebindable in Settings) |
+**Start with Windows:** Task Scheduler logon task at highest privileges, applied when you press **Save**.
 
-### Notes
+**Auto-hide:** exclusive fullscreen. Screensaver counts as capture.
 
-- Sensors are read via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Antivirus may flag its kernel driver — allow it if the HUD is empty.
-- A second launch exits immediately (one overlay instance).
-- **Start with Windows** creates a Task Scheduler task at highest privileges. Applied when you press **Save** in Settings.
-- RAM temperature is rare on consumer DIMMs. CPU load, GPU load, and power stay off until you enable them.
+A second launch exits (single instance).
+
+Settings: `%AppData%\MonitorSuhu\settings.json`
 
 ---
 
-## 🐧 Linux — Installation
+## 🐧 Linux
 
-1. Download `MonitorSuhu-*-linux-x64.tar.gz` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+1. Download `MonitorSuhu-*-linux-x64.tar.gz`.
 2. Extract and install:
 
    ```bash
@@ -103,61 +110,82 @@ Each OS has its own file on the same GitHub Release. The in-app updater only fol
    bash install.sh
    ```
 
-   That copies the app to `~/.local/opt/MonitorSuhu` and adds a desktop entry. Or run `./MonitorSuhu` from the extracted folder.
+   Copies to `~/.local/opt/MonitorSuhu`, symlinks `~/.local/bin/MonitorSuhu`, writes `~/.local/share/applications/monitorsuhu.desktop`. Override prefix with `MONITORSUHU_HOME`. Or run `./MonitorSuhu` from the extract folder.
 
-### Keyboard Shortcuts
+**Sensors:** `/sys/class/hwmon` millidegree temps and fan inputs. If that tree is empty, `/sys/class/thermal`. CPU% from `/proc/stat`. No dummy °C.
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl + Shift + T` | Show / hide overlay (rebindable in Settings) |
-| `Ctrl + Shift + E` | Unlock overlay for dragging (rebindable in Settings) |
+**Start with Linux:** same JSON flag as Windows autostart (`StartWithWindows` in the file).
 
-### Notes
+**Hotkeys:** skipped on Wayland (`WAYLAND_DISPLAY`). X11 grabs on the overlay; a failed grab still leaves the HUD running.
 
-- Temps come from `/sys/class/hwmon` (and `/sys/class/thermal` if hwmon is empty). No dummy °C.
-- A second launch exits immediately (`/tmp/id.monitorsuhu.lock`).
-- **Start with Linux** uses the same JSON flag as Windows autostart.
-- Settings live in `~/.config/MonitorSuhu/settings.json`.
+Second launch exits (`/tmp/id.monitorsuhu.lock`).
+
+Settings: `~/.config/MonitorSuhu/settings.json`
 
 ---
 
 ## ⚙️ Settings
 
-All three platforms share the same settings surface:
-
 | Setting | Description |
 |---|---|
-| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM / Fan, plus optional CPU%, GPU%, PWR |
-| **Assignments** | Pin a HUD row to a named sensor, or leave Auto |
-| **Thresholds** | Warn (yellow) and critical (red) per sensor. Fan uses RPM; load uses %; power uses W |
-| **Alerts** | Notify when a visible reading crosses critical; mute 15 minutes from tray or Settings |
-| **Shortcuts** | Click a chord pill and press a modifier plus a letter or number. Esc cancels |
-| **Profiles** | Desktop / Game / Silent looks. Editing sensors or appearance marks Custom |
-| **Appearance** | Compact one-line HUD, 30-sample sparkline, opacity, font, accent, °C / °F |
-| **Position** | Corner presets or drag-to-place with edge snap |
-| **Auto-hide** | Hide during exclusive fullscreen (and capture where the OS can tell). Show overlay stays on |
-| **Poll interval** | How often sensors are read (400 ms – 3 s, default 1 s) |
-| **Start with OS** | Launch automatically on login |
-
-Overlay position is stored as **relative corner edges**, so resizing the font or adding a sensor row keeps a corner HUD anchored. On Windows, position is DPI-aware — 125% / 150% scaling does not park the HUD off-screen.
-
-**Settings file locations:**
-
-- macOS: `~/Library/Application Support/MonitorSuhu/settings.json`
-- Windows: `%AppData%\MonitorSuhu\settings.json`
-- Linux: `~/.config/MonitorSuhu/settings.json`
+| **Overlay** | Show, lock (click-through), start with OS, hide in fullscreen / capture |
+| **Sensors** | CPU / GPU / SSD / Board / RAM / Fan, plus optional CPU%, GPU%, PWR |
+| **Assignments** | Pin a HUD row to a named sensor, or Auto |
+| **Thresholds** | Warn (yellow) and critical (red). Fan is RPM; load is %; power is W |
+| **Alerts** | Rising-edge critical beep; mute 15 minutes |
+| **Shortcuts** | Click a chord, press modifier + letter/number. Esc cancels |
+| **Profiles** | Desktop / Game / Silent. Editing sensors or appearance marks Custom |
+| **Appearance** | Compact, sparkline (30 samples), opacity, font, accent, °C / °F |
+| **Position** | Corner presets or drag. Stored as relative corner edges (Windows is DPI-aware) |
+| **Poll** | 400 ms – 3 s (default 1 s) |
+| **About** | Version and **Install …** when a newer build for this OS exists |
 
 ---
 
 ## 🔄 Updates
 
-On launch, MonitorSuhu lists GitHub Releases and picks the newest tag that includes **this OS** file (macOS `.dmg`, Windows `.exe`, Linux `.tar.gz`). A Windows-only tag is not an update on Mac.
+On launch the app lists GitHub Releases and selects the newest non-draft tag that contains this platform’s asset.
 
-When a newer build exists, Settings shows a banner (and a tray balloon on Windows). **Install …** downloads that file with a progress bar, then the app closes to finish. Open it again from Applications / Start menu / the desktop entry if it does not restart.
+Settings banner (Windows also balloons the tray). **Install …** downloads with a progress bar, then the process exits to finish. Reopen from Applications / Start / the desktop entry if it does not come back.
 
-- **macOS:** replaces `/Applications/MonitorSuhu.app`; settings stay in Application Support
-- **Windows:** runs the setup silently and relaunches; settings stay in `%AppData%`
-- **Linux:** extracts the tarball over the running folder; settings stay in `~/.config/MonitorSuhu`
+| OS | What Install does |
+|---|---|
+| macOS | Replaces `/Applications/MonitorSuhu.app` |
+| Windows | Silent setup exe, then relaunch |
+| Linux | Extracts the tarball over the running folder |
+
+---
+
+## Build from source
+
+Repo: [BadryansahBangsawan/MonitorSuhu](https://github.com/BadryansahBangsawan/MonitorSuhu). Tag `v*` runs CI (DMG + Inno exe + Linux tarball).
+
+**macOS 14+**
+
+```bash
+cd macos
+make app          # universal arm64 + x86_64, ad-hoc signed
+make test
+open build/MonitorSuhu.app
+```
+
+**Windows** (x64, .NET 8)
+
+```powershell
+dotnet test windows/src/MonitorSuhu.Core.Tests/MonitorSuhu.Core.Tests.csproj
+./windows/publish.ps1
+# optional: Inno Setup 6 → windows/installer/MonitorSuhu.iss
+```
+
+**Linux** (.NET 8)
+
+```bash
+dotnet test linux/MonitorSuhu.Linux.Tests/MonitorSuhu.Linux.Tests.csproj
+dotnet publish linux/MonitorSuhu.Linux.csproj -c Release -r linux-x64 --self-contained true -o linux/dist/linux-x64
+bash linux/scripts/make-tarball.sh
+```
+
+Do not run the Linux ELF on macOS.
 
 ---
 
