@@ -2,7 +2,7 @@
 
 # 🌡️ MonitorSuhu
 
-**Lightweight hardware temperature overlay for macOS and Windows.**  
+**Lightweight hardware temperature overlay for macOS, Windows, and Linux.**  
 Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to edges, survives display changes.
 
 <br/>
@@ -10,6 +10,7 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 [![Latest Release](https://img.shields.io/github/v/release/BadryansahBangsawan/MonitorSuhu?style=flat-square&color=76B900&label=latest)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+[![Linux](https://img.shields.io/badge/Linux-x64-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
 
 <br/>
 
@@ -26,10 +27,12 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
 ## ⬇️ Download
 
+Each OS has its own file on the same GitHub Release. The in-app updater only follows a tag that ships **this** platform’s file.
+
 | Platform | File | Requirements |
 |---|---|---|
-| **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14 Sonoma or later |
-| **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 (64-bit) |
+| **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14 Sonoma or later (Apple Silicon + Intel) |
+| **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 (64-bit), Administrator |
 | **Linux** | `MonitorSuhu-*-linux-x64.tar.gz` | x64, `/sys/class/hwmon` |
 
 👉 **[Go to Releases →](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)**
@@ -39,8 +42,8 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 ## 🍎 macOS — Installation
 
 1. Download `MonitorSuhu-*-macos.dmg` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
-2. Open the DMG and drag **MonitorSuhu** into **Applications**
-3. On first launch, macOS may block the app (unsigned build). To open it:
+2. Open the DMG. The volume **is** `MonitorSuhu.app` — drag that into **Applications**
+3. On first launch, macOS may block the unsigned build. Run once:
 
    ```bash
    xattr -cr /Applications/MonitorSuhu.app && open /Applications/MonitorSuhu.app
@@ -48,9 +51,9 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
    Or: right-click the app → **Open** → **Open** again. Still blocked? **System Settings → Privacy & Security → Open Anyway**.
 
-4. A **Suhu** icon appears in the menu bar. Click it to show/hide the overlay or open Settings.
+4. A **Suhu** item appears in the menu bar. Click it to show/hide the overlay or open Settings.
 
-> **Tip:** Click the Dock icon at any time to reopen the Settings window.
+> **Tip:** Click the Dock icon to reopen Settings. The HUD stays when Settings closes.
 
 ### Keyboard Shortcuts
 
@@ -61,10 +64,10 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
 ### Notes
 
-- Sensors are read natively via Apple Silicon HID (`IOHIDEventSystemClient`) or SMC keys on Intel.
-- RAM temperature only appears when a hardware sensor reports it. CPU load, GPU load, and power stay off until you enable them and hardware reports them.
-- **Start with macOS** uses `SMAppService` — the first enable may prompt you in **System Settings → General → Login Items**.
-- Native fullscreen apps hide the HUD while **Hide in fullscreen** is on. Screen-share hide needs Screen Recording permission on macOS 14+; MonitorSuhu never prompts for it.
+- Temps are live HID on Apple Silicon (`IOHIDEventSystemClient`) or SMC on Intel. HUD labels are name-token picks (CPU prefers pACC / eACC / SoC over PMU tdie). BOARD is not the battery. Missing GPU usually means no HID name contains `gpu` / `agx`.
+- RAM, CPU%, GPU%, and PWR stay off until you enable them **and** hardware reports them.
+- **Start with macOS** uses `SMAppService` — the first enable may prompt **System Settings → General → Login Items**.
+- Native fullscreen hides the HUD while **Hide in fullscreen** is on. Screen-share hide needs Screen Recording on macOS 14+; MonitorSuhu never prompts for it.
 
 ---
 
@@ -83,12 +86,12 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
 ### Notes
 
-- Sensors are read via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Antivirus software may flag its kernel driver — allow it if the HUD shows no readings.
-- A second launch exits immediately (only one overlay instance runs at a time).
-- **Start with Windows** creates a Task Scheduler task at highest privileges so the overlay retains sensor access after reboot. The task is applied when you press **Save** in Settings.
-- RAM temperature is rare on most consumer DIMMs. CPU load, GPU load, and power stay off until you enable them.
-- Exclusive fullscreen windows hide the HUD while **Hide in fullscreen** is on. Screensaver counts as capture.
+- Sensors are read via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Antivirus may flag its kernel driver — allow it if the HUD is empty.
+- A second launch exits immediately (one overlay instance).
+- **Start with Windows** creates a Task Scheduler task at highest privileges. Applied when you press **Save** in Settings.
+- RAM temperature is rare on consumer DIMMs. CPU load, GPU load, and power stay off until you enable them.
 
+---
 
 ## 🐧 Linux — Installation
 
@@ -102,18 +105,25 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
    That copies the app to `~/.local/opt/MonitorSuhu` and adds a desktop entry. Or run `./MonitorSuhu` from the extracted folder.
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl + Shift + T` | Show / hide overlay (rebindable in Settings) |
+| `Ctrl + Shift + E` | Unlock overlay for dragging (rebindable in Settings) |
+
 ### Notes
 
-- Sensors come from `/sys/class/hwmon` (and `/sys/class/thermal` if hwmon is empty). No fake °C.
+- Temps come from `/sys/class/hwmon` (and `/sys/class/thermal` if hwmon is empty). No dummy °C.
 - A second launch exits immediately (`/tmp/id.monitorsuhu.lock`).
-- **Start with Linux** writes the same JSON flag as Windows autostart.
+- **Start with Linux** uses the same JSON flag as Windows autostart.
 - Settings live in `~/.config/MonitorSuhu/settings.json`.
 
 ---
 
 ## ⚙️ Settings
 
-Both platforms share the same settings surface:
+All three platforms share the same settings surface:
 
 | Setting | Description |
 |---|---|
@@ -129,11 +139,11 @@ Both platforms share the same settings surface:
 | **Poll interval** | How often sensors are read (400 ms – 3 s, default 1 s) |
 | **Start with OS** | Launch automatically on login |
 
-Overlay position is stored as **relative corner edges**, so resizing the font or adding a sensor row keeps a corner HUD anchored to that corner. On Windows, position is DPI-aware — 125% / 150% scaling does not park the HUD off-screen.
+Overlay position is stored as **relative corner edges**, so resizing the font or adding a sensor row keeps a corner HUD anchored. On Windows, position is DPI-aware — 125% / 150% scaling does not park the HUD off-screen.
 
 **Settings file locations:**
 
-- macOS: `~/Library/Application Support/MonitorSuhu/settings.json`  
+- macOS: `~/Library/Application Support/MonitorSuhu/settings.json`
 - Windows: `%AppData%\MonitorSuhu\settings.json`
 - Linux: `~/.config/MonitorSuhu/settings.json`
 
@@ -141,9 +151,13 @@ Overlay position is stored as **relative corner edges**, so resizing the font or
 
 ## 🔄 Updates
 
-MonitorSuhu checks [GitHub Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases) automatically on launch. When a new version is available, a banner appears in Settings and a tray notification pops up on Windows.
+On launch, MonitorSuhu lists GitHub Releases and picks the newest tag that includes **this OS** file (macOS `.dmg`, Windows `.exe`, Linux `.tar.gz`). A Windows-only tag is not an update on Mac.
 
-**Install from the app** on macOS and Windows: Settings → **Install …** downloads the matching DMG or setup exe and replaces the current install. Settings in `Application Support` / `%AppData%` stay put. Linux still opens the GitHub page until a packaged tarball ships with the release.
+When a newer build exists, Settings shows a banner (and a tray balloon on Windows). **Install …** downloads that file with a progress bar, then the app closes to finish. Open it again from Applications / Start menu / the desktop entry if it does not restart.
+
+- **macOS:** replaces `/Applications/MonitorSuhu.app`; settings stay in Application Support
+- **Windows:** runs the setup silently and relaunches; settings stay in `%AppData%`
+- **Linux:** extracts the tarball over the running folder; settings stay in `~/.config/MonitorSuhu`
 
 ---
 
