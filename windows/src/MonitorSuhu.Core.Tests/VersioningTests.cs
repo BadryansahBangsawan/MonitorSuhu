@@ -5,9 +5,9 @@ namespace MonitorSuhu.Core.Tests;
 public sealed class VersioningTests
 {
     [Theory]
-    [InlineData("1.0.10", "1.0.9", true)]
-    [InlineData("1.0.10", "1.0.10", false)]
-    [InlineData("1.0.9", "1.0.10", false)]
+    [InlineData("1.0.11", "1.0.10", true)]
+    [InlineData("1.0.11", "1.0.11", false)]
+    [InlineData("1.0.10", "1.0.11", false)]
     [InlineData("v2.0.0", "1.9.9", true)]
     public void IsNewer(string latest, string current, bool expected) =>
         Assert.Equal(expected, Versioning.IsNewer(latest, current));
@@ -15,6 +15,6 @@ public sealed class VersioningTests
     [Fact]
     public void Trim_DropsBuildZero()
     {
-        Assert.Equal("1.0.10", Versioning.Trim("1.0.10.0"));
+        Assert.Equal("1.0.11", Versioning.Trim("1.0.11.0"));
     }
 }
