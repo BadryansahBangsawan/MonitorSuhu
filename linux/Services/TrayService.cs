@@ -9,11 +9,12 @@ public sealed class TrayService : IDisposable
     private readonly TrayIcon _icon;
     private readonly TrayIcons _icons;
 
-    public TrayService(Action toggleOverlay, Action editLayout, Action openSettings, Action checkUpdates, Action exit)
+    public TrayService(Action toggleOverlay, Action editLayout, Action muteAlerts, Action openSettings, Action checkUpdates, Action exit)
     {
         var menu = new NativeMenu();
         menu.Items.Add(Item("Show / Hide Overlay", toggleOverlay));
         menu.Items.Add(Item("Edit Layout", editLayout));
+        menu.Items.Add(Item("Mute alerts 15 min", muteAlerts));
         menu.Items.Add(new NativeMenuItemSeparator());
         menu.Items.Add(Item("Settings…", openSettings));
         menu.Items.Add(Item("Check for Updates…", checkUpdates));

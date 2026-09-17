@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         overlay = OverlayController(store: store, sensors: sensors)
+        AlertNotifier.request()
         restartSensors()
         installStatusItem()
         registerHotkeys()
@@ -42,7 +43,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.refreshStatusItem()
-                self.alertGate.evaluate(readings: self.sensors.snapshot.readings, settings: self.store.settings)
+                for message in self.alertGate.evaluate(readings: self.sensors.snapshot.readings, settings: self.store.settings) {
+                    AlertNotifier.deliver(message)
+                }
             }
             .store(in: &cancellables)
 
@@ -132,6 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(item("Show / Hide Overlay", #selector(toggleOverlay), key: "t"))
         menu.addItem(item("Edit Layout", #selector(editLayout), key: "e"))
+        menu.addItem(item("Mute alerts 15 min", #selector(muteAlerts)))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(openSettings), key: ","))
         let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
@@ -145,7 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
-    private func item(_ title: String, _ sel: Selector, key: String) -> NSMenuItem {
+    private func item(_ title: String, _ sel: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: sel, keyEquivalent: key)
         item.keyEquivalentModifierMask = [.control, .shift]
         item.target = self
@@ -173,6 +177,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.settings.locked = false
         overlay.applyLock()
         overlay.show()
+    }
+
+    @objc func muteAlerts() {
+        store.settings.muteAlerts()
     }
 
     @objc func checkForUpdates() {

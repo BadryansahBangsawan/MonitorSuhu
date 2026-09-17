@@ -169,6 +169,20 @@ public sealed class AppSettings
         return $"Suhu {n}°";
     }
 
+    public void MuteAlerts(int minutes = 15, long? nowMs = null)
+    {
+        var now = nowMs ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        AlertMuteUntil = now + minutes * 60_000L;
+    }
+
+    public string? MuteCaption(long? nowMs = null)
+    {
+        var now = nowMs ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (AlertMuteUntil is not long until || until <= now) return null;
+        var minutes = Math.Max(1, (int)Math.Ceiling((until - now) / 60_000.0));
+        return $"Muted for {minutes} min. HUD colors still change.";
+    }
+
     public static Dictionary<string, Thresholds> DefaultThresholds() => new()
     {
         [nameof(SensorKind.Cpu)] = new Thresholds { Warn = 75, Critical = 90 },

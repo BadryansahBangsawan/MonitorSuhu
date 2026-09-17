@@ -66,6 +66,25 @@ struct SettingsView: View {
                 }
             }
 
+            SettingsSection("Alerts") {
+                SettingsToggleRow(
+                    "Critical alerts",
+                    isOn: $store.settings.alertsEnabled,
+                    help: "Notification (or a beep if permission is denied) when a visible reading crosses critical."
+                )
+                SettingsRowDivider()
+                Button("Mute 15 minutes") {
+                    store.settings.muteAlerts()
+                }
+                .padding(.vertical, 8)
+            } caption: {
+                if let mute = store.settings.muteCaption() {
+                    SettingsCallout(mute)
+                } else {
+                    SettingsCaption("HUD colors still change while muted. Mute lasts 15 minutes and survives relaunch.")
+                }
+            }
+
             SettingsSection("Position") {
                 LazyVGrid(
                     columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],

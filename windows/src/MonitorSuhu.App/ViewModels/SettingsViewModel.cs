@@ -114,6 +114,28 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool ShowGpuLoad { get => Settings.ShowGpuLoad; set => SetFlag(v => Settings.ShowGpuLoad = v, Settings.ShowGpuLoad, value); }
     public bool ShowPower { get => Settings.ShowPower; set => SetFlag(v => Settings.ShowPower = v, Settings.ShowPower, value); }
 
+    public bool AlertsEnabled
+    {
+        get => Settings.AlertsEnabled;
+        set
+        {
+            if (Settings.AlertsEnabled == value) return;
+            Settings.AlertsEnabled = value;
+            OnPropertyChanged();
+            _store.SaveDebounced();
+        }
+    }
+
+    public string MuteCaption => Settings.MuteCaption() ?? "Critical alerts beep and show a tray balloon. Mute lasts 15 minutes.";
+
+    [RelayCommand]
+    private void MuteAlerts()
+    {
+        Settings.MuteAlerts();
+        OnPropertyChanged(nameof(MuteCaption));
+        _store.SaveDebounced();
+    }
+
 
     public bool UseFahrenheit
     {

@@ -48,6 +48,17 @@ enum LogicTests {
         check("cpu still visible", settings.isKindVisible(.cpu))
         check("cpu load hidden", !settings.isKindVisible(.cpuLoad))
 
+        var clock: Double = 1_000_000
+        let gate = AlertGate(nowMs: { clock })
+        settings.setThresholds(for: .cpu, warn: 75, critical: 90)
+        let hot = SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: 90)
+        check("alert first fire", gate.evaluate(readings: [hot], settings: settings) == ["CPU 90°C"])
+        check("alert cooldown", gate.evaluate(readings: [hot], settings: settings).isEmpty)
+        clock += AlertGate.cooldownMs
+        check("alert after cooldown", gate.evaluate(readings: [hot], settings: settings) == ["CPU 90°C"])
+        settings.muteAlerts(nowMs: clock)
+        check("alert muted", gate.evaluate(readings: [hot], settings: settings).isEmpty)
+
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)
         settings.setThresholds(for: .fan, warn: 4000, critical: 5500)
         let rows = [

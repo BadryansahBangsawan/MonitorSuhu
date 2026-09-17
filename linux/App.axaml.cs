@@ -22,7 +22,7 @@ public partial class App : Application
     private TrayService? _tray;
     private OverlayViewModel? _overlayVm;
     private UpdateChecker? _updates;
-    private AlertGate? _alertGate;
+    private AlertPresenter? _alerts;
 
     public override void Initialize()
     {
@@ -45,7 +45,7 @@ public partial class App : Application
     {
         _store = new SettingsStore();
         _sensors = new HwmonSensorService(() => _store.Settings.SensorBindings);
-        _alertGate = new AlertGate();
+        _alerts = new AlertPresenter(message => _tray?.ShowWarning(message));
         _overlayVm = new OverlayViewModel(_store, _sensors);
         _overlay = new OverlayWindow(_overlayVm, _store);
         _updates = new UpdateChecker();
@@ -64,6 +64,7 @@ public partial class App : Application
         _tray = new TrayService(
             toggleOverlay: ToggleOverlay,
             editLayout: EditLayout,
+            muteAlerts: MuteAlerts,
             openSettings: OpenSettings,
             checkUpdates: () => _ = CheckForUpdatesAsync(),
             exit: () => desktop.Shutdown());
@@ -117,6 +118,14 @@ public partial class App : Application
         _overlay.Show();
     }
 
+    public void MuteAlerts()
+    {
+        if (_store is null)
+            return;
+        _store.Settings.MuteAlerts();
+        _store.Save();
+    }
+
     public void OpenSettings()
     {
         if (_store is null || _sensors is null || _overlay is null || _updates is null)
@@ -158,7 +167,7 @@ public partial class App : Application
         var title = settings.MenuBarTitle(cpu);
         var crit = cpu is { } c && c >= settings.ThresholdsFor(SensorKind.Cpu).Critical;
         _tray?.SetStatus(title, crit);
-        _alertGate?.Evaluate(snapshot.Readings, settings);
+        _alerts?.Evaluate(snapshot.Readings, settings);
     }
 
     private void OnDesktopExit()

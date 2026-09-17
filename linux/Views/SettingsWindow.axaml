@@ -103,6 +103,18 @@
                 <TextBlock Text="{Binding LockCaption}"
                            Classes="caption" Margin="2,0,0,14"/>
 
+                <TextBlock Text="Alerts" Classes="section"/>
+                <Border Classes="card">
+                    <StackPanel>
+                        <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
+                                  ToolTip.Tip="Tray tooltip plus notify-send when a visible reading crosses critical."/>
+                        <Button Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"
+                                HorizontalAlignment="Left" Margin="0,4,0,6"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding MuteCaption}"
+                           Classes="caption" Margin="2,0,0,14"/>
+
                 <TextBlock Text="Position" Classes="section"/>
                 <Border Classes="card">
                     <StackPanel>

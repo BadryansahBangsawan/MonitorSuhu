@@ -146,6 +146,18 @@
                 <TextBlock Text="May ask for administrator permission so the overlay still has sensor access after reboot."
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
+                <TextBlock Text="Alerts" Style="{StaticResource SectionTitle}"/>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
+                                  ToolTip="Beep and show a tray balloon when a visible reading crosses critical."/>
+                        <Button Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"
+                                HorizontalAlignment="Left" Margin="0,4,0,6"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding MuteCaption}"
+                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+
                 <TextBlock Text="Position" Style="{StaticResource SectionTitle}"/>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
