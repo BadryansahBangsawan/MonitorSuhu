@@ -47,4 +47,14 @@ public sealed class ReleaseAssetsTests
         Assert.False(ReleaseAssets.IsTrusted("https://evil.example/MonitorSuhu-1.0.5-macos.dmg", Mac.Name, "macos"));
         Assert.True(ReleaseAssets.IsTrusted(Mac.Url, Mac.Name, "macos"));
     }
+
+    [Fact]
+    public void LatestFor_SkipsOtherPlatforms()
+    {
+        var winOnly = new GitHubRelease("v1.0.8", "https://github.com/x", [Win]);
+        var both = new GitHubRelease("v1.0.7", "https://github.com/y", [Mac, Win]);
+        Assert.Equal("1.0.7", ReleaseAssets.LatestFor([winOnly, both], "macos")?.Tag);
+        Assert.Equal("1.0.8", ReleaseAssets.LatestFor([winOnly, both], "windows")?.Tag);
+        Assert.Null(ReleaseAssets.LatestFor([winOnly, both], "linux"));
+    }
 }

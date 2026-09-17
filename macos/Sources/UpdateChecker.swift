@@ -4,7 +4,7 @@ import Combine
 
 final class UpdateChecker: ObservableObject {
     static let releasesPage = URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest")!
-    private static let api = URL(string: "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases/latest")!
+    private static let api = URL(string: "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=30")!
 
     let currentVersion: String
 
@@ -42,26 +42,44 @@ final class UpdateChecker: ObservableObject {
                 }
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                 guard status == 200, let data,
-                      let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let tag = body["tag_name"] as? String
+                      let json = try? JSONSerialization.jsonObject(with: data)
                 else {
                     self.lastError = "GitHub returned no release."
                     completion?(false)
                     if userInitiated { Self.alert("Could not check for updates.", "GitHub returned no release.") }
                     return
                 }
-                let latest = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-                let page = (body["html_url"] as? String).flatMap(URL.init(string:)) ?? Self.releasesPage
-                self.latestVersion = latest
-                self.latestURL = page
-                self.latestAsset = Self.parseAssets(body)
-                self.hasUpdate = Versioning.isNewer(latest, than: self.currentVersion)
+                let blobs: [[String: Any]]
+                if let many = json as? [[String: Any]] {
+                    blobs = many
+                } else if let one = json as? [String: Any] {
+                    blobs = [one]
+                } else {
+                    blobs = []
+                }
+                let releases = blobs.compactMap(Self.parseRelease)
+                guard let hit = ReleaseAssets.latest(in: releases, platform: "macos") else {
+                    self.latestVersion = nil
+                    self.latestURL = Self.releasesPage
+                    self.latestAsset = nil
+                    self.hasUpdate = false
+                    self.lastError = "No macOS build on GitHub Releases."
+                    completion?(true)
+                    if userInitiated {
+                        Self.alert("No macOS update.", "GitHub latest has no macOS disk image. Windows or Linux-only releases are ignored here.")
+                    }
+                    return
+                }
+                self.latestVersion = hit.tag
+                self.latestURL = hit.url ?? Self.releasesPage
+                self.latestAsset = hit.asset
+                self.hasUpdate = Versioning.isNewer(hit.tag, than: self.currentVersion)
                 completion?(true)
                 if userInitiated {
                     if self.hasUpdate {
-                        self.promptInstall(latest: latest)
+                        self.promptInstall(latest: hit.tag)
                     } else {
-                        Self.alert("You’re up to date.", "MonitorSuhu \(self.currentVersion) is the latest release.")
+                        Self.alert("You’re up to date.", "MonitorSuhu \(self.currentVersion) is the latest macOS release.")
                     }
                 }
             }
@@ -130,8 +148,12 @@ final class UpdateChecker: ObservableObject {
         }
     }
 
-    private static func parseAssets(_ body: [String: Any]) -> ReleaseAsset? {
-        guard let raw = body["assets"] as? [[String: Any]] else { return nil }
+    private static func parseRelease(_ body: [String: Any]) -> GitHubRelease? {
+        guard let tag = body["tag_name"] as? String else { return nil }
+        let page = (body["html_url"] as? String).flatMap(URL.init(string:))
+        let draft = body["draft"] as? Bool ?? false
+        let pre = body["prerelease"] as? Bool ?? false
+        let raw = body["assets"] as? [[String: Any]] ?? []
         let assets: [ReleaseAsset] = raw.compactMap { item in
             guard let name = item["name"] as? String,
                   let href = item["browser_download_url"] as? String,
@@ -140,7 +162,7 @@ final class UpdateChecker: ObservableObject {
             let size = (item["size"] as? NSNumber)?.int64Value ?? 0
             return ReleaseAsset(name: name, url: url, size: size)
         }
-        return ReleaseAssets.pick(assets, platform: "macos")
+        return GitHubRelease(tag: tag, htmlURL: page, assets: assets, draft: draft, prerelease: pre)
     }
 
     private static func download(

@@ -129,6 +129,37 @@ enum LogicTests {
         check("dest build copy", ReleaseAssets.installDestination(runningPath: "/Users/x/MonitorSuhu/macos/build/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
         check("dest dmg volume", ReleaseAssets.installDestination(runningPath: "/Volumes/MonitorSuhu/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
 
+        check("cpu prefers pacc over pmu tdie", SensorPick.cpu([
+            (name: "pACC die", celsius: 40),
+            (name: "PMU tdie8", celsius: 50)
+        ]) == 40)
+        check("cpu falls back to pmu tdie", SensorPick.cpu([
+            (name: "PMU tdie8", celsius: 35.7)
+        ]) == 35.7)
+        check("board skips battery", SensorPick.board([
+            (name: "gas gauge battery", celsius: 26.8),
+            (name: "wifi", celsius: 33)
+        ]) == 33)
+        check("board none if only battery", SensorPick.board([
+            (name: "gas gauge battery", celsius: 26.8)
+        ]) == nil)
+
+        let dmg7 = ReleaseAsset(
+            name: "MonitorSuhu-1.0.7-macos.dmg",
+            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.7/MonitorSuhu-1.0.7-macos.dmg")!,
+            size: 2_000_000
+        )
+        let exe8 = ReleaseAsset(
+            name: "MonitorSuhu-1.0.8-windows-x64.exe",
+            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.8/MonitorSuhu-1.0.8-windows-x64.exe")!,
+            size: 50_000_000
+        )
+        let winOnly = GitHubRelease(tag: "v1.0.8", htmlURL: nil, assets: [exe8], draft: false, prerelease: false)
+        let both = GitHubRelease(tag: "v1.0.7", htmlURL: nil, assets: [dmg7, exe8], draft: false, prerelease: false)
+        check("macos skips windows-only latest", ReleaseAssets.latest(in: [winOnly, both], platform: "macos")?.tag == "1.0.7")
+        check("windows takes newer exe", ReleaseAssets.latest(in: [winOnly, both], platform: "windows")?.tag == "1.0.8")
+        check("linux none without tarball", ReleaseAssets.latest(in: [winOnly, both], platform: "linux") == nil)
+
         if failures > 0 {
             fputs("\(failures) failed\n", stderr)
             exit(1)

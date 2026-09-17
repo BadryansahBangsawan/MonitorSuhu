@@ -6,6 +6,14 @@ struct ReleaseAsset: Equatable {
     let size: Int64
 }
 
+struct GitHubRelease: Equatable {
+    let tag: String
+    let htmlURL: URL?
+    let assets: [ReleaseAsset]
+    let draft: Bool
+    let prerelease: Bool
+}
+
 enum ReleaseAssets {
     static let maxBytes: Int64 = 200 * 1024 * 1024
 
@@ -48,5 +56,17 @@ enum ReleaseAssets {
         default:
             return false
         }
+    }
+
+    /// Newest non-draft release that actually ships a file for `platform`.
+    /// A Windows-only tag must not be "the latest" on macOS.
+    static func latest(in releases: [GitHubRelease], platform: String) -> (tag: String, url: URL?, asset: ReleaseAsset)? {
+        for release in releases where !release.draft && !release.prerelease {
+            guard let asset = pick(release.assets, platform: platform) else { continue }
+            var tag = release.tag
+            if tag.hasPrefix("v") { tag = String(tag.dropFirst()) }
+            return (tag, release.htmlURL, asset)
+        }
+        return nil
     }
 }

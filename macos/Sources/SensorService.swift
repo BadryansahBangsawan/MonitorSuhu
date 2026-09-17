@@ -69,54 +69,44 @@ final class SensorService: ObservableObject {
         let valid = hidRows.filter { $0.celsius > 1 && $0.celsius < 110 }
         var readings: [SensorReading] = []
 
-        if let cpu = Self.boundOrPick(
+        if let cpu = Self.boundTemp(
             kind: .cpu,
             bindings: bound,
             valid: valid,
-            catalog: nextCatalog,
-            tokens: Self.cpuTokens,
-            excluding: Self.devTokens
-        ) {
+            catalog: nextCatalog
+        ) ?? SensorPick.cpu(valid) {
             readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: cpu))
         }
-        if let gpu = Self.boundOrPick(
+        if let gpu = Self.boundTemp(
             kind: .gpu,
             bindings: bound,
             valid: valid,
-            catalog: nextCatalog,
-            tokens: Self.gpuTokens,
-            excluding: Self.devTokens
-        ) {
+            catalog: nextCatalog
+        ) ?? SensorPick.token(valid, matching: SensorPick.gpuTokens, excluding: SensorPick.devTokens) {
             readings.append(SensorReading(id: "gpu", kind: .gpu, label: "GPU", value: gpu))
         }
-        if let ssd = Self.boundOrPick(
+        if let ssd = Self.boundTemp(
             kind: .ssd,
             bindings: bound,
             valid: valid,
-            catalog: nextCatalog,
-            tokens: Self.ssdTokens,
-            excluding: []
-        ) {
+            catalog: nextCatalog
+        ) ?? SensorPick.token(valid, matching: SensorPick.ssdTokens, excluding: []) {
             readings.append(SensorReading(id: "ssd", kind: .ssd, label: "SSD", value: ssd))
         }
-        if let board = Self.boundOrPick(
+        if let board = Self.boundTemp(
             kind: .board,
             bindings: bound,
             valid: valid,
-            catalog: nextCatalog,
-            tokens: Self.boardTokens,
-            excluding: Self.cpuTokens + Self.ssdTokens + Self.devTokens
-        ) {
+            catalog: nextCatalog
+        ) ?? SensorPick.board(valid) {
             readings.append(SensorReading(id: "board", kind: .board, label: "BOARD", value: board))
         }
-        if let ram = Self.boundOrPick(
+        if let ram = Self.boundTemp(
             kind: .ram,
             bindings: bound,
             valid: valid,
-            catalog: nextCatalog,
-            tokens: Self.ramTokens,
-            excluding: []
-        ) {
+            catalog: nextCatalog
+        ) ?? SensorPick.token(valid, matching: SensorPick.ramTokens, excluding: []) {
             readings.append(SensorReading(id: "ram", kind: .ram, label: "RAM", value: ram))
         }
 
@@ -125,9 +115,8 @@ final class SensorService: ObservableObject {
             readings.append(contentsOf: smc)
         }
 
-        // Last resort: show the hottest HID sensor as CPU so the HUD is never blank.
-        if readings.isEmpty, let hottest = valid.max(by: { $0.celsius < $1.celsius }) {
-            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: hottest.celsius))
+        if readings.isEmpty, let hottest = SensorPick.lastResortCpu(valid) {
+            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: hottest))
         }
 
         if let rpm = Self.fanValue(bindings: bound, catalog: nextCatalog), rpm > 0 {
@@ -166,50 +155,27 @@ final class SensorService: ObservableObject {
         }
     }
 
-    private static let cpuTokens = ["tdie", "soc", "cpu", "pacc", "eacc"]
-    private static let gpuTokens = ["gpu", "agx", "dgpu", "gfx"]
-    private static let ssdTokens = ["nand", "ssd", "storage"]
-    private static let boardTokens = ["wifi", "airport", "skin", "ambient", "gas gauge"]
-    private static let ramTokens = ["dram", "memory"]
-    private static let devTokens = ["tdev"]
+    private static func boundTemp(
+        kind: SensorKind,
+        bindings: [String: String],
+        valid: [(name: String, celsius: Double)],
+        catalog: [(id: String, name: String, value: Double, hint: CatalogHint)]
+    ) -> Double? {
+        let name = bindings[kind.rawValue] ?? ""
+        guard !name.isEmpty else { return nil }
+        if let row = valid.first(where: { $0.name == name }) {
+            return row.celsius
+        }
+        if let row = catalog.first(where: { $0.hint == .temp && ($0.id == name || $0.name == name) }) {
+            return row.value
+        }
+        return nil
+    }
 
     private static func sameDisplay(_ a: [SensorReading], _ b: [SensorReading]) -> Bool {
         a.count == b.count && zip(a, b).allSatisfy {
             $0.id == $1.id && $0.kind == $1.kind && $0.value.rounded() == $1.value.rounded()
         }
-    }
-
-    private static func pick(
-        _ rows: [(name: String, celsius: Double)],
-        matching tokens: [String],
-        excluding: [String]
-    ) -> Double? {
-        let hits = rows.filter { row in
-            let n = row.name.lowercased()
-            if excluding.contains(where: { n.contains($0) }) { return false }
-            return tokens.contains { n.contains($0) }
-        }
-        return hits.map(\.celsius).max()
-    }
-
-    private static func boundOrPick(
-        kind: SensorKind,
-        bindings: [String: String],
-        valid: [(name: String, celsius: Double)],
-        catalog: [(id: String, name: String, value: Double, hint: CatalogHint)],
-        tokens: [String],
-        excluding: [String]
-    ) -> Double? {
-        let name = bindings[kind.rawValue] ?? ""
-        if !name.isEmpty {
-            if let row = valid.first(where: { $0.name == name }) {
-                return row.celsius
-            }
-            if let row = catalog.first(where: { $0.hint == .temp && ($0.id == name || $0.name == name) }) {
-                return row.value
-            }
-        }
-        return pick(valid, matching: tokens, excluding: excluding)
     }
 
     private static func fanValue(

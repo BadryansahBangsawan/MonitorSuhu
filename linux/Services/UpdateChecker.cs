@@ -15,7 +15,7 @@ namespace MonitorSuhu.Linux.Services;
 public sealed partial class UpdateChecker : ObservableObject
 {
     public const string ReleasesPage = "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest";
-    private const string Api = "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases/latest";
+    private const string Api = "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=30";
 
     public string CurrentVersion { get; }
 
@@ -72,16 +72,25 @@ public sealed partial class UpdateChecker : ObservableObject
             }
 
             using var doc = JsonDocument.Parse(json);
-            var tag = doc.RootElement.GetProperty("tag_name").GetString() ?? "";
-            if (tag.StartsWith('v')) tag = tag[1..];
-            var page = ReleasesPage;
-            if (doc.RootElement.TryGetProperty("html_url", out var html) && html.GetString() is { } href)
-                page = href;
+            var hit = ReleaseAssets.LatestFor(ParseReleases(doc.RootElement), "linux");
+            if (hit is null)
+            {
+                LatestVersion = null;
+                LatestUrl = ReleasesPage;
+                LatestAsset = null;
+                HasUpdate = false;
+                LastError = "No Linux build on GitHub Releases.";
+                OnPropertyChanged(nameof(UpdateMessage));
+                OnPropertyChanged(nameof(UpdateHint));
+                if (userInitiated)
+                    await ShowAsync("No Linux update.", "GitHub has no Linux package yet. macOS/Windows releases are ignored here.", open: ReleasesPage);
+                return;
+            }
 
-            LatestVersion = tag;
-            LatestUrl = page;
-            LatestAsset = ReleaseAssets.Pick(ParseAssets(doc.RootElement), "linux");
-            HasUpdate = Versioning.IsNewer(tag, CurrentVersion);
+            LatestVersion = hit.Value.Tag;
+            LatestUrl = string.IsNullOrWhiteSpace(hit.Value.HtmlUrl) ? ReleasesPage : hit.Value.HtmlUrl;
+            LatestAsset = hit.Value.Asset;
+            HasUpdate = Versioning.IsNewer(hit.Value.Tag, CurrentVersion);
             OnPropertyChanged(nameof(UpdateMessage));
             OnPropertyChanged(nameof(UpdateHint));
 
@@ -90,13 +99,13 @@ public sealed partial class UpdateChecker : ObservableObject
                 if (HasUpdate)
                 {
                     await ShowAsync(
-                        $"MonitorSuhu {tag} is available",
-                        "Download the release, replace this app, then open MonitorSuhu again.",
-                        open: page);
+                        $"MonitorSuhu {hit.Value.Tag} is available",
+                        "Download the Linux package, replace this app, then open MonitorSuhu again.",
+                        open: LatestUrl);
                 }
                 else
                 {
-                    await ShowAsync("You're up to date.", $"MonitorSuhu {CurrentVersion} is the latest release.");
+                    await ShowAsync("You're up to date.", $"MonitorSuhu {CurrentVersion} is the latest Linux release.");
                 }
             }
         }
@@ -122,6 +131,38 @@ public sealed partial class UpdateChecker : ObservableObject
     {
         var url = string.IsNullOrWhiteSpace(LatestUrl) ? ReleasesPage : LatestUrl;
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static List<GitHubRelease> ParseReleases(JsonElement root)
+    {
+        var list = new List<GitHubRelease>();
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in root.EnumerateArray())
+            {
+                if (ParseRelease(item) is { } release)
+                    list.Add(release);
+            }
+        }
+        else if (ParseRelease(root) is { } one)
+        {
+            list.Add(one);
+        }
+        return list;
+    }
+
+    private static GitHubRelease? ParseRelease(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return null;
+        if (!root.TryGetProperty("tag_name", out var tagEl)) return null;
+        var tag = tagEl.GetString() ?? "";
+        if (string.IsNullOrEmpty(tag)) return null;
+        string? page = null;
+        if (root.TryGetProperty("html_url", out var html))
+            page = html.GetString();
+        var draft = root.TryGetProperty("draft", out var d) && d.ValueKind == JsonValueKind.True;
+        var pre = root.TryGetProperty("prerelease", out var p) && p.ValueKind == JsonValueKind.True;
+        return new GitHubRelease(tag, page, ParseAssets(root), draft, pre);
     }
 
     private static List<ReleaseAsset> ParseAssets(JsonElement root)
