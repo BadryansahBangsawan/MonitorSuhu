@@ -105,9 +105,9 @@ enum LogicTests {
         check("compact worst is cpu critical", ReadingLevel.worst(rows, settings: settings) == .critical)
         check("fan 2000 rpm is ok", ReadingLevel.of(rows[1], settings: settings) == .ok)
 
-        check("isNewer true", Versioning.isNewer("1.0.7", than: "1.0.6"))
-        check("isNewer equal", !Versioning.isNewer("1.0.7", than: "1.0.7"))
-        check("isNewer false", !Versioning.isNewer("1.0.6", than: "1.0.7"))
+        check("isNewer true", Versioning.isNewer("1.0.8", than: "1.0.7"))
+        check("isNewer equal", !Versioning.isNewer("1.0.8", than: "1.0.8"))
+        check("isNewer false", !Versioning.isNewer("1.0.7", than: "1.0.8"))
 
         let dmg = ReleaseAsset(
             name: "MonitorSuhu-1.0.5-macos.dmg",
