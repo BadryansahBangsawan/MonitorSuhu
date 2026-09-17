@@ -20,17 +20,20 @@ if command -v codesign >/dev/null; then
 fi
 
 echo "==> Staging DMG"
+# Old UpdateInstaller enumerates -mountroot and does not descend mount
+# points. The volume name must be MonitorSuhu.app and the volume root
+# must be the bundle (Contents/ at root) so that single enumerator hit
+# is a valid app. Nested MonitorSuhu/MonitorSuhu.app fails on 1.0.8.
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
-ditto "$APP" "$STAGING/MonitorSuhu.app"
-ln -s /Applications "$STAGING/Applications"
+ditto "$APP/" "$STAGING/"
 
 mkdir -p "$OUT_DIR"
 rm -f "$DMG"
 
 echo "==> Creating $DMG"
 hdiutil create \
-  -volname "MonitorSuhu" \
+  -volname "MonitorSuhu.app" \
   -srcfolder "$STAGING" \
   -ov \
   -format UDZO \

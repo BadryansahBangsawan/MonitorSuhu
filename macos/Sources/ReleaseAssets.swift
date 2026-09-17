@@ -91,25 +91,29 @@ enum ReleaseAssets {
     /// freshly attached APFS DMG looks empty.
     static func findApp(under root: URL) -> URL? {
         let fm = FileManager.default
+        if isAppBundle(root) { return root }
         var isDir: ObjCBool = false
         let direct = root.appendingPathComponent("MonitorSuhu.app")
-        if fm.fileExists(atPath: direct.path, isDirectory: &isDir), isDir.boolValue {
-            return direct
-        }
+        if isAppBundle(direct) { return direct }
         let kids = (try? fm.contentsOfDirectory(
             at: root,
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
         )) ?? []
-        if let bundle = kids.first(where: { $0.lastPathComponent == "MonitorSuhu.app" }) {
+        if let bundle = kids.first(where: { $0.lastPathComponent == "MonitorSuhu.app" && isAppBundle($0) }) {
             return bundle
         }
         for child in kids {
             let nested = child.appendingPathComponent("MonitorSuhu.app")
-            if fm.fileExists(atPath: nested.path, isDirectory: &isDir), isDir.boolValue {
+            if fm.fileExists(atPath: nested.path, isDirectory: &isDir), isDir.boolValue, isAppBundle(nested) {
                 return nested
             }
         }
         return nil
+    }
+
+    static func isAppBundle(_ url: URL) -> Bool {
+        url.lastPathComponent == "MonitorSuhu.app"
+            && FileManager.default.fileExists(atPath: url.appendingPathComponent("Contents/Info.plist").path)
     }
 }

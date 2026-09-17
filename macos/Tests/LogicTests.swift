@@ -105,9 +105,9 @@ enum LogicTests {
         check("compact worst is cpu critical", ReadingLevel.worst(rows, settings: settings) == .critical)
         check("fan 2000 rpm is ok", ReadingLevel.of(rows[1], settings: settings) == .ok)
 
-        check("isNewer true", Versioning.isNewer("1.0.9", than: "1.0.8"))
-        check("isNewer equal", !Versioning.isNewer("1.0.9", than: "1.0.9"))
-        check("isNewer false", !Versioning.isNewer("1.0.8", than: "1.0.9"))
+        check("isNewer true", Versioning.isNewer("1.0.10", than: "1.0.9"))
+        check("isNewer equal", !Versioning.isNewer("1.0.10", than: "1.0.10"))
+        check("isNewer false", !Versioning.isNewer("1.0.9", than: "1.0.10"))
 
         let dmg = ReleaseAsset(
             name: "MonitorSuhu-1.0.5-macos.dmg",
@@ -186,8 +186,13 @@ enum LogicTests {
         let volume = tree.appendingPathComponent("MonitorSuhu")
         let nestedApp = volume.appendingPathComponent("MonitorSuhu.app/Contents")
         try? fm.createDirectory(at: nestedApp, withIntermediateDirectories: true)
+        try? "ok".write(to: nestedApp.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
         check("findApp inside volume folder", ReleaseAssets.findApp(under: tree)?.path.hasSuffix("MonitorSuhu.app") == true)
         check("findApp at volume root", ReleaseAssets.findApp(under: volume)?.path.hasSuffix("MonitorSuhu.app") == true)
+        let volApp = tree.appendingPathComponent("as-vol/MonitorSuhu.app/Contents")
+        try? fm.createDirectory(at: volApp, withIntermediateDirectories: true)
+        try? "ok".write(to: volApp.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+        check("findApp volume is the bundle", ReleaseAssets.findApp(under: volApp.deletingLastPathComponent())?.path.hasSuffix("MonitorSuhu.app") == true)
         try? fm.removeItem(at: tree)
 
         if failures > 0 {
