@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MonitorSuhu</AssemblyName>
     <Product>MonitorSuhu</Product>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <ApplicationIcon>../windows/src/MonitorSuhu.App/Assets/MonitorSuhu.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);MonitorSuhu.Linux.Tests/**;dist/**</DefaultItemExcludes>
   </PropertyGroup>
