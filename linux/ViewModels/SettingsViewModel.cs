@@ -209,8 +209,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string AutoHideCaption =>
         IsWayland
-            ? "Fullscreen hide needs X11. Wayland cannot see other windows — use Show overlay."
-            : "Hides when the active window reports _NET_WM_STATE_FULLSCREEN. Capture hide is not available on Linux.";
+            ? "Wayland cannot see other windows. The HUD stays Topmost; uncheck Hide in fullscreen if a game covers it."
+            : "Leave Hide in fullscreen off to keep the HUD on games. The overlay is re-pinned above every 0.5s.";
 
     public bool AlertsEnabled
     {

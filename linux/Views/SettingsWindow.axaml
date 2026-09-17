@@ -106,7 +106,7 @@
                                   ToolTip.Tip="{Binding LockCaption}"/>
                         <CheckBox Content="Start with Linux" IsChecked="{Binding StartWithWindows}"/>
                         <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
-                                  ToolTip.Tip="Temporarily hide the HUD when the active window is fullscreen. Show overlay stays on."/>
+                                  ToolTip.Tip="Off keeps the HUD on games. On hides when the active window is _NET_WM_STATE_FULLSCREEN."/>
                     </StackPanel>
                 </Border>
                 <TextBlock Text="{Binding AutoHideCaption}"

@@ -22,6 +22,10 @@ public partial class OverlayWindow : Window
     private const int WsExToolwindow = 0x00000080;
     private const int WsExNoactivate = 0x08000000;
     private const int WsExTopmost = 0x00000008;
+    private static readonly IntPtr HwndTopmost = new(-1);
+    private const uint SwpNomove = 0x0002;
+    private const uint SwpNosize = 0x0001;
+    private const uint SwpNoactivate = 0x0010;
     private const double SnapPx = 24;
     private const double MarginPx = 16;
 
@@ -84,6 +88,19 @@ public partial class OverlayWindow : Window
         }
         if (_store.Settings.OverlayVisible && !IsVisible)
             Show();
+        KeepAbove();
+    }
+
+    public void KeepAbove()
+    {
+        if (!IsVisible) return;
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        Native.SetWindowPos(
+            hwnd,
+            HwndTopmost,
+            0, 0, 0, 0,
+            SwpNomove | SwpNosize | SwpNoactivate);
     }
 
     public void ApplyPreset(CornerPreset preset)
@@ -367,5 +384,9 @@ public partial class OverlayWindow : Window
 
         [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
         public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetWindowPos(
+            IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
     }
 }

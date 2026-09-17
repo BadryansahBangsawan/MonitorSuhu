@@ -208,7 +208,7 @@ struct AppSettings: Codable, Equatable {
             showPower: false,
             alertsEnabled: true,
             alertMuteUntil: nil,
-            hideInFullscreen: true,
+            hideInFullscreen: false,
             hideDuringCapture: true,
             activeProfile: "custom",
             position: nil,

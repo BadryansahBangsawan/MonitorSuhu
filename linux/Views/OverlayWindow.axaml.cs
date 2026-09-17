@@ -65,7 +65,7 @@ public partial class OverlayWindow : Window
             ? new Cursor(StandardCursorType.Arrow)
             : new Cursor(StandardCursorType.SizeAll);
         _vm.RefreshTheme();
-        TryApplyX11WindowType(_store.Settings.Locked);
+        KeepAbove();
     }
 
     public void ApplySuppressed(bool suppressed)
@@ -77,6 +77,14 @@ public partial class OverlayWindow : Window
         }
         if (_store.Settings.OverlayVisible && !IsVisible)
             Show();
+        KeepAbove();
+    }
+
+    public void KeepAbove()
+    {
+        Topmost = true;
+        TryApplyX11WindowType(notification: true);
+        TryApplyX11Above();
     }
 
     public void ApplyPreset(CornerPreset preset)
@@ -386,7 +394,7 @@ public partial class OverlayWindow : Window
         return $"{b.X},{b.Y},{b.Width}x{b.Height}";
     }
 
-    private void TryApplyX11WindowType(bool locked)
+    private void TryApplyX11WindowType(bool notification)
     {
         try
         {
@@ -398,11 +406,30 @@ public partial class OverlayWindow : Window
             {
                 return;
             }
-            NativeX11.SetNetWmWindowType(handle.Handle, locked);
+            NativeX11.SetNetWmWindowType(handle.Handle, notification);
         }
         catch
         {
             // best-effort; Wayland and missing libX11 stay as drag-lock only
+        }
+    }
+
+    private void TryApplyX11Above()
+    {
+        try
+        {
+            var handle = TryGetPlatformHandle();
+            if (handle is null) return;
+            var desc = handle.HandleDescriptor;
+            if (!string.Equals(desc, "XID", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(desc, "X11", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            NativeX11.SetAbove(handle.Handle);
+        }
+        catch
+        {
         }
     }
 
@@ -419,6 +446,10 @@ public partial class OverlayWindow : Window
     {
         private const int PropModeReplace = 0;
         private const int XaAtom = 4;
+        private const int ClientMessage = 33;
+        private const long SubstructureNotify = 0x00080000;
+        private const long SubstructureRedirect = 0x00100000;
+        private const long NetWmStateAdd = 1;
 
         public static void SetNetWmWindowType(IntPtr window, bool notification)
         {
@@ -441,11 +472,66 @@ public partial class OverlayWindow : Window
             }
         }
 
+        public static void SetAbove(IntPtr window)
+        {
+            var display = XOpenDisplay(IntPtr.Zero);
+            if (display == IntPtr.Zero) return;
+            try
+            {
+                var root = XDefaultRootWindow(display);
+                var state = XInternAtom(display, "_NET_WM_STATE", false);
+                var above = XInternAtom(display, "_NET_WM_STATE_ABOVE", false);
+                if (root == IntPtr.Zero || state == IntPtr.Zero || above == IntPtr.Zero) return;
+
+                var ev = new XClientMessageEvent
+                {
+                    Type = ClientMessage,
+                    Serial = IntPtr.Zero,
+                    SendEvent = 1,
+                    Display = display,
+                    Window = window,
+                    MessageType = state,
+                    Format = 32,
+                    Data0 = (IntPtr)NetWmStateAdd,
+                    Data1 = above,
+                    Data2 = IntPtr.Zero,
+                    Data3 = (IntPtr)1,
+                    Data4 = IntPtr.Zero
+                };
+                XSendEvent(display, root, false, SubstructureNotify | SubstructureRedirect, ref ev);
+                XFlush(display);
+            }
+            finally
+            {
+                XCloseDisplay(display);
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct XClientMessageEvent
+        {
+            public int Type;
+            public IntPtr Serial;
+            public int SendEvent;
+            public IntPtr Display;
+            public IntPtr Window;
+            public IntPtr MessageType;
+            public int Format;
+            public IntPtr Data0;
+            public IntPtr Data1;
+            public IntPtr Data2;
+            public IntPtr Data3;
+            public IntPtr Data4;
+        }
+
         [DllImport("libX11.so.6")]
         private static extern IntPtr XOpenDisplay(IntPtr display);
 
         [DllImport("libX11.so.6")]
         private static extern int XCloseDisplay(IntPtr display);
+
+        [DllImport("libX11.so.6")]
+        private static extern IntPtr XDefaultRootWindow(IntPtr display);
 
         [DllImport("libX11.so.6")]
         private static extern IntPtr XInternAtom(IntPtr display, string atom_name, bool only_if_exists);
@@ -460,6 +546,14 @@ public partial class OverlayWindow : Window
             int mode,
             ref IntPtr data,
             int nelements);
+
+        [DllImport("libX11.so.6")]
+        private static extern int XSendEvent(
+            IntPtr display,
+            IntPtr w,
+            bool propagate,
+            long event_mask,
+            ref XClientMessageEvent event_send);
 
         [DllImport("libX11.so.6")]
         private static extern int XFlush(IntPtr display);

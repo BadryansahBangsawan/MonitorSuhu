@@ -40,24 +40,11 @@ public sealed class FullscreenGuard : IDisposable
 
     private static bool IsExclusiveFullscreen()
     {
-        var hwnd = Native.GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return false;
-        if (hwnd == Native.GetShellWindow() || hwnd == Native.GetDesktopWindow()) return false;
-
-        Native.GetWindowThreadProcessId(hwnd, out var pid);
-        if (pid == (uint)Environment.ProcessId) return false;
-
-        if (!Native.GetWindowRect(hwnd, out var rect)) return false;
-
-        var monitor = Native.MonitorFromWindow(hwnd, Native.MonitorDefaultToNearest);
-        if (monitor == IntPtr.Zero) return false;
-
-        var info = new Native.MonitorInfo { CbSize = Marshal.SizeOf<Native.MonitorInfo>() };
-        if (!Native.GetMonitorInfo(monitor, ref info)) return false;
-
-        return FullscreenPolicy.RectCoversMonitor(
-            rect.Left, rect.Top, rect.Right, rect.Bottom,
-            info.RcMonitor.Left, info.RcMonitor.Top, info.RcMonitor.Right, info.RcMonitor.Bottom);
+        // Borderless games cover the monitor but still allow Topmost overlays.
+        // Only exclusive D3D fullscreen (QUNS_RUNNING_D3D_FULL_SCREEN) should hide.
+        if (Native.SHQueryUserNotificationState(out var state) == 0)
+            return state == Native.QunsRunningD3dFullScreen;
+        return false;
     }
 
     private static bool IsScreensaverRunning()
@@ -69,47 +56,11 @@ public sealed class FullscreenGuard : IDisposable
 
     private static class Native
     {
-        public const uint MonitorDefaultToNearest = 2;
+        public const int QunsRunningD3dFullScreen = 3;
         public const uint SpiGetScreensaverRunning = 0x0072;
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Rect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MonitorInfo
-        {
-            public int CbSize;
-            public Rect RcMonitor;
-            public Rect RcWork;
-            public uint DwFlags;
-        }
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetShellWindow();
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetDesktopWindow();
-
-        [DllImport("user32.dll")]
-        public static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfo lpmi);
-
-        [DllImport("user32.dll")]
-        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        [DllImport("shell32.dll")]
+        public static extern int SHQueryUserNotificationState(out int pquns);
 
         [DllImport("user32.dll")]
         public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out int pvParam, uint fWinIni);

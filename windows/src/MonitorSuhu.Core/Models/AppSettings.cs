@@ -111,7 +111,7 @@ public sealed class AppSettings
     public bool ShowPower { get; set; }
     public bool AlertsEnabled { get; set; } = true;
     public long? AlertMuteUntil { get; set; }
-    public bool HideInFullscreen { get; set; } = true;
+    public bool HideInFullscreen { get; set; }
     public bool HideDuringCapture { get; set; } = true;
     public string ActiveProfile { get; set; } = "custom";
     public Dictionary<string, string> SensorBindings { get; set; } = new();

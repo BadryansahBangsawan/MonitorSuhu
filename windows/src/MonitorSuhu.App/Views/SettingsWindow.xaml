@@ -276,7 +276,7 @@
                                   ToolTip="When locked, clicks pass through the HUD."/>
                         <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"/>
                         <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
-                                  ToolTip="Temporarily hide the HUD when another window covers the whole screen. Show overlay stays on."/>
+                                  ToolTip="Off keeps the HUD on borderless games. On hides only during exclusive D3D fullscreen."/>
                         <CheckBox Content="Hide during screensaver" IsChecked="{Binding HideDuringCapture}"
                                   ToolTip="Hide while the screensaver is running. Windows has no global screen-share signal."/>
                     </StackPanel>
