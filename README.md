@@ -114,6 +114,8 @@ Settings: `%AppData%\MonitorSuhu\settings.json`
 
 **Sensors:** `/sys/class/hwmon` millidegree temps and fan inputs. If that tree is empty, `/sys/class/thermal`. CPU% from `/proc/stat`. No dummy °C. To list available sensor names before setting Assignments, run `sensors` (from the `lm-sensors` package).
 
+> **Tip — empty HUD on Linux:** if `/sys/class/hwmon` exists but the HUD shows `NO SENSORS`, the hwmon entries may not be world-readable. Run `sudo sensors-detect --auto` once to load the correct kernel modules, then re-launch. On some distros (Arch, NixOS) you may also need to add your user to the `video` group: `sudo usermod -aG video $USER` (log out and back in).
+
 **Start with Linux:** same JSON flag as Windows autostart (`StartWithWindows` in the file).
 
 **Hotkeys:** skipped on Wayland (`WAYLAND_DISPLAY`). X11 grabs on the overlay; a failed grab still leaves the HUD running.
