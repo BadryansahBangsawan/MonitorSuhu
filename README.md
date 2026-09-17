@@ -112,7 +112,7 @@ Settings: `%AppData%\MonitorSuhu\settings.json`
 
    Copies to `~/.local/opt/MonitorSuhu`, symlinks `~/.local/bin/MonitorSuhu`, writes `~/.local/share/applications/monitorsuhu.desktop`. Override prefix with `MONITORSUHU_HOME`. Or run `./MonitorSuhu` from the extract folder.
 
-**Sensors:** `/sys/class/hwmon` millidegree temps and fan inputs. If that tree is empty, `/sys/class/thermal`. CPU% from `/proc/stat`. No dummy °C.
+**Sensors:** `/sys/class/hwmon` millidegree temps and fan inputs. If that tree is empty, `/sys/class/thermal`. CPU% from `/proc/stat`. No dummy °C. To list available sensor names before setting Assignments, run `sensors` (from the `lm-sensors` package).
 
 **Start with Linux:** same JSON flag as Windows autostart (`StartWithWindows` in the file).
 
