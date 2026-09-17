@@ -46,7 +46,18 @@ final class OverlayController: NSObject {
     }
 
     func toggleVisible() {
-        if window?.isVisible == true { hide() } else { show() }
+        if store.settings.overlayVisible { hide() } else { show() }
+    }
+
+    func applySuppressed(_ suppressed: Bool) {
+        if suppressed {
+            window?.orderOut(nil)
+            return
+        }
+        guard store.settings.overlayVisible else { return }
+        if window == nil { build() }
+        applyLock()
+        window?.orderFrontRegardless()
     }
 
     func toggleLocked() {

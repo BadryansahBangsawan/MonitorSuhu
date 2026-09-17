@@ -23,6 +23,7 @@ public partial class App : Application
     private OverlayViewModel? _overlayVm;
     private UpdateChecker? _updates;
     private AlertPresenter? _alerts;
+    private FullscreenGuard? _fullscreen;
 
     public override void Initialize()
     {
@@ -60,6 +61,8 @@ public partial class App : Application
         _overlay.Show();
         if (!_store.Settings.OverlayVisible)
             _overlay.Hide();
+        _fullscreen = new FullscreenGuard(_store, _overlay);
+        _fullscreen.Start();
 
         _tray = new TrayService(
             toggleOverlay: ToggleOverlay,
@@ -97,7 +100,7 @@ public partial class App : Application
     {
         if (_overlay is null || _store is null)
             return;
-        if (_overlay.IsVisible)
+        if (_store.Settings.OverlayVisible)
         {
             _overlay.Hide();
             _store.Settings.OverlayVisible = false;
@@ -115,6 +118,7 @@ public partial class App : Application
         if (_overlay is null || _store is null)
             return;
         _store.Settings.Locked = false;
+        _store.Settings.OverlayVisible = true;
         _store.Save();
         _overlay.ApplyLock();
         _overlay.Show();
@@ -206,6 +210,7 @@ public partial class App : Application
     private void OnDesktopExit()
     {
         _store?.Save();
+        _fullscreen?.Dispose();
         _hotkeys?.Dispose();
         _sensors?.Dispose();
         _tray?.Dispose();

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeys = HotkeyService()
     private let updates = UpdateChecker()
     private var overlay: OverlayController!
+    private var fullscreenGuard: FullscreenGuard!
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private var updateMenuItem: NSMenuItem?
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         overlay = OverlayController(store: store, sensors: sensors)
+        fullscreenGuard = FullscreenGuard(store: store, overlay: overlay)
         AlertNotifier.request()
         restartSensors()
         installStatusItem()
@@ -57,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if store.settings.overlayVisible {
             overlay.show()
         }
+        fullscreenGuard.start()
 
         updates.$hasUpdate
             .receive(on: DispatchQueue.main)
@@ -92,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         store.saveNow()
+        fullscreenGuard.stop()
         hotkeys.stop()
         sensors.stop()
     }

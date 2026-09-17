@@ -183,6 +183,35 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool ShowGpuLoad { get => Settings.ShowGpuLoad; set => SetFlag(v => Settings.ShowGpuLoad = v, Settings.ShowGpuLoad, value); }
     public bool ShowPower { get => Settings.ShowPower; set => SetFlag(v => Settings.ShowPower = v, Settings.ShowPower, value); }
 
+    public bool HideInFullscreen
+    {
+        get => Settings.HideInFullscreen;
+        set
+        {
+            if (Settings.HideInFullscreen == value) return;
+            Settings.HideInFullscreen = value;
+            OnPropertyChanged();
+            _store.SaveDebounced();
+        }
+    }
+
+    public bool HideDuringCapture
+    {
+        get => Settings.HideDuringCapture;
+        set
+        {
+            if (Settings.HideDuringCapture == value) return;
+            Settings.HideDuringCapture = value;
+            OnPropertyChanged();
+            _store.SaveDebounced();
+        }
+    }
+
+    public string AutoHideCaption =>
+        IsWayland
+            ? "Fullscreen hide needs X11. Wayland cannot see other windows — use Show overlay."
+            : "Hides when the active window reports _NET_WM_STATE_FULLSCREEN. Capture hide is not available on Linux.";
+
     public bool AlertsEnabled
     {
         get => Settings.AlertsEnabled;

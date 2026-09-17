@@ -75,6 +75,17 @@ public partial class OverlayWindow : Window
         _vm.RefreshTheme();
     }
 
+    public void ApplySuppressed(bool suppressed)
+    {
+        if (suppressed)
+        {
+            if (IsVisible) Hide();
+            return;
+        }
+        if (_store.Settings.OverlayVisible && !IsVisible)
+            Show();
+    }
+
     public void ApplyPreset(CornerPreset preset)
     {
         var wa = CurrentWorkArea();

@@ -83,6 +83,19 @@ enum LogicTests {
         settings.muteAlerts(nowMs: clock)
         check("alert muted", gate.evaluate(readings: [hot], settings: settings).isEmpty)
 
+        var hideSettings = AppSettings.default
+        check("hide fullscreen", FullscreenPolicy.shouldHide(settings: hideSettings, fullscreen: true, capturing: false))
+        hideSettings.hideInFullscreen = false
+        hideSettings.hideDuringCapture = true
+        check("hide capture", FullscreenPolicy.shouldHide(settings: hideSettings, fullscreen: false, capturing: true))
+        hideSettings.hideDuringCapture = false
+        check("hide disabled", !FullscreenPolicy.shouldHide(settings: hideSettings, fullscreen: true, capturing: true))
+        check("covers screen points", FullscreenPolicy.coversScreen(width: 1440, height: 900, screenWidth: 1440, screenHeight: 900, scale: 2))
+        check("covers screen pixels", FullscreenPolicy.coversScreen(width: 2880, height: 1800, screenWidth: 1440, screenHeight: 900, scale: 2))
+        check("covers screen no", !FullscreenPolicy.coversScreen(width: 400, height: 200, screenWidth: 1440, screenHeight: 900, scale: 2))
+        check("capture owner", FullscreenPolicy.isCaptureOwner("screencaptureui"))
+        check("capture owner no", !FullscreenPolicy.isCaptureOwner("Safari"))
+
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)
         settings.setThresholds(for: .fan, warn: 4000, critical: 5500)
         let rows = [

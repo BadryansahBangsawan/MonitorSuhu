@@ -98,9 +98,11 @@
                         <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
                                   ToolTip.Tip="{Binding LockCaption}"/>
                         <CheckBox Content="Start with Linux" IsChecked="{Binding StartWithWindows}"/>
+                        <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
+                                  ToolTip.Tip="Temporarily hide the HUD when the active window is fullscreen. Show overlay stays on."/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="{Binding LockCaption}"
+                <TextBlock Text="{Binding AutoHideCaption}"
                            Classes="caption" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Alerts" Classes="section"/>

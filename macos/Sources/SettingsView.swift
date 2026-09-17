@@ -72,11 +72,23 @@ struct SettingsView: View {
                 SettingsToggleRow("Start with macOS", isOn: $store.settings.startWithOs) { value in
                     autostartMessage = AutostartService.apply(value)
                 }
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Hide in fullscreen",
+                    isOn: $store.settings.hideInFullscreen,
+                    help: "Temporarily hide the HUD while another app covers the display. Show overlay stays on."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Hide during capture",
+                    isOn: $store.settings.hideDuringCapture,
+                    help: "Hide while Screen Recording is already granted and macOS is capturing. MonitorSuhu never prompts for that permission."
+                )
             } caption: {
                 if let autostartMessage, !autostartMessage.isEmpty {
                     SettingsCallout(autostartMessage)
                 } else {
-                    SettingsCaption("May ask for permission in System Settings → General → Login Items.")
+                    SettingsCaption("May ask for permission in System Settings → General → Login Items. Hides during fullscreen apps. Screen-share hide needs Screen Recording permission on macOS 14+.")
                 }
             }
 

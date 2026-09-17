@@ -68,6 +68,17 @@ public partial class OverlayWindow : Window
         TryApplyX11WindowType(_store.Settings.Locked);
     }
 
+    public void ApplySuppressed(bool suppressed)
+    {
+        if (suppressed)
+        {
+            if (IsVisible) Hide();
+            return;
+        }
+        if (_store.Settings.OverlayVisible && !IsVisible)
+            Show();
+    }
+
     public void ApplyPreset(CornerPreset preset)
     {
         var wa = CurrentWorkArea();

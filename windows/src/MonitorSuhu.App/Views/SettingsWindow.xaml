@@ -142,9 +142,13 @@
                         <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
                                   ToolTip="When locked, clicks pass through the HUD."/>
                         <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"/>
+                        <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
+                                  ToolTip="Temporarily hide the HUD when another window covers the whole screen. Show overlay stays on."/>
+                        <CheckBox Content="Hide during screensaver" IsChecked="{Binding HideDuringCapture}"
+                                  ToolTip="Hide while the screensaver is running. Windows has no global screen-share signal."/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="May ask for administrator permission so the overlay still has sensor access after reboot."
+                <TextBlock Text="{Binding AutoHideCaption}"
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Alerts" Style="{StaticResource SectionTitle}"/>
