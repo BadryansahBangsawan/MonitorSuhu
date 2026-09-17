@@ -173,8 +173,15 @@ struct SettingsView: View {
                 SettingsRowDivider()
                 if updates.installing {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Installing \(updates.latestVersion ?? "update")…")
+                        Text(updates.progress < 1
+                             ? "Downloading \(updates.latestVersion ?? "update")…"
+                             : "Installing \(updates.latestVersion ?? "update")…")
                         ProgressView(value: updates.progress)
+                            .tint(Color(red: 0.463, green: 0.725, blue: 0))
+                        Text("The app will quit to finish. It should reopen by itself. If it does not, open MonitorSuhu from Applications or the Dock.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.vertical, 8)
                 } else if updates.hasUpdate, let latest = updates.latestVersion {
@@ -194,11 +201,15 @@ struct SettingsView: View {
                     .padding(.vertical, 8)
                 }
             } caption: {
-                if updates.hasUpdate, let latest = updates.latestVersion {
+                if updates.installing {
+                    SettingsCallout("Wait for the bar to fill. Then reopen MonitorSuhu if it does not come back.")
+                } else if let err = updates.lastError, !err.isEmpty {
+                    SettingsCallout(err)
+                } else if updates.hasUpdate, let latest = updates.latestVersion {
                     SettingsCallout(
                         updates.latestAsset == nil
-                            ? "MonitorSuhu \(latest) is available. Download it from GitHub, then replace the app in Applications."
-                            : "MonitorSuhu \(latest) is available. Install from here — settings stay put."
+                            ? "MonitorSuhu \(latest) is available. Download it from GitHub, then replace the app in Applications and open it again."
+                            : "MonitorSuhu \(latest) is available. Install from here — the app will quit. Open it again if it does not restart."
                     )
                 } else {
                     SettingsCaption("Checks GitHub Releases and can install the macOS disk image from this window.")

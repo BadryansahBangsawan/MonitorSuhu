@@ -25,10 +25,29 @@ public sealed partial class UpdateChecker : ObservableObject
 
     public string UpdateMessage =>
         Installing
-            ? $"Installing MonitorSuhu {LatestVersion}…"
+            ? Progress < 1
+                ? $"Downloading MonitorSuhu {LatestVersion}…"
+                : $"Installing MonitorSuhu {LatestVersion}…"
             : HasUpdate && !string.IsNullOrEmpty(LatestVersion)
-                ? $"Version {LatestVersion} is available. You have {CurrentVersion}."
+                ? $"MonitorSuhu {LatestVersion} is ready."
                 : $"MonitorSuhu {CurrentVersion}";
+
+    public string UpdateHint =>
+        Installing
+            ? "The app will close to finish. Open MonitorSuhu again from the Start menu if it does not restart."
+            : HasUpdate
+                ? "Install from here. Settings stay in AppData. The app will close — reopen it if it does not come back."
+                : "";
+
+    partial void OnInstallingChanged(bool value) => NotifyCopy();
+    partial void OnProgressChanged(double value) => NotifyCopy();
+    partial void OnHasUpdateChanged(bool value) => NotifyCopy();
+
+    private void NotifyCopy()
+    {
+        OnPropertyChanged(nameof(UpdateMessage));
+        OnPropertyChanged(nameof(UpdateHint));
+    }
 
     public UpdateChecker(string? currentVersion = null)
     {
@@ -103,17 +122,12 @@ public sealed partial class UpdateChecker : ObservableObject
         Installing = true;
         Progress = 0;
         LastError = null;
-        OnPropertyChanged(nameof(UpdateMessage));
         try
         {
             var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MonitorSuhu-update");
             System.IO.Directory.CreateDirectory(dir);
             var dest = System.IO.Path.Combine(dir, LatestAsset.Name);
-            var progress = new Progress<double>(p =>
-            {
-                Progress = p;
-                OnPropertyChanged(nameof(UpdateMessage));
-            });
+            var progress = new Progress<double>(p => Progress = p);
             await UpdateDownload.ToFileAsync(
                 LatestAsset.Url,
                 dest,
@@ -121,18 +135,16 @@ public sealed partial class UpdateChecker : ObservableObject
                 LatestAsset.Size,
                 "windows",
                 progress);
+            Progress = 1;
+            await Task.Delay(1800);
             UpdateInstaller.LaunchWindows(dest);
             System.Windows.Application.Current?.Shutdown();
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
-            Show("Could not install update.", ex.Message);
-        }
-        finally
-        {
             Installing = false;
-            OnPropertyChanged(nameof(UpdateMessage));
+            Show("Could not install update.", ex.Message);
         }
     }
 
@@ -149,8 +161,8 @@ public sealed partial class UpdateChecker : ObservableObject
     {
         var canInstall = LatestAsset is not null;
         var message = canInstall
-            ? "Download and install it now. Your settings stay in AppData."
-            : "Download it from GitHub Releases, then run the installer.";
+            ? "Download and install it now. Settings stay in AppData. The app will close — open MonitorSuhu again from the Start menu if it does not restart."
+            : "Download it from GitHub Releases, run the installer, then open MonitorSuhu again.";
         if (!canInstall)
         {
             Show($"MonitorSuhu {tag} is available", message, open: LatestUrl ?? ReleasesPage);

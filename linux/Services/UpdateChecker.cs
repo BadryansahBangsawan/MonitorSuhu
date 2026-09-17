@@ -29,8 +29,19 @@ public sealed partial class UpdateChecker : ObservableObject
 
     public string UpdateMessage =>
         HasUpdate && !string.IsNullOrEmpty(LatestVersion)
-            ? $"Version {LatestVersion} is available. You have {CurrentVersion}."
+            ? $"MonitorSuhu {LatestVersion} is ready."
             : $"MonitorSuhu {CurrentVersion}";
+
+    public string UpdateHint =>
+        HasUpdate
+            ? "Download the release, replace this app, then open MonitorSuhu again."
+            : "";
+
+    partial void OnHasUpdateChanged(bool value)
+    {
+        OnPropertyChanged(nameof(UpdateMessage));
+        OnPropertyChanged(nameof(UpdateHint));
+    }
 
     public UpdateChecker(string? currentVersion = null)
     {
@@ -72,6 +83,7 @@ public sealed partial class UpdateChecker : ObservableObject
             LatestAsset = ReleaseAssets.Pick(ParseAssets(doc.RootElement), "linux");
             HasUpdate = Versioning.IsNewer(tag, CurrentVersion);
             OnPropertyChanged(nameof(UpdateMessage));
+            OnPropertyChanged(nameof(UpdateHint));
 
             if (userInitiated)
             {
@@ -79,7 +91,7 @@ public sealed partial class UpdateChecker : ObservableObject
                 {
                     await ShowAsync(
                         $"MonitorSuhu {tag} is available",
-                        "Download it from GitHub Releases, then run the installer.",
+                        "Download the release, replace this app, then open MonitorSuhu again.",
                         open: page);
                 }
                 else
