@@ -105,23 +105,23 @@ enum LogicTests {
         check("compact worst is cpu critical", ReadingLevel.worst(rows, settings: settings) == .critical)
         check("fan 2000 rpm is ok", ReadingLevel.of(rows[1], settings: settings) == .ok)
 
-        check("isNewer true", Versioning.isNewer("1.0.4", than: "1.0.3"))
-        check("isNewer equal", !Versioning.isNewer("1.0.3", than: "1.0.3"))
-        check("isNewer false", !Versioning.isNewer("1.0.2", than: "1.0.3"))
+        check("isNewer true", Versioning.isNewer("1.0.5", than: "1.0.4"))
+        check("isNewer equal", !Versioning.isNewer("1.0.4", than: "1.0.4"))
+        check("isNewer false", !Versioning.isNewer("1.0.3", than: "1.0.4"))
 
         let dmg = ReleaseAsset(
-            name: "MonitorSuhu-1.0.4-macos.dmg",
-            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.4/MonitorSuhu-1.0.4-macos.dmg")!,
+            name: "MonitorSuhu-1.0.5-macos.dmg",
+            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.5/MonitorSuhu-1.0.5-macos.dmg")!,
             size: 2_000_000
         )
         let exe = ReleaseAsset(
-            name: "MonitorSuhu-1.0.4-windows-x64.exe",
-            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.4/MonitorSuhu-1.0.4-windows-x64.exe")!,
+            name: "MonitorSuhu-1.0.5-windows-x64.exe",
+            url: URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.5/MonitorSuhu-1.0.5-windows-x64.exe")!,
             size: 50_000_000
         )
         check("pick macos dmg", ReleaseAssets.pick([exe, dmg], platform: "macos") == dmg)
         check("reject http dmg", !ReleaseAssets.isTrusted(
-            URL(string: "http://github.com/a/b/MonitorSuhu-1.0.4-macos.dmg")!,
+            URL(string: "http://github.com/a/b/MonitorSuhu-1.0.5-macos.dmg")!,
             name: dmg.name,
             platform: "macos"
         ))
