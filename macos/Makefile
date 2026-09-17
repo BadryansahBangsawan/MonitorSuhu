@@ -49,6 +49,8 @@ $(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist Resources/App
 		"$(BUILD_DIR)/$(APP_NAME)-arm64" \
 		"$(BUILD_DIR)/$(APP_NAME)-x86_64" \
 		-output "$@"
+	codesign --force --sign - --identifier id.monitorsuhu.app "$@"
+	codesign --force --sign - --identifier id.monitorsuhu.app "$(APP)"
 
 test: $(TEST_BIN)
 	"$(TEST_BIN)"

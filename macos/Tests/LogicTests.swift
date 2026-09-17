@@ -125,6 +125,9 @@ enum LogicTests {
             name: dmg.name,
             platform: "macos"
         ))
+        check("dest applications", ReleaseAssets.installDestination(runningPath: "/Applications/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
+        check("dest build copy", ReleaseAssets.installDestination(runningPath: "/Users/x/MonitorSuhu/macos/build/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
+        check("dest dmg volume", ReleaseAssets.installDestination(runningPath: "/Volumes/MonitorSuhu/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
 
         if failures > 0 {
             fputs("\(failures) failed\n", stderr)
