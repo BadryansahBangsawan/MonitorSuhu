@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
   # ─────────────────────────────────────────────
-  # Linux — artifact-only; not a Release gate
+  # Linux — self-contained tarball
   # ─────────────────────────────────────────────
   linux:
     name: Build Linux x64
@@ -107,11 +107,14 @@ jobs:
       - name: Publish self-contained app
         run: dotnet publish linux/MonitorSuhu.Linux.csproj -c Release -r linux-x64 --self-contained true -o linux/dist/linux-x64
 
-      - name: Upload Linux artifact
+      - name: Package tarball
+        run: bash linux/scripts/make-tarball.sh
+
+      - name: Upload Linux tarball
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x64
-          path: linux/dist/linux-x64
+          name: linux-tarball
+          path: linux/dist/MonitorSuhu-*-linux-x64.tar.gz
           if-no-files-found: error
 
   # ─────────────────────────────────────────────
@@ -145,7 +148,7 @@ jobs:
   release:
     name: Publish GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [macos, windows]
+    needs: [macos, windows, linux]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -172,8 +175,9 @@ jobs:
 
             | Platform | File |
             |---|---|
-            | **macOS** (Apple Silicon, macOS 14+) | `MonitorSuhu-*-macos.dmg` |
+            | **macOS** (Apple Silicon + Intel, macOS 14+) | `MonitorSuhu-*-macos.dmg` |
             | **Windows** (x64, Windows 10 / 11) | `MonitorSuhu-*-windows-x64.exe` |
+            | **Linux** (x64) | `MonitorSuhu-*-linux-x64.tar.gz` |
 
             ---
 
@@ -197,6 +201,19 @@ jobs:
 
             ---
 
+            ### 🐧 Linux — First Launch
+
+            Download `MonitorSuhu-*-linux-x64.tar.gz`, then:
+
+            ```bash
+            tar -xzf MonitorSuhu-*-linux-x64.tar.gz
+            bash install.sh
+            ```
+
+            Or run `./MonitorSuhu` from the extracted folder. Sensors need `/sys/class/hwmon`.
+
+            ---
+
             ### ⌨️ Keyboard Shortcuts
 
             | Shortcut | Action |
@@ -212,7 +229,7 @@ jobs:
 
             - **macOS:** installs the DMG over the current `.app`; settings stay in Application Support
             - **Windows:** runs this setup silently and relaunches; settings stay in `%AppData%`
-            - Manual fallback: drag the new app into Applications, or run the `.exe` installer
+            - **Linux:** extracts the tarball over this install; settings stay in `~/.config/MonitorSuhu`
 
             ---
 
@@ -221,3 +238,4 @@ jobs:
           files: |
             dist/*.dmg
             dist/*.exe
+            dist/*.tar.gz

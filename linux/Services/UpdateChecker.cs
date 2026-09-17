@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Avalonia;
@@ -25,23 +26,40 @@ public sealed partial class UpdateChecker : ObservableObject
     [ObservableProperty] private bool hasUpdate;
     [ObservableProperty] private bool checking;
     [ObservableProperty] private bool installing;
+    [ObservableProperty] private double progress;
     [ObservableProperty] private string? lastError;
 
     public string UpdateMessage =>
-        HasUpdate && !string.IsNullOrEmpty(LatestVersion)
-            ? $"MonitorSuhu {LatestVersion} is ready."
-            : $"MonitorSuhu {CurrentVersion}";
+        Installing
+            ? Progress < 1
+                ? $"Downloading MonitorSuhu {LatestVersion}…"
+                : $"Installing MonitorSuhu {LatestVersion}…"
+            : HasUpdate && !string.IsNullOrEmpty(LatestVersion)
+                ? $"MonitorSuhu {LatestVersion} is ready."
+                : $"MonitorSuhu {CurrentVersion}";
 
     public string UpdateHint =>
-        HasUpdate
-            ? "Download the release, replace this app, then open MonitorSuhu again."
-            : "";
+        Installing
+            ? "The app will close to finish. Open MonitorSuhu again if it does not restart."
+            : HasUpdate
+                ? "Install from here. The app will close — reopen it if it does not come back."
+                : "";
 
-    partial void OnHasUpdateChanged(bool value)
+    public bool BannerVisible => HasUpdate || Installing;
+    public bool ShowInstallButton => HasUpdate && !Installing && LatestAsset is not null;
+
+    partial void OnInstallingChanged(bool value) => NotifyCopy();
+    partial void OnProgressChanged(double value) => NotifyCopy();
+    partial void OnHasUpdateChanged(bool value) => NotifyCopy();
+
+    private void NotifyCopy()
     {
         OnPropertyChanged(nameof(UpdateMessage));
         OnPropertyChanged(nameof(UpdateHint));
+        OnPropertyChanged(nameof(BannerVisible));
+        OnPropertyChanged(nameof(ShowInstallButton));
     }
+
 
     public UpdateChecker(string? currentVersion = null)
     {
@@ -100,8 +118,7 @@ public sealed partial class UpdateChecker : ObservableObject
                 {
                     await ShowAsync(
                         $"MonitorSuhu {hit.Value.Tag} is available",
-                        "Download the Linux package, replace this app, then open MonitorSuhu again.",
-                        open: LatestUrl);
+                        "Install from Settings. The app will close; open it again if it does not restart.");
                 }
                 else
                 {
@@ -121,10 +138,45 @@ public sealed partial class UpdateChecker : ObservableObject
         }
     }
 
-    public Task ApplyAsync()
+    public async Task ApplyAsync()
     {
-        OpenDownloadPage();
-        return Task.CompletedTask;
+        if (Installing) return;
+        if (LatestAsset is null)
+        {
+            OpenDownloadPage();
+            return;
+        }
+
+        Installing = true;
+        Progress = 0;
+        LastError = null;
+        try
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "MonitorSuhu-update");
+            Directory.CreateDirectory(dir);
+            var dest = Path.Combine(dir, LatestAsset.Name);
+            var progress = new Progress<double>(p => Progress = p);
+            await UpdateDownload.ToFileAsync(
+                LatestAsset.Url,
+                dest,
+                $"MonitorSuhu/{CurrentVersion}",
+                LatestAsset.Size,
+                "linux",
+                progress);
+            Progress = 1;
+            await Task.Delay(1500);
+            UpdateInstaller.ApplyTarball(dest);
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime life)
+                life.Shutdown();
+            else
+                Environment.Exit(0);
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Installing = false;
+            await ShowAsync("Could not install update.", ex.Message);
+        }
     }
 
     public void OpenDownloadPage()

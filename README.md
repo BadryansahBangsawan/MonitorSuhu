@@ -30,6 +30,7 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 |---|---|---|
 | **macOS** | `MonitorSuhu-*-macos.dmg` | macOS 14 Sonoma or later |
 | **Windows** | `MonitorSuhu-*-windows-x64.exe` | Windows 10 / 11 (64-bit) |
+| **Linux** | `MonitorSuhu-*-linux-x64.tar.gz` | x64, `/sys/class/hwmon` |
 
 👉 **[Go to Releases →](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)**
 
@@ -87,6 +88,26 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 - **Start with Windows** creates a Task Scheduler task at highest privileges so the overlay retains sensor access after reboot. The task is applied when you press **Save** in Settings.
 - RAM temperature is rare on most consumer DIMMs. CPU load, GPU load, and power stay off until you enable them.
 - Exclusive fullscreen windows hide the HUD while **Hide in fullscreen** is on. Screensaver counts as capture.
+
+
+## 🐧 Linux — Installation
+
+1. Download `MonitorSuhu-*-linux-x64.tar.gz` from [Releases](https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest)
+2. Extract and install:
+
+   ```bash
+   tar -xzf MonitorSuhu-*-linux-x64.tar.gz
+   bash install.sh
+   ```
+
+   That copies the app to `~/.local/opt/MonitorSuhu` and adds a desktop entry. Or run `./MonitorSuhu` from the extracted folder.
+
+### Notes
+
+- Sensors come from `/sys/class/hwmon` (and `/sys/class/thermal` if hwmon is empty). No fake °C.
+- A second launch exits immediately (`/tmp/id.monitorsuhu.lock`).
+- **Start with Linux** writes the same JSON flag as Windows autostart.
+- Settings live in `~/.config/MonitorSuhu/settings.json`.
 
 ---
 

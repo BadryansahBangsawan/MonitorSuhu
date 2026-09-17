@@ -57,4 +57,12 @@ public sealed class ReleaseAssetsTests
         Assert.Equal("1.0.8", ReleaseAssets.LatestFor([winOnly, both], "windows")?.Tag);
         Assert.Null(ReleaseAssets.LatestFor([winOnly, both], "linux"));
     }
+
+    [Fact]
+    public void LatestFor_Linux_TakesTarball()
+    {
+        var winOnly = new GitHubRelease("v1.0.8", "https://github.com/x", [Win]);
+        var withLinux = new GitHubRelease("v1.0.10", "https://github.com/y", [Mac, Win, Linux]);
+        Assert.Equal("1.0.10", ReleaseAssets.LatestFor([winOnly, withLinux], "linux")?.Tag);
+    }
 }

@@ -82,14 +82,19 @@
                         CornerRadius="8"
                         Padding="14,8"
                         Margin="0,0,0,8"
-                        IsVisible="{Binding Updates.HasUpdate}">
+                        IsVisible="{Binding Updates.BannerVisible}">
                     <StackPanel Margin="0,4,0,4">
                         <TextBlock Text="{Binding Updates.UpdateMessage}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                         <TextBlock Text="{Binding Updates.UpdateHint}" TextWrapping="Wrap"
                                    Foreground="#B8C9A0" FontSize="12" Margin="0,6,0,0"/>
-                        <Button Content="Download update…" Command="{Binding OpenUpdateCommand}"
+                        <ProgressBar Height="6" Margin="0,12,0,2" Minimum="0" Maximum="1"
+                                     Value="{Binding Updates.Progress}"
+                                     Foreground="#76B900"
+                                     IsVisible="{Binding Updates.Installing}"/>
+                        <Button Content="Install update…" Command="{Binding ApplyUpdateCommand}"
                                 HorizontalAlignment="Left" Margin="0,10,0,0"
-                                Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"/>
+                                Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"
+                                IsVisible="{Binding Updates.ShowInstallButton}"/>
                     </StackPanel>
                 </Border>
 
@@ -449,7 +454,7 @@
                                 HorizontalAlignment="Left" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="Linux opens GitHub. After you replace the app, open MonitorSuhu again."
+                <TextBlock Text="Install from Settings replaces this folder. Settings stay in ~/.config/MonitorSuhu."
                            Classes="caption" Margin="2,0,0,8"/>
             </StackPanel>
         </ScrollViewer>
