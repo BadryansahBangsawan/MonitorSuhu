@@ -47,11 +47,14 @@ public static class SensorMapper
         var readings = new List<SensorReading>();
         var bound = new HashSet<SensorKind>();
 
-        TryBind(readings, bound, catalogById, bindings, SensorKind.Cpu, "cpu", "CPU", wantFan: false);
-        TryBind(readings, bound, catalogById, bindings, SensorKind.Gpu, "gpu-0", "GPU", wantFan: false);
-        TryBind(readings, bound, catalogById, bindings, SensorKind.Ssd, "ssd-0", "SSD", wantFan: false);
-        TryBind(readings, bound, catalogById, bindings, SensorKind.Board, "board", "BOARD", wantFan: false);
-        TryBind(readings, bound, catalogById, bindings, SensorKind.Ram, "ram", "RAM", wantFan: false);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Cpu, "cpu", "CPU", CatalogHint.Temp);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Gpu, "gpu-0", "GPU", CatalogHint.Temp);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Ssd, "ssd-0", "SSD", CatalogHint.Temp);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Board, "board", "BOARD", CatalogHint.Temp);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Ram, "ram", "RAM", CatalogHint.Temp);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.CpuLoad, "cpu-load", "CPU%", CatalogHint.Load);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.GpuLoad, "gpu-load", "GPU%", CatalogHint.Load);
+        TryBind(readings, bound, catalogById, bindings, SensorKind.Power, "power", "PWR", CatalogHint.Power);
 
         var gpuIndex = 0;
         var ssdIndex = 0;
@@ -146,6 +149,36 @@ public static class SensorMapper
             readings.Add(new SensorReading("fan", SensorKind.Fan, "FAN", rpm.Value));
         }
 
+        if (!bound.Contains(SensorKind.CpuLoad))
+        {
+            var cpuLoads = CatalogPairs(catalog, CatalogHint.Load);
+            cpuLoads.AddRange(HardwarePairs(computer, CatalogHint.Load, cpuOnly: true, gpuOnly: false));
+            if (PickCpuLoad(cpuLoads) is { } cpuLoad)
+            {
+                readings.Add(new SensorReading("cpu-load", SensorKind.CpuLoad, "CPU%", cpuLoad));
+            }
+        }
+
+        if (!bound.Contains(SensorKind.GpuLoad))
+        {
+            var gpuLoads = CatalogPairs(catalog, CatalogHint.Load);
+            gpuLoads.AddRange(HardwarePairs(computer, CatalogHint.Load, cpuOnly: false, gpuOnly: true));
+            if (PickGpuLoad(gpuLoads) is { } gpuLoad)
+            {
+                readings.Add(new SensorReading("gpu-load", SensorKind.GpuLoad, "GPU%", gpuLoad));
+            }
+        }
+
+        if (!bound.Contains(SensorKind.Power))
+        {
+            var watts = CatalogPairs(catalog, CatalogHint.Power);
+            watts.AddRange(HardwarePairs(computer, CatalogHint.Power, cpuOnly: false, gpuOnly: false));
+            if (PickPower(watts) is { } power)
+            {
+                readings.Add(new SensorReading("power", SensorKind.Power, "PWR", power));
+            }
+        }
+
         return readings;
     }
 
@@ -153,8 +186,15 @@ public static class SensorMapper
     {
         foreach (var sensor in hardware.Sensors)
         {
-            var isFan = sensor.SensorType == SensorType.Fan;
-            if (!isFan && sensor.SensorType != SensorType.Temperature)
+            var hint = sensor.SensorType switch
+            {
+                SensorType.Fan => CatalogHint.Fan,
+                SensorType.Temperature => CatalogHint.Temp,
+                SensorType.Load => CatalogHint.Load,
+                SensorType.Power => CatalogHint.Power,
+                _ => (CatalogHint?)null
+            };
+            if (hint is null)
             {
                 continue;
             }
@@ -169,7 +209,7 @@ public static class SensorMapper
                 continue;
             }
 
-            list.Add(new CatalogEntry(id, $"{hardware.Name} / {sensor.Name}", raw, isFan));
+            list.Add(new CatalogEntry(id, $"{hardware.Name} / {sensor.Name}", raw, hint.Value));
         }
     }
 
@@ -181,19 +221,125 @@ public static class SensorMapper
         SensorKind kind,
         string id,
         string label,
-        bool wantFan)
+        CatalogHint want)
     {
         if (!bindings.TryGetValue(kind.ToString(), out var boundId) || string.IsNullOrWhiteSpace(boundId))
         {
             return;
         }
-        if (!catalogById.TryGetValue(boundId, out var entry) || entry.IsFan != wantFan || entry.Value <= 0)
+        if (!catalogById.TryGetValue(boundId, out var entry) || entry.Hint != want || entry.Value <= 0)
         {
             return;
         }
 
         readings.Add(new SensorReading(id, kind, label, entry.Value));
         bound.Add(kind);
+    }
+
+    /// <summary>
+    /// Package / total CPU load. Per-core "Core #n" rows are ignored so 99% on one
+    /// thread does not replace a 42% package reading.
+    /// </summary>
+    public static double? PickCpuLoad(IReadOnlyList<(string Name, double Value)> sensors)
+    {
+        var valid = sensors.Where(s => s.Value is > 0 and <= 100 && !LooksLikePerCore(s.Name)).ToList();
+        if (valid.Count == 0) return null;
+        return FirstNamed(valid, "Total")
+            ?? FirstNamed(valid, "Package")
+            ?? FirstNamed(valid, "CPU Total")
+            ?? FirstNamed(valid, "CPU")
+            ?? MaxValue(valid);
+    }
+
+    public static double? PickGpuLoad(IReadOnlyList<(string Name, double Value)> sensors)
+    {
+        var valid = sensors.Where(s => s.Value is > 0 and <= 100 && !LooksLikePerCore(s.Name)).ToList();
+        if (valid.Count == 0) return null;
+        return FirstNamed(valid, "GPU Core")
+            ?? FirstNamed(valid, "D3D")
+            ?? FirstNamed(valid, "GPU")
+            ?? MaxValue(valid);
+    }
+
+    /// <summary>
+    /// Prefer package / GPU power. When both CPU Package and GPU Power exist, sum them.
+    /// </summary>
+    public static double? PickPower(IReadOnlyList<(string Name, double Value)> sensors)
+    {
+        var valid = sensors.Where(s => s.Value is > 0 and < 2000 && !LooksLikePerCore(s.Name)).ToList();
+        if (valid.Count == 0) return null;
+
+        var cpu = FirstNamed(valid, "CPU Package")
+            ?? FirstNamed(valid, "Package")
+            ?? FirstNamed(valid, "CPU");
+        var gpu = FirstNamed(valid, "GPU Power")
+            ?? FirstNamed(valid, "GPU");
+        if (cpu is { } c && gpu is { } g) return c + g;
+        return FirstNamed(valid, "Total")
+            ?? cpu
+            ?? gpu
+            ?? MaxValue(valid);
+    }
+
+    private static bool LooksLikePerCore(string name)
+    {
+        var n = name.ToLowerInvariant();
+        return n.Contains("core #")
+            || n.Contains("thread")
+            || n.Contains("memory controller")
+            || n.Contains("core 0")
+            || n.Contains("core 1");
+    }
+
+    private static List<(string Name, double Value)> CatalogPairs(
+        IReadOnlyList<CatalogEntry> catalog,
+        CatalogHint hint)
+    {
+        var list = new List<(string Name, double Value)>();
+        foreach (var entry in catalog)
+        {
+            if (entry.Hint != hint) continue;
+            list.Add((entry.Name, entry.Value));
+        }
+        return list;
+    }
+
+    private static List<(string Name, double Value)> HardwarePairs(
+        IComputer computer,
+        CatalogHint hint,
+        bool cpuOnly,
+        bool gpuOnly)
+    {
+        var list = new List<(string Name, double Value)>();
+        var wantType = hint switch
+        {
+            CatalogHint.Load => SensorType.Load,
+            CatalogHint.Power => SensorType.Power,
+            CatalogHint.Fan => SensorType.Fan,
+            _ => SensorType.Temperature
+        };
+        foreach (var hardware in computer.Hardware)
+        {
+            if (cpuOnly && hardware.HardwareType != HardwareType.Cpu) continue;
+            if (gpuOnly && hardware.HardwareType is not (HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel))
+                continue;
+            AddPairs(list, hardware, wantType);
+            foreach (var sub in hardware.SubHardware)
+            {
+                AddPairs(list, sub, wantType);
+            }
+        }
+        return list;
+    }
+
+    private static void AddPairs(List<(string Name, double Value)> list, IHardware hardware, SensorType type)
+    {
+        foreach (var sensor in hardware.Sensors)
+        {
+            if (sensor.SensorType != type) continue;
+            if (sensor.Value is not float raw || !float.IsFinite(raw) || raw <= 0) continue;
+            list.Add(($"{hardware.Name} / {sensor.Name}", raw));
+        }
     }
 
     private static double? PickCpu(IHardware cpu)

@@ -33,4 +33,26 @@ public sealed class PickBoardTests
         ]);
         Assert.Equal(37, value);
     }
+
+    [Fact]
+    public void PickCpuLoad_PrefersPackageOverPerCore()
+    {
+        var value = SensorMapper.PickCpuLoad(
+        [
+            ("CPU Core #1", 99),
+            ("CPU Package", 42)
+        ]);
+        Assert.Equal(42, value);
+    }
+
+    [Fact]
+    public void PickPower_SumsCpuPackageAndGpuPower()
+    {
+        var value = SensorMapper.PickPower(
+        [
+            ("CPU Package", 45),
+            ("GPU Power", 80)
+        ]);
+        Assert.Equal(125, value);
+    }
 }

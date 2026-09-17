@@ -3,13 +3,17 @@ using MonitorSuhu.Core.Models;
 
 namespace MonitorSuhu.Linux.Sensors;
 
-public sealed record HwmonCatalogEntry(string Id, string Name, double Value, bool IsFan);
+public sealed record HwmonCatalogEntry(string Id, string Name, double Value, CatalogHint Hint)
+{
+    public bool IsFan => Hint == CatalogHint.Fan;
+}
 
 public sealed class HwmonMapResult
 {
     public IReadOnlyList<SensorReading> Readings { get; init; } = [];
     public IReadOnlyList<HwmonCatalogEntry> Catalog { get; init; } = [];
     public string? Error { get; init; }
+    public (ulong Idle, ulong Total)? CpuStat { get; init; }
 }
 
 public static class HwmonMapper
@@ -36,7 +40,9 @@ public static class HwmonMapper
     public static HwmonMapResult Map(
         string hwmonRoot,
         IReadOnlyDictionary<string, string> bindings,
-        string thermalRoot = "/sys/class/thermal")
+        string thermalRoot = "/sys/class/thermal",
+        string procStatPath = "/proc/stat",
+        (ulong Idle, ulong Total)? previousCpu = null)
     {
         string? error = null;
         var catalog = new List<HwmonCatalogEntry>();
@@ -95,12 +101,19 @@ public static class HwmonMapper
             }
         }
 
+        var cpuStat = ReadCpuStat(procStatPath);
+        if (readings.Count > 0)
+        {
+            AddExtras(catalog, bindings, readings, previousCpu, cpuStat);
+        }
+
         if (readings.Count == 0)
         {
             return new HwmonMapResult
             {
                 Readings = [],
                 Catalog = catalog,
+                CpuStat = cpuStat,
                 Error = error ?? "No hwmon sensors."
             };
         }
@@ -109,6 +122,7 @@ public static class HwmonMapper
         {
             Readings = readings,
             Catalog = catalog,
+            CpuStat = cpuStat,
             Error = null
         };
     }
@@ -124,7 +138,7 @@ public static class HwmonMapper
             byId.TryAdd(entry.Id, entry);
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Cpu, "cpu", "CPU", wantFan: false))
+        if (!TryBind(readings, byId, bindings, SensorKind.Cpu, "cpu", "CPU", CatalogHint.Temp))
         {
             var cpu = PickMax(catalog, CpuInclude, CpuExclude);
             if (cpu is not null)
@@ -133,17 +147,17 @@ public static class HwmonMapper
             }
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Gpu, "gpu-0", "GPU", wantFan: false))
+        if (!TryBind(readings, byId, bindings, SensorKind.Gpu, "gpu-0", "GPU", CatalogHint.Temp))
         {
             AddGrouped(readings, catalog, GpuInclude, GpuExclude, SensorKind.Gpu);
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Ssd, "ssd-0", "SSD", wantFan: false))
+        if (!TryBind(readings, byId, bindings, SensorKind.Ssd, "ssd-0", "SSD", CatalogHint.Temp))
         {
             AddGrouped(readings, catalog, SsdInclude, SsdExclude, SensorKind.Ssd);
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Board, "board", "BOARD", wantFan: false))
+        if (!TryBind(readings, byId, bindings, SensorKind.Board, "board", "BOARD", CatalogHint.Temp))
         {
             var board = PickMax(catalog, BoardInclude, BoardExclude);
             if (board is not null)
@@ -152,7 +166,7 @@ public static class HwmonMapper
             }
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Ram, "ram", "RAM", wantFan: false))
+        if (!TryBind(readings, byId, bindings, SensorKind.Ram, "ram", "RAM", CatalogHint.Temp))
         {
             var ram = PickMax(catalog, RamInclude, RamExclude);
             if (ram is not null)
@@ -190,6 +204,104 @@ public static class HwmonMapper
         if (rpm is > 0)
         {
             readings.Add(new SensorReading("fan", SensorKind.Fan, "FAN", rpm.Value));
+        }
+    }
+
+    private static void AddExtras(
+        List<HwmonCatalogEntry> catalog,
+        IReadOnlyDictionary<string, string> bindings,
+        List<SensorReading> readings,
+        (ulong Idle, ulong Total)? previousCpu,
+        (ulong Idle, ulong Total)? cpuStat)
+    {
+        var byId = new Dictionary<string, HwmonCatalogEntry>(StringComparer.Ordinal);
+        foreach (var entry in catalog)
+        {
+            byId.TryAdd(entry.Id, entry);
+        }
+
+        if (!TryBind(readings, byId, bindings, SensorKind.CpuLoad, "cpu-load", "CPU%", CatalogHint.Load)
+            && CpuLoadPercent(previousCpu, cpuStat) is { } cpuLoad)
+        {
+            readings.Add(new SensorReading("cpu-load", SensorKind.CpuLoad, "CPU%", cpuLoad));
+        }
+
+        if (!TryBind(readings, byId, bindings, SensorKind.GpuLoad, "gpu-load", "GPU%", CatalogHint.Load))
+        {
+            var gpu = catalog
+                .Where(e => e.Hint == CatalogHint.Load)
+                .OrderByDescending(e => e.Value)
+                .FirstOrDefault();
+            if (gpu is not null)
+            {
+                readings.Add(new SensorReading("gpu-load", SensorKind.GpuLoad, "GPU%", gpu.Value));
+            }
+        }
+
+        if (!TryBind(readings, byId, bindings, SensorKind.Power, "power", "PWR", CatalogHint.Power))
+        {
+            var watts = 0d;
+            var any = false;
+            foreach (var entry in catalog)
+            {
+                if (entry.Hint != CatalogHint.Power || entry.Value <= 0) continue;
+                watts += entry.Value;
+                any = true;
+            }
+            if (any)
+            {
+                readings.Add(new SensorReading("power", SensorKind.Power, "PWR", watts));
+            }
+        }
+    }
+
+    public static double? CpuLoadPercent(
+        (ulong Idle, ulong Total)? previous,
+        (ulong Idle, ulong Total)? current)
+    {
+        if (previous is not { } prev || current is not { } now) return null;
+        if (now.Total <= prev.Total) return null;
+        var totalDelta = now.Total - prev.Total;
+        var idleDelta = now.Idle >= prev.Idle ? now.Idle - prev.Idle : 0;
+        var busy = 1.0 - (double)idleDelta / totalDelta;
+        if (!double.IsFinite(busy)) return null;
+        return Math.Clamp(busy * 100, 0, 100);
+    }
+
+    public static (ulong Idle, ulong Total)? ReadCpuStat(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return null;
+            using var reader = new StreamReader(path);
+            var line = reader.ReadLine();
+            if (line is null || !line.StartsWith("cpu ", StringComparison.Ordinal)) return null;
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 5) return null;
+            ulong total = 0;
+            for (var i = 1; i < parts.Length; i++)
+            {
+                if (!ulong.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+                    return null;
+                total += n;
+            }
+            if (!ulong.TryParse(parts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var idle))
+                return null;
+            ulong idleAll = idle;
+            if (parts.Length > 5
+                && ulong.TryParse(parts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var iowait))
+            {
+                idleAll += iowait;
+            }
+            return (idleAll, total);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
         }
     }
 
@@ -243,7 +355,7 @@ public static class HwmonMapper
                     continue;
                 }
 
-                AddEntry(catalog, seen, dirName, fileName, chipName, ReadLabel(chipDir, fileName), celsius, isFan: false);
+                AddEntry(catalog, seen, dirName, fileName, chipName, ReadLabel(chipDir, fileName), celsius, CatalogHint.Temp);
             }
             else if (IsFanInput(fileName))
             {
@@ -252,9 +364,20 @@ public static class HwmonMapper
                     continue;
                 }
 
-                AddEntry(catalog, seen, dirName, fileName, chipName, ReadLabel(chipDir, fileName), rpm, isFan: true);
+                AddEntry(catalog, seen, dirName, fileName, chipName, ReadLabel(chipDir, fileName), rpm, CatalogHint.Fan);
+            }
+            else if (IsPowerInput(fileName))
+            {
+                if (!TryReadWatts(path, out var watts))
+                {
+                    continue;
+                }
+
+                AddEntry(catalog, seen, dirName, fileName, chipName, ReadLabel(chipDir, fileName), watts, CatalogHint.Power);
             }
         }
+
+        TryAddGpuBusy(chipDir, dirName, chipName, catalog, seen);
     }
 
     private static void AddEntry(
@@ -265,7 +388,7 @@ public static class HwmonMapper
         string chipName,
         string label,
         double value,
-        bool isFan)
+        CatalogHint hint)
     {
         var id = $"{dirName}/{fileName}";
         if (!seen.Add(id))
@@ -273,7 +396,7 @@ public static class HwmonMapper
             return;
         }
 
-        catalog.Add(new HwmonCatalogEntry(id, $"{chipName} / {label}", value, isFan));
+        catalog.Add(new HwmonCatalogEntry(id, $"{chipName} / {label}", value, hint));
     }
 
     private static bool IsTempInput(string fileName) =>
@@ -285,6 +408,11 @@ public static class HwmonMapper
         fileName.StartsWith("fan", StringComparison.Ordinal)
         && fileName.EndsWith("_input", StringComparison.Ordinal)
         && IsDigits(fileName, 3, fileName.Length - "_input".Length);
+
+    private static bool IsPowerInput(string fileName) =>
+        fileName.StartsWith("power", StringComparison.Ordinal)
+        && fileName.EndsWith("_input", StringComparison.Ordinal)
+        && IsDigits(fileName, 5, fileName.Length - "_input".Length);
 
     private static bool IsDigits(string fileName, int start, int end)
     {
@@ -357,6 +485,48 @@ public static class HwmonMapper
         return double.IsFinite(rpm) && rpm > 0;
     }
 
+    private static bool TryReadWatts(string path, out double watts)
+    {
+        watts = 0;
+        if (!TryReadInteger(path, out var raw) || raw <= 0)
+        {
+            return false;
+        }
+
+        // hwmon power*_input is microwatts.
+        watts = raw / 1_000_000.0;
+        return double.IsFinite(watts) && watts > 0 && watts < 2000;
+    }
+
+    private static void TryAddGpuBusy(
+        string chipDir,
+        string dirName,
+        string chipName,
+        List<HwmonCatalogEntry> catalog,
+        HashSet<string> seen)
+    {
+        if (!chipName.Contains("amdgpu", StringComparison.OrdinalIgnoreCase)
+            && !chipName.Contains("gpu", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        foreach (var candidate in new[]
+                 {
+                     Path.Combine(chipDir, "device", "gpu_busy_percent"),
+                     Path.Combine(chipDir, "gpu_busy_percent")
+                 })
+        {
+            if (!TryReadInteger(candidate, out var percent) || percent is < 0 or > 100)
+            {
+                continue;
+            }
+
+            AddEntry(catalog, seen, dirName, "gpu_busy_percent", chipName, "gpu_busy_percent", percent, CatalogHint.Load);
+            return;
+        }
+    }
+
     private static bool TryReadInteger(string path, out long value)
     {
         value = 0;
@@ -387,14 +557,14 @@ public static class HwmonMapper
         SensorKind kind,
         string readingId,
         string label,
-        bool wantFan)
+        CatalogHint want)
     {
         if (!bindings.TryGetValue(kind.ToString(), out var id) || string.IsNullOrWhiteSpace(id))
         {
             return false;
         }
 
-        if (!byId.TryGetValue(id, out var hit) || hit.IsFan != wantFan)
+        if (!byId.TryGetValue(id, out var hit) || hit.Hint != want)
         {
             return false;
         }
@@ -411,7 +581,7 @@ public static class HwmonMapper
         HwmonCatalogEntry? best = null;
         foreach (var entry in catalog)
         {
-            if (entry.IsFan || !Matches(entry, include, exclude))
+            if (entry.Hint != CatalogHint.Temp || !Matches(entry, include, exclude))
             {
                 continue;
             }
@@ -436,7 +606,7 @@ public static class HwmonMapper
         var order = new List<string>();
         foreach (var entry in catalog)
         {
-            if (entry.IsFan || !Matches(entry, include, exclude))
+            if (entry.Hint != CatalogHint.Temp || !Matches(entry, include, exclude))
             {
                 continue;
             }

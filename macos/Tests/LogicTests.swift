@@ -32,6 +32,22 @@ enum LogicTests {
         let fanT = settings.thresholds(for: .fan)
         check("fan rpm range", fanT.warn >= 500 && fanT.critical >= 600 && fanT.warn < fanT.critical)
 
+        settings.setThresholds(for: .cpuLoad, warn: 0, critical: 200)
+        let loadT = settings.thresholds(for: .cpuLoad)
+        check("load percent range", loadT.warn >= 1 && loadT.critical <= 100 && loadT.warn < loadT.critical)
+
+        settings.setThresholds(for: .power, warn: 1, critical: 2)
+        let powerT = settings.thresholds(for: .power)
+        check("power watt range", powerT.warn >= 5 && powerT.critical >= 10 && powerT.warn < powerT.critical)
+
+        check("display temp", settings.displayValue(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: 72)) == "72°C")
+        check("display fan", settings.displayValue(SensorReading(id: "fan", kind: .fan, label: "FAN", value: 2100)) == "2100 RPM")
+        check("display load", settings.displayValue(SensorReading(id: "cpu-load", kind: .cpuLoad, label: "CPU%", value: 42)) == "42%")
+        check("display power", settings.displayValue(SensorReading(id: "power", kind: .power, label: "PWR", value: 125)) == "125 W")
+        check("extra rows default off", !settings.showCpuLoad && !settings.showGpuLoad && !settings.showPower)
+        check("cpu still visible", settings.isKindVisible(.cpu))
+        check("cpu load hidden", !settings.isKindVisible(.cpuLoad))
+
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)
         settings.setThresholds(for: .fan, warn: 4000, critical: 5500)
         let rows = [

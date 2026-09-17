@@ -110,6 +110,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool ShowBoard { get => Settings.ShowBoard; set => SetFlag(v => Settings.ShowBoard = v, Settings.ShowBoard, value); }
     public bool ShowRam { get => Settings.ShowRam; set => SetFlag(v => Settings.ShowRam = v, Settings.ShowRam, value); }
     public bool ShowFan { get => Settings.ShowFan; set => SetFlag(v => Settings.ShowFan = v, Settings.ShowFan, value); }
+    public bool ShowCpuLoad { get => Settings.ShowCpuLoad; set => SetFlag(v => Settings.ShowCpuLoad = v, Settings.ShowCpuLoad, value); }
+    public bool ShowGpuLoad { get => Settings.ShowGpuLoad; set => SetFlag(v => Settings.ShowGpuLoad = v, Settings.ShowGpuLoad, value); }
+    public bool ShowPower { get => Settings.ShowPower; set => SetFlag(v => Settings.ShowPower = v, Settings.ShowPower, value); }
 
 
     public bool UseFahrenheit
@@ -225,9 +228,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     public double RamCrit { get => Crit(SensorKind.Ram); set => SetCrit(SensorKind.Ram, value); }
     public double FanWarn { get => Warn(SensorKind.Fan); set => SetWarn(SensorKind.Fan, value); }
     public double FanCrit { get => Crit(SensorKind.Fan); set => SetCrit(SensorKind.Fan, value); }
+    public double CpuLoadWarn { get => Warn(SensorKind.CpuLoad); set => SetWarn(SensorKind.CpuLoad, value); }
+    public double CpuLoadCrit { get => Crit(SensorKind.CpuLoad); set => SetCrit(SensorKind.CpuLoad, value); }
+    public double GpuLoadWarn { get => Warn(SensorKind.GpuLoad); set => SetWarn(SensorKind.GpuLoad, value); }
+    public double GpuLoadCrit { get => Crit(SensorKind.GpuLoad); set => SetCrit(SensorKind.GpuLoad, value); }
+    public double PowerWarn { get => Warn(SensorKind.Power); set => SetWarn(SensorKind.Power, value); }
+    public double PowerCrit { get => Crit(SensorKind.Power); set => SetCrit(SensorKind.Power, value); }
 
     public IReadOnlyList<CatalogOption> ThermalOptions { get; private set; } = [new("", "Auto")];
     public IReadOnlyList<CatalogOption> FanOptions { get; private set; } = [new("", "Auto")];
+    public IReadOnlyList<CatalogOption> LoadOptions { get; private set; } = [new("", "Auto")];
+    public IReadOnlyList<CatalogOption> PowerOptions { get; private set; } = [new("", "Auto")];
 
     public string CpuBinding { get => GetBinding("Cpu"); set => SetBinding("Cpu", value); }
     public string GpuBinding { get => GetBinding("Gpu"); set => SetBinding("Gpu", value); }
@@ -235,6 +246,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string BoardBinding { get => GetBinding("Board"); set => SetBinding("Board", value); }
     public string RamBinding { get => GetBinding("Ram"); set => SetBinding("Ram", value); }
     public string FanBinding { get => GetBinding("Fan"); set => SetBinding("Fan", value); }
+    public string CpuLoadBinding { get => GetBinding("CpuLoad"); set => SetBinding("CpuLoad", value); }
+    public string GpuLoadBinding { get => GetBinding("GpuLoad"); set => SetBinding("GpuLoad", value); }
+    public string PowerBinding { get => GetBinding("Power"); set => SetBinding("Power", value); }
 
     public void RefreshCatalog()
     {
@@ -243,21 +257,36 @@ public sealed partial class SettingsViewModel : ObservableObject
         ThermalOptions =
         [
             auto,
-            .. catalog.Where(e => !e.IsFan).Select(e => new CatalogOption(e.Id, e.Name))
+            .. catalog.Where(e => e.Hint == CatalogHint.Temp).Select(e => new CatalogOption(e.Id, e.Name))
         ];
         FanOptions =
         [
             auto,
-            .. catalog.Where(e => e.IsFan).Select(e => new CatalogOption(e.Id, e.Name))
+            .. catalog.Where(e => e.Hint == CatalogHint.Fan).Select(e => new CatalogOption(e.Id, e.Name))
+        ];
+        LoadOptions =
+        [
+            auto,
+            .. catalog.Where(e => e.Hint == CatalogHint.Load).Select(e => new CatalogOption(e.Id, e.Name))
+        ];
+        PowerOptions =
+        [
+            auto,
+            .. catalog.Where(e => e.Hint == CatalogHint.Power).Select(e => new CatalogOption(e.Id, e.Name))
         ];
         OnPropertyChanged(nameof(ThermalOptions));
         OnPropertyChanged(nameof(FanOptions));
+        OnPropertyChanged(nameof(LoadOptions));
+        OnPropertyChanged(nameof(PowerOptions));
         OnPropertyChanged(nameof(CpuBinding));
         OnPropertyChanged(nameof(GpuBinding));
         OnPropertyChanged(nameof(SsdBinding));
         OnPropertyChanged(nameof(BoardBinding));
         OnPropertyChanged(nameof(RamBinding));
         OnPropertyChanged(nameof(FanBinding));
+        OnPropertyChanged(nameof(CpuLoadBinding));
+        OnPropertyChanged(nameof(GpuLoadBinding));
+        OnPropertyChanged(nameof(PowerBinding));
     }
 
     private string GetBinding(string key)
@@ -313,11 +342,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         _store.SaveDebounced();
     }
 
-    private void SetFlag(Action<bool> assign, bool current, bool value)
+    private void SetFlag(Action<bool> assign, bool current, bool value, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
     {
         if (current == value) return;
         assign(value);
-        OnPropertyChanged();
+        OnPropertyChanged(propertyName);
         _overlay.ApplyTheme();
         _store.SaveDebounced();
     }

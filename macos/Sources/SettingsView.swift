@@ -179,13 +179,31 @@ struct SettingsView: View {
                     isOn: $store.settings.showFan,
                     help: "Hidden in the HUD when this Mac has no fan RPM sensor."
                 )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "CPU load",
+                    isOn: $store.settings.showCpuLoad,
+                    help: "Off by default. Hidden when this Mac has no CPU utilization reading."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "GPU load",
+                    isOn: $store.settings.showGpuLoad,
+                    help: "Off by default. Hidden when this Mac has no GPU utilization reading."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Power",
+                    isOn: $store.settings.showPower,
+                    help: "Off by default. Hidden when this Mac has no system power reading."
+                )
             } caption: {
                 if !anySensorEnabled {
                     SettingsCallout("Turn on at least one sensor or the HUD shows NO SENSORS.")
                 } else if sensors.snapshot.readings.isEmpty {
                     SettingsCallout("No temperature sensors found on this Mac yet. The HUD fills in after the first poll.")
                 } else {
-                    SettingsCaption("RAM is omitted from the HUD when this Mac has no sensor for it.")
+                    SettingsCaption("Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan.")
                 }
             }
 
@@ -265,10 +283,34 @@ struct SettingsView: View {
                         thresholdField(.fan, isWarn: true)
                         thresholdField(.fan, isWarn: false)
                     }
+                    GridRow {
+                        Text("CPU%")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.cpuLoad, isWarn: true)
+                        thresholdField(.cpuLoad, isWarn: false)
+                    }
+                    GridRow {
+                        Text("GPU%")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.gpuLoad, isWarn: true)
+                        thresholdField(.gpuLoad, isWarn: false)
+                    }
+                    GridRow {
+                        Text("PWR")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.power, isWarn: true)
+                        thresholdField(.power, isWarn: false)
+                    }
                 }
                 .padding(.vertical, 10)
             } caption: {
-                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Values are always in °C. Fan thresholds are RPM.")
+                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts.")
             }
 
             SettingsSection("Polling") {
@@ -412,6 +454,9 @@ struct SettingsView: View {
             || store.settings.showBoard
             || store.settings.showRam
             || store.settings.showFan
+            || store.settings.showCpuLoad
+            || store.settings.showGpuLoad
+            || store.settings.showPower
     }
 
     private func settingsScroll<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -451,7 +496,7 @@ struct SettingsView: View {
     }
 
     private func assignmentRow(_ kind: SensorKind) -> some View {
-        let options = sensors.catalog.filter { kind == .fan ? $0.isFan : !$0.isFan }
+        let options = sensors.catalog.filter { $0.hint == kind.catalogHint }
         return HStack(alignment: .center, spacing: 12) {
             Text(kind.hudLabel)
                 .frame(maxWidth: .infinity, alignment: .leading)

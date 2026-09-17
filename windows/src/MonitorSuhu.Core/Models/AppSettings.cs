@@ -74,17 +74,17 @@ public sealed class AppSettings
     public bool CompactHud { get; set; }
     public bool ShowSparkline { get; set; }
     public bool ShowFan { get; set; } = true;
+    public bool ShowCpuLoad { get; set; }
+    public bool ShowGpuLoad { get; set; }
+    public bool ShowPower { get; set; }
+    public bool AlertsEnabled { get; set; } = true;
+    public long? AlertMuteUntil { get; set; }
+    public bool HideInFullscreen { get; set; } = true;
+    public bool HideDuringCapture { get; set; } = true;
+    public string ActiveProfile { get; set; } = "custom";
     public Dictionary<string, string> SensorBindings { get; set; } = new();
     public OverlayPosition? Position { get; set; }
-    public Dictionary<string, Thresholds> Thresholds { get; set; } = new()
-    {
-        [nameof(SensorKind.Cpu)] = new Thresholds { Warn = 75, Critical = 90 },
-        [nameof(SensorKind.Gpu)] = new Thresholds { Warn = 75, Critical = 90 },
-        [nameof(SensorKind.Ssd)] = new Thresholds { Warn = 60, Critical = 70 },
-        [nameof(SensorKind.Board)] = new Thresholds { Warn = 70, Critical = 85 },
-        [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 },
-        [nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 }
-    };
+    public Dictionary<string, Thresholds> Thresholds { get; set; } = DefaultThresholds();
     public KeyChord ToggleHotkey { get; set; } = new() { VirtualKey = 0x54, Control = true, Shift = true };
     public KeyChord EditHotkey { get; set; } = new() { VirtualKey = 0x45, Control = true, Shift = true };
 
@@ -96,13 +96,17 @@ public sealed class AppSettings
         SensorKind.Board => ShowBoard,
         SensorKind.Ram => ShowRam,
         SensorKind.Fan => ShowFan,
+        SensorKind.CpuLoad => ShowCpuLoad,
+        SensorKind.GpuLoad => ShowGpuLoad,
+        SensorKind.Power => ShowPower,
         _ => true
     };
 
     public Thresholds ThresholdsFor(SensorKind kind)
     {
         var key = kind.ToString();
-        return Thresholds.TryGetValue(key, out var t) ? t : new Thresholds { Warn = 75, Critical = 90 };
+        if (Thresholds.TryGetValue(key, out var t)) return t;
+        return FallbackThresholds(kind);
     }
 
     public void SetThresholds(SensorKind kind, double warn, double critical)
@@ -118,31 +122,13 @@ public sealed class AppSettings
         PollIntervalMs = (int)Clamp(PollIntervalMs, 400, 3000);
         var hex = NormalizeHex(AccentHex);
         AccentHex = hex.Length == 6 ? "#" + hex : NvidiaGreen;
+        if (string.IsNullOrWhiteSpace(ActiveProfile)) ActiveProfile = "custom";
 
-        var next = new Dictionary<string, Thresholds>
-        {
-            [nameof(SensorKind.Cpu)] = new Thresholds { Warn = 75, Critical = 90 },
-            [nameof(SensorKind.Gpu)] = new Thresholds { Warn = 75, Critical = 90 },
-            [nameof(SensorKind.Ssd)] = new Thresholds { Warn = 60, Critical = 70 },
-            [nameof(SensorKind.Board)] = new Thresholds { Warn = 70, Critical = 85 },
-            [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 },
-            [nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 }
-        };
+        var next = DefaultThresholds();
         foreach (var (key, value) in Thresholds ?? [])
         {
             var t = new Thresholds { Warn = value.Warn, Critical = value.Critical };
-            if (key == nameof(SensorKind.Fan))
-            {
-                t.Warn = Clamp(t.Warn, 500, 8000);
-                t.Critical = Clamp(t.Critical, 600, 10000);
-                if (t.Warn >= t.Critical) t.Critical = Math.Min(10000, t.Warn + 5);
-            }
-            else
-            {
-                t.Warn = Clamp(t.Warn, 1, 120);
-                t.Critical = Clamp(t.Critical, 2, 130);
-                if (t.Warn >= t.Critical) t.Critical = Math.Min(130, t.Warn + 5);
-            }
+            ClampThresholds(key, t);
             next[key] = t;
         }
         Thresholds = next;
@@ -168,15 +154,67 @@ public sealed class AppSettings
         return $"{Math.Round(celsius)}°C";
     }
 
-    public string FormatValue(SensorReading r) =>
-        r.Kind == SensorKind.Fan
-            ? $"{Math.Round(r.Value)} RPM"
-            : FormatTemperature(r.Value);
+    public string FormatValue(SensorReading r) => r.Kind switch
+    {
+        SensorKind.Fan => $"{Math.Round(r.Value)} RPM",
+        SensorKind.CpuLoad or SensorKind.GpuLoad => $"{Math.Round(r.Value)}%",
+        SensorKind.Power => $"{Math.Round(r.Value)} W",
+        _ => FormatTemperature(r.Value)
+    };
 
     public string MenuBarTitle(double? cpuCelsius)
     {
         if (cpuCelsius is not double c) return "Suhu";
         var n = UseFahrenheit ? Math.Round(c * 9 / 5 + 32) : Math.Round(c);
         return $"Suhu {n}°";
+    }
+
+    public static Dictionary<string, Thresholds> DefaultThresholds() => new()
+    {
+        [nameof(SensorKind.Cpu)] = new Thresholds { Warn = 75, Critical = 90 },
+        [nameof(SensorKind.Gpu)] = new Thresholds { Warn = 75, Critical = 90 },
+        [nameof(SensorKind.Ssd)] = new Thresholds { Warn = 60, Critical = 70 },
+        [nameof(SensorKind.Board)] = new Thresholds { Warn = 70, Critical = 85 },
+        [nameof(SensorKind.Ram)] = new Thresholds { Warn = 70, Critical = 85 },
+        [nameof(SensorKind.Fan)] = new Thresholds { Warn = 4000, Critical = 5500 },
+        [nameof(SensorKind.CpuLoad)] = new Thresholds { Warn = 85, Critical = 98 },
+        [nameof(SensorKind.GpuLoad)] = new Thresholds { Warn = 85, Critical = 98 },
+        [nameof(SensorKind.Power)] = new Thresholds { Warn = 150, Critical = 250 }
+    };
+
+    internal static Thresholds FallbackThresholds(SensorKind kind) => kind switch
+    {
+        SensorKind.Fan => new Thresholds { Warn = 4000, Critical = 5500 },
+        SensorKind.CpuLoad or SensorKind.GpuLoad => new Thresholds { Warn = 85, Critical = 98 },
+        SensorKind.Power => new Thresholds { Warn = 150, Critical = 250 },
+        _ => new Thresholds { Warn = 75, Critical = 90 }
+    };
+
+    internal static void ClampThresholds(string key, Thresholds t)
+    {
+        if (key is nameof(SensorKind.CpuLoad) or nameof(SensorKind.GpuLoad))
+        {
+            t.Warn = Clamp(t.Warn, 1, 100);
+            t.Critical = Clamp(t.Critical, 2, 100);
+            if (t.Warn >= t.Critical) t.Critical = Math.Min(100, t.Warn + 1);
+        }
+        else if (key == nameof(SensorKind.Power))
+        {
+            t.Warn = Clamp(t.Warn, 5, 800);
+            t.Critical = Clamp(t.Critical, 10, 1000);
+            if (t.Warn >= t.Critical) t.Critical = Math.Min(1000, t.Warn + 5);
+        }
+        else if (key == nameof(SensorKind.Fan))
+        {
+            t.Warn = Clamp(t.Warn, 500, 8000);
+            t.Critical = Clamp(t.Critical, 600, 10000);
+            if (t.Warn >= t.Critical) t.Critical = Math.Min(10000, t.Warn + 5);
+        }
+        else
+        {
+            t.Warn = Clamp(t.Warn, 1, 120);
+            t.Critical = Clamp(t.Critical, 2, 130);
+            if (t.Warn >= t.Critical) t.Critical = Math.Min(130, t.Warn + 5);
+        }
     }
 }

@@ -1,16 +1,18 @@
 import Foundation
 import Combine
+import Darwin
 import IOKit
 
 final class SensorService: ObservableObject {
     @Published private(set) var snapshot = HardwareSnapshot(readings: [], timestamp: Date())
-    @Published private(set) var catalog: [(id: String, name: String, value: Double, isFan: Bool)] = []
+    @Published private(set) var catalog: [(id: String, name: String, value: Double, hint: CatalogHint)] = []
 
     private let hid = HIDTemperatureReader()
     private var timer: DispatchSourceTimer?
     private let queue = DispatchQueue(label: "id.monitorsuhu.sensors", qos: .utility)
     private var bindings: () -> [String: String] = { [:] }
     private var rings: [SensorKind: [Double]] = [:]
+    private var cpuLoad = HostCpuLoad()
 
     func start(intervalMs: Double, bindings: @escaping () -> [String: String] = { [:] }) {
         stop()
@@ -41,21 +43,26 @@ final class SensorService: ObservableObject {
         let fanKeys = SMCFanReader.catalogKeys()
         let bound = bindings()
 
-        var nextCatalog: [(id: String, name: String, value: Double, isFan: Bool)] = []
+        var nextCatalog: [(id: String, name: String, value: Double, hint: CatalogHint)] = []
         var seen = Set<String>()
         for row in hidRows {
             if seen.insert(row.name).inserted {
-                nextCatalog.append((id: row.name, name: row.name, value: row.celsius, isFan: false))
+                nextCatalog.append((id: row.name, name: row.name, value: row.celsius, hint: .temp))
             }
         }
         for row in smcKeys {
             if seen.insert(row.id).inserted {
-                nextCatalog.append((id: row.id, name: row.name, value: row.value, isFan: false))
+                nextCatalog.append((id: row.id, name: row.name, value: row.value, hint: .temp))
             }
         }
         for row in fanKeys {
             if seen.insert(row.id).inserted {
-                nextCatalog.append((id: row.id, name: row.name, value: row.value, isFan: true))
+                nextCatalog.append((id: row.id, name: row.name, value: row.value, hint: .fan))
+            }
+        }
+        for row in SMCPowerReader.catalogKeys() {
+            if seen.insert(row.id).inserted {
+                nextCatalog.append((id: row.id, name: row.name, value: row.value, hint: .power))
             }
         }
 
@@ -127,6 +134,22 @@ final class SensorService: ObservableObject {
             readings.append(SensorReading(id: "fan", kind: .fan, label: "FAN", value: rpm))
         }
 
+        if let load = Self.boundExtra(kind: .cpuLoad, bindings: bound, catalog: nextCatalog, hint: .load)
+            ?? cpuLoad.poll()
+        {
+            readings.append(SensorReading(id: "cpu-load", kind: .cpuLoad, label: "CPU%", value: load))
+        }
+        if let gpuLoad = Self.boundExtra(kind: .gpuLoad, bindings: bound, catalog: nextCatalog, hint: .load)
+            ?? GpuLoadReader.poll()
+        {
+            readings.append(SensorReading(id: "gpu-load", kind: .gpuLoad, label: "GPU%", value: gpuLoad))
+        }
+        if let watts = Self.boundExtra(kind: .power, bindings: bound, catalog: nextCatalog, hint: .power)
+            ?? nextCatalog.first(where: { $0.hint == .power })?.value
+        {
+            readings.append(SensorReading(id: "power", kind: .power, label: "PWR", value: watts))
+        }
+
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             for reading in readings {
@@ -173,7 +196,7 @@ final class SensorService: ObservableObject {
         kind: SensorKind,
         bindings: [String: String],
         valid: [(name: String, celsius: Double)],
-        catalog: [(id: String, name: String, value: Double, isFan: Bool)],
+        catalog: [(id: String, name: String, value: Double, hint: CatalogHint)],
         tokens: [String],
         excluding: [String]
     ) -> Double? {
@@ -182,7 +205,7 @@ final class SensorService: ObservableObject {
             if let row = valid.first(where: { $0.name == name }) {
                 return row.celsius
             }
-            if let row = catalog.first(where: { !$0.isFan && ($0.id == name || $0.name == name) }) {
+            if let row = catalog.first(where: { $0.hint == .temp && ($0.id == name || $0.name == name) }) {
                 return row.value
             }
         }
@@ -191,15 +214,143 @@ final class SensorService: ObservableObject {
 
     private static func fanValue(
         bindings: [String: String],
-        catalog: [(id: String, name: String, value: Double, isFan: Bool)]
+        catalog: [(id: String, name: String, value: Double, hint: CatalogHint)]
     ) -> Double? {
         let name = bindings[SensorKind.fan.rawValue] ?? ""
         if !name.isEmpty {
-            if let row = catalog.first(where: { $0.isFan && ($0.id == name || $0.name == name) }) {
+            if let row = catalog.first(where: { $0.hint == .fan && ($0.id == name || $0.name == name) }) {
                 return row.value
             }
         }
-        return catalog.first(where: \.isFan)?.value
+        return catalog.first(where: { $0.hint == .fan })?.value
+    }
+
+    private static func boundExtra(
+        kind: SensorKind,
+        bindings: [String: String],
+        catalog: [(id: String, name: String, value: Double, hint: CatalogHint)],
+        hint: CatalogHint
+    ) -> Double? {
+        let name = bindings[kind.rawValue] ?? ""
+        guard !name.isEmpty else { return nil }
+        return catalog.first(where: { $0.hint == hint && ($0.id == name || $0.name == name) })?.value
+    }
+}
+
+final class HostCpuLoad {
+    private var previous: host_cpu_load_info?
+
+    func poll() -> Double? {
+        var info = host_cpu_load_info()
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.stride / MemoryLayout<integer_t>.stride)
+        let kr = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return nil }
+        defer { previous = info }
+        guard let prev = previous else { return nil }
+        let user = Double(info.cpu_ticks.0) - Double(prev.cpu_ticks.0)
+        let system = Double(info.cpu_ticks.1) - Double(prev.cpu_ticks.1)
+        let idle = Double(info.cpu_ticks.2) - Double(prev.cpu_ticks.2)
+        let nice = Double(info.cpu_ticks.3) - Double(prev.cpu_ticks.3)
+        let total = user + system + idle + nice
+        guard total > 0 else { return nil }
+        return min(100, max(0, (user + system + nice) / total * 100))
+    }
+}
+
+enum GpuLoadReader {
+    static func poll() -> Double? {
+        let matching = IOServiceMatching("IOAccelerator")
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else {
+            return nil
+        }
+        defer { IOObjectRelease(iterator) }
+
+        var best: Double?
+        var service = IOIteratorNext(iterator)
+        while service != 0 {
+            defer {
+                IOObjectRelease(service)
+                service = IOIteratorNext(iterator)
+            }
+            var props: Unmanaged<CFMutableDictionary>?
+            guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+                  let dict = props?.takeRetainedValue() as? [String: Any]
+            else { continue }
+            if let stats = dict["PerformanceStatistics"] as? [String: Any] {
+                for key in ["Device Utilization %", "GPU Activity(%)", "Renderer Utilization %"] {
+                    if let n = number(stats[key]), n > 0, n <= 100 {
+                        best = max(best ?? 0, n)
+                    }
+                }
+            }
+        }
+        return best
+    }
+
+    private static func number(_ value: Any?) -> Double? {
+        if let n = value as? NSNumber { return n.doubleValue }
+        if let n = value as? Double { return n }
+        if let n = value as? Int { return Double(n) }
+        return nil
+    }
+}
+
+enum SMCPowerReader {
+    static func poll() -> Double? {
+        catalogKeys().first?.value
+    }
+
+    static func catalogKeys() -> [(id: String, name: String, value: Double)] {
+        var conn: io_connect_t = 0
+        guard SMCTemperatureReader.openSMC(&conn) else { return [] }
+        defer { IOServiceClose(conn) }
+        var rows: [(id: String, name: String, value: Double)] = []
+        for key in ["PSTR", "PCPT", "PCPC"] {
+            if let watts = readWatts(conn, key) {
+                rows.append((id: key, name: key, value: watts))
+            }
+        }
+        return rows
+    }
+
+    private static func readWatts(_ conn: io_connect_t, _ key: String) -> Double? {
+        var input = SMCParamStruct()
+        var output = SMCParamStruct()
+        input.key = SMCTemperatureReader.fourChar(key)
+        input.data8 = 9
+        guard SMCTemperatureReader.smcCall(conn, 2, &input, &output) else { return nil }
+
+        var read = SMCParamStruct()
+        var result = SMCParamStruct()
+        read.key = SMCTemperatureReader.fourChar(key)
+        read.data8 = 5
+        read.keyInfo.dataSize = output.keyInfo.dataSize
+        guard SMCTemperatureReader.smcCall(conn, 2, &read, &result) else { return nil }
+
+        let size = Int(output.keyInfo.dataSize)
+        let bytes = result.bytes
+        let value: Double
+        if size >= 4 {
+            let bits = UInt32(bytes.0) << 24
+                | UInt32(bytes.1) << 16
+                | UInt32(bytes.2) << 8
+                | UInt32(bytes.3)
+            let parsed = Float(bitPattern: bits)
+            guard parsed.isFinite else { return nil }
+            value = Double(parsed)
+        } else if size >= 2 {
+            let raw = (Int(bytes.0) << 8) | Int(bytes.1)
+            value = Double(raw) / 256.0
+        } else {
+            return nil
+        }
+        guard value > 0, value < 1000 else { return nil }
+        return value
     }
 }
 

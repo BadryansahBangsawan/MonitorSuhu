@@ -215,9 +215,15 @@
                                   ToolTip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
                         <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
                                   ToolTip="Hidden in the HUD when this PC has no fan RPM sensor."/>
+                        <CheckBox Content="CPU load" IsChecked="{Binding ShowCpuLoad}"
+                                  ToolTip="Off by default. Hidden when this PC has no CPU utilization reading."/>
+                        <CheckBox Content="GPU load" IsChecked="{Binding ShowGpuLoad}"
+                                  ToolTip="Off by default. Hidden when this PC has no GPU utilization reading."/>
+                        <CheckBox Content="Power" IsChecked="{Binding ShowPower}"
+                                  ToolTip="Off by default. Hidden when this PC has no package / GPU power reading."/>
                     </StackPanel>
                 </Border>
-                <TextBlock Text="RAM is omitted from the HUD when this PC has no sensor for it. Fan is omitted when there is no RPM reading."
+                <TextBlock Text="Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan."
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Assignments" Style="{StaticResource SectionTitle}"/>
@@ -283,7 +289,7 @@
                                       SelectedValuePath="Id"
                                       SelectedValue="{Binding RamBinding}"/>
                         </Grid>
-                        <Grid>
+                        <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="88"/>
                                 <ColumnDefinition Width="*"/>
@@ -294,6 +300,42 @@
                                       DisplayMemberPath="Label"
                                       SelectedValuePath="Id"
                                       SelectedValue="{Binding FanBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="CPU%" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding LoadOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding CpuLoadBinding}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="GPU%" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding LoadOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding GpuLoadBinding}"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="88"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="PWR" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding PowerOptions}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding PowerBinding}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -310,6 +352,9 @@
                             <ColumnDefinition Width="72"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -342,12 +387,24 @@
                         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
                         <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
 
-                        <TextBlock Grid.Row="6" Text="Fan" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="6" Text="Fan" VerticalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
                         <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
+
+                        <TextBlock Grid.Row="7" Text="CPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding CpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBox Grid.Row="7" Grid.Column="3" Text="{Binding CpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+
+                        <TextBlock Grid.Row="8" Text="GPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding GpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBox Grid.Row="8" Grid.Column="3" Text="{Binding GpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+
+                        <TextBlock Grid.Row="9" Text="PWR" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding PowerWarn, UpdateSourceTrigger=LostFocus}"/>
+                        <TextBox Grid.Row="9" Grid.Column="3" Text="{Binding PowerCrit, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Border>
-                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Values are always in °C. Fan thresholds are RPM."
+                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts."
                            Style="{StaticResource Caption}" Margin="2,0,0,14"/>
 
                 <TextBlock Text="Polling" Style="{StaticResource SectionTitle}"/>
