@@ -69,4 +69,47 @@ enum ReleaseAssets {
         }
         return nil
     }
+
+    /// `hdiutil attach -plist` may prefix checksum lines; take the XML payload.
+    static func mountPoints(fromAttachPlist text: String) -> [String] {
+        let xml: Substring
+        if let start = text.range(of: "<?xml") {
+            xml = text[start.lowerBound...]
+        } else if let start = text.range(of: "<plist") {
+            xml = text[start.lowerBound...]
+        } else {
+            xml = text[...]
+        }
+        let data = Data(xml.utf8)
+        guard let obj = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let entities = obj["system-entities"] as? [[String: Any]]
+        else { return [] }
+        return entities.compactMap { $0["mount-point"] as? String }.filter { !$0.isEmpty }
+    }
+
+    /// Do not use FileManager.enumerator — it skips mount points, so a
+    /// freshly attached APFS DMG looks empty.
+    static func findApp(under root: URL) -> URL? {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        let direct = root.appendingPathComponent("MonitorSuhu.app")
+        if fm.fileExists(atPath: direct.path, isDirectory: &isDir), isDir.boolValue {
+            return direct
+        }
+        let kids = (try? fm.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        if let bundle = kids.first(where: { $0.lastPathComponent == "MonitorSuhu.app" }) {
+            return bundle
+        }
+        for child in kids {
+            let nested = child.appendingPathComponent("MonitorSuhu.app")
+            if fm.fileExists(atPath: nested.path, isDirectory: &isDir), isDir.boolValue {
+                return nested
+            }
+        }
+        return nil
+    }
 }

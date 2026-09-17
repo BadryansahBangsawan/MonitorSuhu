@@ -26,20 +26,34 @@ enum UpdateInstaller {
             .appendingPathComponent("MonitorSuhu-mnt-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: mountRoot, withIntermediateDirectories: true)
         var attached = false
+        var mountPoints: [String] = []
         defer {
             if attached {
+                for point in mountPoints.reversed() {
+                    _ = try? run("/usr/bin/hdiutil", ["detach", point, "-force"])
+                }
                 _ = try? run("/usr/bin/hdiutil", ["detach", mountRoot.path, "-force"])
             }
             try? FileManager.default.removeItem(at: mountRoot)
         }
 
         _ = try? run("/usr/bin/xattr", ["-cr", dmg.path])
-        _ = try run("/usr/bin/hdiutil", [
-            "attach", "-nobrowse", "-readonly", "-noverify", "-mountroot", mountRoot.path, dmg.path
+        let plist = try run("/usr/bin/hdiutil", [
+            "attach", "-plist", "-nobrowse", "-readonly", "-noverify",
+            "-mountroot", mountRoot.path, dmg.path
         ])
         attached = true
+        mountPoints = ReleaseAssets.mountPoints(fromAttachPlist: plist)
 
-        guard let app = findApp(under: mountRoot) else {
+        var app: URL?
+        for point in mountPoints {
+            app = ReleaseAssets.findApp(under: URL(fileURLWithPath: point))
+            if app != nil { break }
+        }
+        if app == nil {
+            app = ReleaseAssets.findApp(under: mountRoot)
+        }
+        guard let app else {
             throw error("The disk image does not contain MonitorSuhu.app.")
         }
         if FileManager.default.fileExists(atPath: stagingApp.path) {
@@ -84,21 +98,6 @@ enum UpdateInstaller {
         try process.run()
     }
 
-    private static func findApp(under root: URL) -> URL? {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(
-            at: root,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-        for case let url as URL in enumerator {
-            if url.lastPathComponent == "MonitorSuhu.app" {
-                enumerator.skipDescendants()
-                return url
-            }
-        }
-        return nil
-    }
 
     private static func shQuote(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"

@@ -160,6 +160,36 @@ enum LogicTests {
         check("windows takes newer exe", ReleaseAssets.latest(in: [winOnly, both], platform: "windows")?.tag == "1.0.8")
         check("linux none without tarball", ReleaseAssets.latest(in: [winOnly, both], platform: "linux") == nil)
 
+        let plist = """
+        Checksumming disk image…
+        <?xml version="1.0" encoding="UTF-8"?>
+        <plist version="1.0">
+        <dict>
+            <key>system-entities</key>
+            <array>
+                <dict>
+                    <key>dev-entry</key>
+                    <string>/dev/disk11</string>
+                </dict>
+                <dict>
+                    <key>mount-point</key>
+                    <string>/private/tmp/MonitorSuhu-mnt/MonitorSuhu</string>
+                </dict>
+            </array>
+        </dict>
+        </plist>
+        """
+        check("parse attach plist mount", ReleaseAssets.mountPoints(fromAttachPlist: plist) == ["/private/tmp/MonitorSuhu-mnt/MonitorSuhu"])
+
+        let fm = FileManager.default
+        let tree = fm.temporaryDirectory.appendingPathComponent("ms-dmg-\(UUID().uuidString)")
+        let volume = tree.appendingPathComponent("MonitorSuhu")
+        let nestedApp = volume.appendingPathComponent("MonitorSuhu.app/Contents")
+        try? fm.createDirectory(at: nestedApp, withIntermediateDirectories: true)
+        check("findApp inside volume folder", ReleaseAssets.findApp(under: tree)?.path.hasSuffix("MonitorSuhu.app") == true)
+        check("findApp at volume root", ReleaseAssets.findApp(under: volume)?.path.hasSuffix("MonitorSuhu.app") == true)
+        try? fm.removeItem(at: tree)
+
         if failures > 0 {
             fputs("\(failures) failed\n", stderr)
             exit(1)
