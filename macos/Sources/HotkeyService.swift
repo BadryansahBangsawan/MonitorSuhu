@@ -34,11 +34,11 @@ final class HotkeyService {
         let editStatus = RegisterEventHotKey(edit.keyCode, edit.carbonModifiers, editID, GetApplicationEventTarget(), 0, &editRef)
 
         if toggleStatus != noErr && editStatus != noErr {
-            failedMessage = "⌃⇧T and ⌃⇧E are already in use."
+            failedMessage = "\(toggle.display) and \(edit.display) are already in use."
         } else if toggleStatus != noErr {
-            failedMessage = "⌃⇧T is already in use — overlay toggle was not registered."
+            failedMessage = "\(toggle.display) is already in use — overlay toggle was not registered."
         } else if editStatus != noErr {
-            failedMessage = "⌃⇧E is already in use — edit-layout was not registered."
+            failedMessage = "\(edit.display) is already in use — edit-layout was not registered."
         }
     }
 

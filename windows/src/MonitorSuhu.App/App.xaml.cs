@@ -21,7 +21,8 @@ public partial class App : Application
     private TrayService? _tray;
     private OverlayViewModel? _overlayVm;
     private UpdateChecker? _updates;
-    private AlertGate? _alertGate;
+    private AlertPresenter? _alerts;
+    private FullscreenGuard? _fullscreen;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -48,7 +49,7 @@ public partial class App : Application
 
         _store = new SettingsStore();
         _sensors = new SensorService(() => _store!.Settings.SensorBindings);
-        _alertGate = new AlertGate();
+        _alerts = new AlertPresenter(message => _tray?.ShowWarning(message));
         _sensors.Updated += snapshot =>
         {
             var app = System.Windows.Application.Current;
@@ -66,13 +67,18 @@ public partial class App : Application
         {
             _overlay.Hide();
         }
+        _fullscreen = new FullscreenGuard(_store, _overlay);
+        _fullscreen.Start();
 
         _tray = new TrayService(
             toggleOverlay: ToggleOverlay,
             editLayout: EditLayout,
+            muteAlerts: MuteAlerts,
             openSettings: OpenSettings,
             checkUpdates: () => _ = CheckForUpdatesAsync(),
-            exit: Shutdown);
+            exit: Shutdown,
+            applyProfile: ApplyProfile,
+            activeProfile: () => _store!.Settings.ActiveProfile);
         ApplyTrayStatus(_sensors.Snapshot);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
@@ -95,7 +101,7 @@ public partial class App : Application
     public void ToggleOverlay()
     {
         if (_overlay is null || _store is null) return;
-        if (_overlay.IsVisible)
+        if (_store.Settings.OverlayVisible)
         {
             _overlay.Hide();
             _store.Settings.OverlayVisible = false;
@@ -112,9 +118,37 @@ public partial class App : Application
     {
         if (_overlay is null || _store is null) return;
         _store.Settings.Locked = false;
+        _store.Settings.OverlayVisible = true;
         _store.Save();
         _overlay.ApplyLock();
         _overlay.Show();
+    }
+
+    public void MuteAlerts()
+    {
+        if (_store is null) return;
+        _store.Settings.MuteAlerts();
+        _store.Save();
+    }
+
+    public void ApplyProfile(string name)
+    {
+        if (_settingsWindow?.DataContext is SettingsViewModel vm)
+        {
+            vm.ApplyProfile(name);
+            return;
+        }
+        if (_store is null || _overlay is null) return;
+        HudProfiles.Apply(_store.Settings, name);
+        _overlay.ApplyTheme();
+        _store.Save();
+    }
+
+    public string? RestartHotkeys()
+    {
+        if (_hotkeys is null || _store is null) return null;
+        _hotkeys.Start(_store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
+        return _hotkeys.FailedMessage;
     }
 
     public void OpenSettings()
@@ -122,7 +156,13 @@ public partial class App : Application
         if (_store is null || _sensors is null || _overlay is null || _updates is null) return;
         if (_settingsWindow is null)
         {
-            var vm = new SettingsViewModel(_store, _overlay, _sensors, _updates);
+            var vm = new SettingsViewModel(
+                _store,
+                _overlay,
+                _sensors,
+                _updates,
+                restartHotkeys: RestartHotkeys,
+                hotkeyFailedMessage: _hotkeys?.FailedMessage);
             _settingsWindow = new SettingsWindow(vm);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
@@ -155,12 +195,13 @@ public partial class App : Application
         var title = settings.MenuBarTitle(cpu);
         var crit = cpu is { } c && c >= settings.ThresholdsFor(SensorKind.Cpu).Critical;
         _tray?.SetStatus(title, crit);
-        _alertGate?.Evaluate(snapshot.Readings, settings);
+        _alerts?.Evaluate(snapshot.Readings, settings);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _store?.Save();
+        _fullscreen?.Dispose();
         _hotkeys?.Dispose();
         _sensors?.Dispose();
         _tray?.Dispose();

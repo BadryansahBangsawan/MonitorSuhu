@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,9 +8,11 @@ struct SettingsView: View {
     @ObservedObject var updates: UpdateChecker
     var overlay: OverlayController
     var hotkeyMessage: String? = nil
+    var restartHotkeys: () -> String? = { nil }
 
     @State private var autostartMessage: String?
     @State private var confirmReset = false
+    @StateObject private var recorder = HotkeyRecorder()
 
     private static let accents: [(name: String, hex: String)] = [
         ("NVIDIA", AppSettings.nvidiaGreen),
@@ -28,6 +31,17 @@ struct SettingsView: View {
                 .tabItem { Label("Appearance", systemImage: "paintpalette") }
         }
         .frame(minWidth: 520, minHeight: 440)
+        .onChange(of: store.settings.lookFingerprint) { _, _ in
+            let name = store.settings.activeProfile
+            guard name != HudProfiles.custom else { return }
+            var expected = store.settings
+            expected.applyProfile(name)
+            if store.settings.lookFingerprint != expected.lookFingerprint {
+                store.settings.markCustom()
+            }
+        }
+        .onChange(of: store.settings.useFahrenheit) { _, _ in store.settings.markCustom() }
+        .onChange(of: store.settings.accentHex) { _, _ in store.settings.markCustom() }
         .confirmationDialog(
             "Reset settings to defaults?",
             isPresented: $confirmReset,
@@ -58,11 +72,42 @@ struct SettingsView: View {
                 SettingsToggleRow("Start with macOS", isOn: $store.settings.startWithOs) { value in
                     autostartMessage = AutostartService.apply(value)
                 }
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Hide in fullscreen",
+                    isOn: $store.settings.hideInFullscreen,
+                    help: "Temporarily hide the HUD while another app covers the display. Show overlay stays on."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Hide during capture",
+                    isOn: $store.settings.hideDuringCapture,
+                    help: "Hide while Screen Recording is already granted and macOS is capturing. MonitorSuhu never prompts for that permission."
+                )
             } caption: {
                 if let autostartMessage, !autostartMessage.isEmpty {
                     SettingsCallout(autostartMessage)
                 } else {
-                    SettingsCaption("May ask for permission in System Settings → General → Login Items.")
+                    SettingsCaption("May ask for permission in System Settings → General → Login Items. Hides during fullscreen apps. Screen-share hide needs Screen Recording permission on macOS 14+.")
+                }
+            }
+
+            SettingsSection("Alerts") {
+                SettingsToggleRow(
+                    "Critical alerts",
+                    isOn: $store.settings.alertsEnabled,
+                    help: "Notification (or a beep if permission is denied) when a visible reading crosses critical."
+                )
+                SettingsRowDivider()
+                Button("Mute 15 minutes") {
+                    store.settings.muteAlerts()
+                }
+                .padding(.vertical, 8)
+            } caption: {
+                if let mute = store.settings.muteCaption() {
+                    SettingsCallout(mute)
+                } else {
+                    SettingsCaption("HUD colors still change while muted. Mute lasts 15 minutes and survives relaunch.")
                 }
             }
 
@@ -91,14 +136,28 @@ struct SettingsView: View {
             }
 
             SettingsSection("Shortcuts") {
-                SettingsKeyRow("Toggle overlay", chord: store.settings.toggleHotkey.display)
+                SettingsKeyRow(
+                    "Toggle overlay",
+                    chord: store.settings.toggleHotkey.display,
+                    recording: recorder.slot == .toggle,
+                    onStart: { recorder.begin(.toggle) }
+                )
                 SettingsRowDivider()
-                SettingsKeyRow("Edit layout", chord: store.settings.editHotkey.display)
+                SettingsKeyRow(
+                    "Edit layout",
+                    chord: store.settings.editHotkey.display,
+                    recording: recorder.slot == .edit,
+                    onStart: { recorder.begin(.edit) }
+                )
             } caption: {
-                if let hotkeyMessage, !hotkeyMessage.isEmpty {
-                    SettingsCallout(hotkeyMessage)
+                if recorder.slot != nil {
+                    SettingsCaption("Press a shortcut with a modifier. Esc cancels.")
+                } else if let conflict = recorder.conflict, !conflict.isEmpty {
+                    SettingsCallout(conflict)
+                } else if let live = recorder.failedMessage, !live.isEmpty {
+                    SettingsCallout(live)
                 } else {
-                    SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
+                    SettingsCaption("Click a shortcut to rebind. At least one modifier plus a letter or number.")
                 }
             }
 
@@ -154,6 +213,18 @@ struct SettingsView: View {
         }
         .onAppear {
             autostartMessage = AutostartService.statusMessage()
+            recorder.failedMessage = hotkeyMessage
+            recorder.otherChord = { slot in
+                slot == .toggle ? store.settings.editHotkey : store.settings.toggleHotkey
+            }
+            recorder.apply = { slot, chord in
+                if slot == .toggle {
+                    store.settings.toggleHotkey = chord
+                } else {
+                    store.settings.editHotkey = chord
+                }
+                return restartHotkeys()
+            }
         }
     }
 
@@ -179,13 +250,31 @@ struct SettingsView: View {
                     isOn: $store.settings.showFan,
                     help: "Hidden in the HUD when this Mac has no fan RPM sensor."
                 )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "CPU load",
+                    isOn: $store.settings.showCpuLoad,
+                    help: "Off by default. Hidden when this Mac has no CPU utilization reading."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "GPU load",
+                    isOn: $store.settings.showGpuLoad,
+                    help: "Off by default. Hidden when this Mac has no GPU utilization reading."
+                )
+                SettingsRowDivider()
+                SettingsToggleRow(
+                    "Power",
+                    isOn: $store.settings.showPower,
+                    help: "Off by default. Hidden when this Mac has no system power reading."
+                )
             } caption: {
                 if !anySensorEnabled {
                     SettingsCallout("Turn on at least one sensor or the HUD shows NO SENSORS.")
                 } else if sensors.snapshot.readings.isEmpty {
                     SettingsCallout("No temperature sensors found on this Mac yet. The HUD fills in after the first poll.")
                 } else {
-                    SettingsCaption("RAM is omitted from the HUD when this Mac has no sensor for it.")
+                    SettingsCaption("Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan.")
                 }
             }
 
@@ -265,10 +354,34 @@ struct SettingsView: View {
                         thresholdField(.fan, isWarn: true)
                         thresholdField(.fan, isWarn: false)
                     }
+                    GridRow {
+                        Text("CPU%")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.cpuLoad, isWarn: true)
+                        thresholdField(.cpuLoad, isWarn: false)
+                    }
+                    GridRow {
+                        Text("GPU%")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.gpuLoad, isWarn: true)
+                        thresholdField(.gpuLoad, isWarn: false)
+                    }
+                    GridRow {
+                        Text("PWR")
+                        Color.clear
+                            .gridCellUnsizedAxes(.vertical)
+                            .frame(maxWidth: .infinity)
+                        thresholdField(.power, isWarn: true)
+                        thresholdField(.power, isWarn: false)
+                    }
                 }
                 .padding(.vertical, 10)
             } caption: {
-                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Values are always in °C. Fan thresholds are RPM.")
+                SettingsCaption("Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts.")
             }
 
             SettingsSection("Polling") {
@@ -311,6 +424,17 @@ struct SettingsView: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
                 )
+            }
+
+            SettingsSection("Profile") {
+                HStack(spacing: 8) {
+                    profileButton("Desktop", HudProfiles.desktop)
+                    profileButton("Game", HudProfiles.game)
+                    profileButton("Silent", HudProfiles.silent)
+                }
+                .padding(.vertical, 8)
+            } caption: {
+                SettingsCaption(profileCaption)
             }
 
             SettingsSection("Display") {
@@ -405,6 +529,23 @@ struct SettingsView: View {
         }
     }
 
+    private var profileCaption: String {
+        store.settings.activeProfile == HudProfiles.custom
+            ? "Custom look. Position, lock, and shortcuts stay as they are."
+            : "\(HudProfiles.title(store.settings.activeProfile)) look. Editing sensors or appearance marks Custom."
+    }
+
+    private func profileButton(_ title: String, _ name: String) -> some View {
+        let selected = store.settings.activeProfile == name
+        return Button(title) {
+            store.settings.applyProfile(name)
+        }
+        .buttonStyle(.bordered)
+        .tint(selected ? Color.accentColor : nil)
+        .controlSize(.regular)
+        .frame(maxWidth: .infinity)
+    }
+
     private var anySensorEnabled: Bool {
         store.settings.showCpu
             || store.settings.showGpu
@@ -412,6 +553,9 @@ struct SettingsView: View {
             || store.settings.showBoard
             || store.settings.showRam
             || store.settings.showFan
+            || store.settings.showCpuLoad
+            || store.settings.showGpuLoad
+            || store.settings.showPower
     }
 
     private func settingsScroll<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -451,7 +595,7 @@ struct SettingsView: View {
     }
 
     private func assignmentRow(_ kind: SensorKind) -> some View {
-        let options = sensors.catalog.filter { kind == .fan ? $0.isFan : !$0.isFan }
+        let options = sensors.catalog.filter { $0.hint == kind.catalogHint }
         return HStack(alignment: .center, spacing: 12) {
             Text(kind.hudLabel)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -582,32 +726,114 @@ private struct SettingsRowDivider: View {
 private struct SettingsKeyRow: View {
     let title: String
     let chord: String
+    var recording: Bool = false
+    var onStart: (() -> Void)? = nil
 
-    init(_ title: String, chord: String) {
+    init(_ title: String, chord: String, recording: Bool = false, onStart: (() -> Void)? = nil) {
         self.title = title
         self.chord = chord
+        self.recording = recording
+        self.onStart = onStart
     }
 
     var body: some View {
         HStack {
             Text(title)
             Spacer(minLength: 12)
-            Text(chord)
+            Text(recording ? "Press a shortcut…" : chord)
                 .font(.body.monospaced())
+                .foregroundStyle(recording ? Color.accentColor : Color.primary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.primary.opacity(0.06))
+                        .fill(Color.primary.opacity(recording ? 0.12 : 0.06))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 )
-                .accessibilityLabel(chord)
+                .accessibilityLabel(recording ? "Press a shortcut" : chord)
+                .help("Click to rebind")
+                .contentShape(Rectangle())
+                .onTapGesture { onStart?() }
         }
         .padding(.vertical, 8)
     }
+}
+
+private final class HotkeyRecorder: ObservableObject {
+    enum Slot: Equatable { case toggle, edit }
+
+    @Published var slot: Slot?
+    @Published var conflict: String?
+    @Published var failedMessage: String?
+
+    var otherChord: ((Slot) -> KeyChord)?
+    var apply: ((Slot, KeyChord) -> String?)?
+
+    private var monitor: Any?
+
+    func begin(_ slot: Slot) {
+        if self.slot == slot {
+            cancel()
+            return
+        }
+        conflict = nil
+        self.slot = slot
+        startMonitor()
+    }
+
+    func cancel() {
+        slot = nil
+        stopMonitor()
+    }
+
+    private func startMonitor() {
+        stopMonitor()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handle(event) ?? event
+        }
+    }
+
+    private func stopMonitor() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        monitor = nil
+    }
+
+    private func handle(_ event: NSEvent) -> NSEvent? {
+        guard slot != nil else { return event }
+        if event.keyCode == 53 {
+            DispatchQueue.main.async { self.cancel() }
+            return nil
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard let chord = KeyChord.from(
+            keyCode: UInt32(event.keyCode),
+            control: flags.contains(.control),
+            option: flags.contains(.option),
+            shift: flags.contains(.shift),
+            command: flags.contains(.command)
+        ) else { return nil }
+
+        let current = slot
+        DispatchQueue.main.async {
+            self.stopMonitor()
+            self.slot = nil
+            guard let current else { return }
+            if let other = self.otherChord?(current), other == chord {
+                self.conflict = "That shortcut is already used by the other action."
+                return
+            }
+            self.conflict = nil
+            self.failedMessage = self.apply?(current, chord)
+        }
+        return nil
+    }
+
+    deinit { stopMonitor() }
 }
 
 private struct SettingsCaption: View {

@@ -69,17 +69,58 @@ public sealed class HwmonMapperTests
         Assert.Equal("No hwmon sensors.", result.Error);
     }
 
+    [Fact]
+    public void Map_PowerAndGpuBusy_AddsExtras()
+    {
+        using var tree = FixtureTree.CreateWithExtras();
+        var previous = HwmonMapper.ReadCpuStat(tree.ProcStatPrevious);
+        var result = HwmonMapper.Map(
+            tree.HwmonRoot,
+            new Dictionary<string, string>(),
+            tree.ThermalRoot,
+            tree.ProcStatCurrent,
+            previous);
+
+        var gpuLoad = Assert.Single(result.Readings, r => r.Kind == SensorKind.GpuLoad);
+        Assert.Equal("GPU%", gpuLoad.Label);
+        Assert.Equal(33, gpuLoad.Value);
+
+        var power = Assert.Single(result.Readings, r => r.Kind == SensorKind.Power);
+        Assert.Equal("PWR", power.Label);
+        Assert.Equal(45, power.Value);
+
+        var cpuLoad = Assert.Single(result.Readings, r => r.Kind == SensorKind.CpuLoad);
+        Assert.Equal("CPU%", cpuLoad.Label);
+        Assert.Equal(90, cpuLoad.Value);
+
+        Assert.Contains(result.Catalog, e =>
+            e.Id == "hwmon2/gpu_busy_percent" && e.Hint == CatalogHint.Load && e.Value == 33);
+        Assert.Contains(result.Catalog, e =>
+            e.Id == "hwmon2/power1_input" && e.Hint == CatalogHint.Power && e.Value == 45);
+    }
+
+    [Fact]
+    public void CpuLoadPercent_UsesIdleDelta()
+    {
+        var percent = HwmonMapper.CpuLoadPercent((Idle: 100, Total: 200), (Idle: 110, Total: 300));
+        Assert.Equal(90, percent);
+    }
+
     private sealed class FixtureTree : IDisposable
     {
         public string Root { get; }
         public string HwmonRoot { get; }
         public string ThermalRoot { get; }
+        public string ProcStatPrevious { get; }
+        public string ProcStatCurrent { get; }
 
-        private FixtureTree(string root, string hwmonRoot, string thermalRoot)
+        private FixtureTree(string root, string hwmonRoot, string thermalRoot, string procStatPrevious = "", string procStatCurrent = "")
         {
             Root = root;
             HwmonRoot = hwmonRoot;
             ThermalRoot = thermalRoot;
+            ProcStatPrevious = procStatPrevious;
+            ProcStatCurrent = procStatCurrent;
         }
 
         public static FixtureTree Create()
@@ -100,6 +141,18 @@ public sealed class HwmonMapperTests
             var thermal = Path.Combine(root, "thermal");
             Directory.CreateDirectory(thermal);
             return new FixtureTree(root, hwmon, thermal);
+        }
+
+        public static FixtureTree CreateWithExtras()
+        {
+            var tree = Create();
+            Write(Path.Combine(tree.HwmonRoot, "hwmon2", "power1_input"), "45000000");
+            Write(Path.Combine(tree.HwmonRoot, "hwmon2", "device", "gpu_busy_percent"), "33");
+            var previous = Path.Combine(tree.Root, "stat-prev");
+            var current = Path.Combine(tree.Root, "stat-now");
+            File.WriteAllText(previous, "cpu 50 0 50 100\n");
+            File.WriteAllText(current, "cpu 140 0 50 110\n");
+            return new FixtureTree(tree.Root, tree.HwmonRoot, tree.ThermalRoot, previous, current);
         }
 
         public static FixtureTree Empty()

@@ -15,11 +15,12 @@ SWIFT_FRAMEWORKS := \
 	-framework IOKit \
 	-framework Carbon \
 	-framework Combine \
-	-framework ServiceManagement
+	-framework ServiceManagement \
+	-framework UserNotifications
 
 TEST_DIR    := Tests
 TEST_BIN    := $(BUILD_DIR)/logic-tests
-LOGIC_SOURCES := $(SRC_DIR)/Models.swift $(SRC_DIR)/Versioning.swift $(SRC_DIR)/ReleaseAssets.swift $(TEST_DIR)/LogicTests.swift
+LOGIC_SOURCES := $(SRC_DIR)/Models.swift $(SRC_DIR)/AlertGate.swift $(SRC_DIR)/FullscreenPolicy.swift $(SRC_DIR)/Versioning.swift $(SRC_DIR)/ReleaseAssets.swift $(TEST_DIR)/LogicTests.swift
 
 .PHONY: all app run clean dmg test
 

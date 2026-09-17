@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum SensorKind: String, Codable, CaseIterable, Identifiable {
-    case cpu, gpu, ssd, board, ram, fan
+    case cpu, gpu, ssd, board, ram, fan, cpuLoad, gpuLoad, power
 
     var id: String { rawValue }
 
@@ -14,8 +14,24 @@ enum SensorKind: String, Codable, CaseIterable, Identifiable {
         case .board: return "BOARD"
         case .ram: return "RAM"
         case .fan: return "FAN"
+        case .cpuLoad: return "CPU%"
+        case .gpuLoad: return "GPU%"
+        case .power: return "PWR"
         }
     }
+
+    var catalogHint: CatalogHint {
+        switch self {
+        case .fan: return .fan
+        case .cpuLoad, .gpuLoad: return .load
+        case .power: return .power
+        default: return .temp
+        }
+    }
+}
+
+enum CatalogHint: String, Codable {
+    case temp, fan, load, power
 }
 
 struct SensorReading: Identifiable, Hashable {
@@ -98,6 +114,18 @@ struct KeyChord: Codable, Equatable {
         return parts.joined()
     }
 
+    static func from(keyCode: UInt32, control: Bool, option: Bool, shift: Bool, command: Bool) -> KeyChord? {
+        guard control || option || shift || command else { return nil }
+        guard Self.isLetterOrNumber(keyCode) else { return nil }
+        return KeyChord(keyCode: keyCode, control: control, option: option, shift: shift, command: command)
+    }
+
+    private static func isLetterOrNumber(_ code: UInt32) -> Bool {
+        let name = keyName(code)
+        guard name.count == 1, let ch = name.first else { return false }
+        return ch.isLetter || ch.isNumber
+    }
+
     private static func keyName(_ code: UInt32) -> String {
         // Carbon virtual key codes (kVK_ANSI_*). Look up by the integer value
         // so JSON-decoded 17 matches T (0x11) rather than rendering as "#17".
@@ -135,6 +163,14 @@ struct AppSettings: Codable, Equatable {
     var compactHud: Bool
     var showSparkline: Bool
     var showFan: Bool
+    var showCpuLoad: Bool
+    var showGpuLoad: Bool
+    var showPower: Bool
+    var alertsEnabled: Bool
+    var alertMuteUntil: Double?
+    var hideInFullscreen: Bool
+    var hideDuringCapture: Bool
+    var activeProfile: String
     var position: OverlayPosition?
     var thresholds: [String: Thresholds]
     var sensorBindings: [String: String]
@@ -167,20 +203,33 @@ struct AppSettings: Codable, Equatable {
             compactHud: false,
             showSparkline: false,
             showFan: true,
+            showCpuLoad: false,
+            showGpuLoad: false,
+            showPower: false,
+            alertsEnabled: true,
+            alertMuteUntil: nil,
+            hideInFullscreen: true,
+            hideDuringCapture: true,
+            activeProfile: "custom",
             position: nil,
-            thresholds: [
-                SensorKind.cpu.rawValue: Thresholds(warn: 75, critical: 90),
-                SensorKind.gpu.rawValue: Thresholds(warn: 75, critical: 90),
-                SensorKind.ssd.rawValue: Thresholds(warn: 60, critical: 70),
-                SensorKind.board.rawValue: Thresholds(warn: 70, critical: 85),
-                SensorKind.ram.rawValue: Thresholds(warn: 70, critical: 85),
-                SensorKind.fan.rawValue: Thresholds(warn: 4000, critical: 5500)
-            ],
+            thresholds: Self.defaultThresholds,
             sensorBindings: [:],
             toggleHotkey: KeyChord(keyCode: 0x11, control: true, option: false, shift: true, command: false),
             editHotkey: KeyChord(keyCode: 0x0E, control: true, option: false, shift: true, command: false)
         )
     }
+
+    static let defaultThresholds: [String: Thresholds] = [
+        SensorKind.cpu.rawValue: Thresholds(warn: 75, critical: 90),
+        SensorKind.gpu.rawValue: Thresholds(warn: 75, critical: 90),
+        SensorKind.ssd.rawValue: Thresholds(warn: 60, critical: 70),
+        SensorKind.board.rawValue: Thresholds(warn: 70, critical: 85),
+        SensorKind.ram.rawValue: Thresholds(warn: 70, critical: 85),
+        SensorKind.fan.rawValue: Thresholds(warn: 4000, critical: 5500),
+        SensorKind.cpuLoad.rawValue: Thresholds(warn: 85, critical: 98),
+        SensorKind.gpuLoad.rawValue: Thresholds(warn: 85, critical: 98),
+        SensorKind.power.rawValue: Thresholds(warn: 150, critical: 250)
+    ]
 
     func isKindVisible(_ kind: SensorKind) -> Bool {
         switch kind {
@@ -190,28 +239,21 @@ struct AppSettings: Codable, Equatable {
         case .board: return showBoard
         case .ram: return showRam
         case .fan: return showFan
+        case .cpuLoad: return showCpuLoad
+        case .gpuLoad: return showGpuLoad
+        case .power: return showPower
         }
     }
 
     func thresholds(for kind: SensorKind) -> Thresholds {
-        thresholds[kind.rawValue] ?? Thresholds(warn: 75, critical: 90)
+        thresholds[kind.rawValue] ?? Self.fallbackThresholds(for: kind)
     }
 
     mutating func setThresholds(for kind: SensorKind, warn: Double? = nil, critical: Double? = nil) {
         var t = thresholds(for: kind)
-        if kind == .fan {
-            if let warn { t.warn = Self.clamp(warn, 500, 8000) }
-            if let critical { t.critical = Self.clamp(critical, 600, 10000) }
-            if t.warn >= t.critical {
-                t.critical = min(10000, t.warn + 5)
-            }
-        } else {
-            if let warn { t.warn = Self.clamp(warn, 1, 120) }
-            if let critical { t.critical = Self.clamp(critical, 2, 130) }
-            if t.warn >= t.critical {
-                t.critical = min(130, t.warn + 5)
-            }
-        }
+        if let warn { t.warn = warn }
+        if let critical { t.critical = critical }
+        Self.clampThresholds(kind.rawValue, &t)
         thresholds[kind.rawValue] = t
     }
 
@@ -221,21 +263,45 @@ struct AppSettings: Codable, Equatable {
         pollIntervalMs = Self.clamp(pollIntervalMs, 400, 3000)
         let hex = Self.normalizeHex(accentHex)
         accentHex = hex.count == 6 ? hex : Self.nvidiaGreen
-        var next = Self.default.thresholds
+        if activeProfile != "desktop" && activeProfile != "game" && activeProfile != "silent" && activeProfile != "custom" {
+            activeProfile = "custom"
+        }
+        var next = Self.defaultThresholds
         for (key, value) in thresholds {
             var t = value
-            if key == SensorKind.fan.rawValue {
-                t.warn = Self.clamp(t.warn, 500, 8000)
-                t.critical = Self.clamp(t.critical, 600, 10000)
-                if t.warn >= t.critical { t.critical = min(10000, t.warn + 5) }
-            } else {
-                t.warn = Self.clamp(t.warn, 1, 120)
-                t.critical = Self.clamp(t.critical, 2, 130)
-                if t.warn >= t.critical { t.critical = min(130, t.warn + 5) }
-            }
+            Self.clampThresholds(key, &t)
             next[key] = t
         }
         thresholds = next
+    }
+
+    private static func fallbackThresholds(for kind: SensorKind) -> Thresholds {
+        switch kind {
+        case .fan: return Thresholds(warn: 4000, critical: 5500)
+        case .cpuLoad, .gpuLoad: return Thresholds(warn: 85, critical: 98)
+        case .power: return Thresholds(warn: 150, critical: 250)
+        default: return Thresholds(warn: 75, critical: 90)
+        }
+    }
+
+    private static func clampThresholds(_ key: String, _ t: inout Thresholds) {
+        if key == SensorKind.cpuLoad.rawValue || key == SensorKind.gpuLoad.rawValue {
+            t.warn = clamp(t.warn, 1, 100)
+            t.critical = clamp(t.critical, 2, 100)
+            if t.warn >= t.critical { t.critical = min(100, t.warn + 1) }
+        } else if key == SensorKind.power.rawValue {
+            t.warn = clamp(t.warn, 5, 800)
+            t.critical = clamp(t.critical, 10, 1000)
+            if t.warn >= t.critical { t.critical = min(1000, t.warn + 5) }
+        } else if key == SensorKind.fan.rawValue {
+            t.warn = clamp(t.warn, 500, 8000)
+            t.critical = clamp(t.critical, 600, 10000)
+            if t.warn >= t.critical { t.critical = min(10000, t.warn + 5) }
+        } else {
+            t.warn = clamp(t.warn, 1, 120)
+            t.critical = clamp(t.critical, 2, 130)
+            if t.warn >= t.critical { t.critical = min(130, t.warn + 5) }
+        }
     }
 
 
@@ -251,10 +317,16 @@ struct AppSettings: Codable, Equatable {
     }
 
     func displayValue(_ reading: SensorReading) -> String {
-        if reading.kind == .fan {
+        switch reading.kind {
+        case .fan:
             return "\(Int(reading.value.rounded())) RPM"
+        case .cpuLoad, .gpuLoad:
+            return "\(Int(reading.value.rounded()))%"
+        case .power:
+            return "\(Int(reading.value.rounded())) W"
+        default:
+            return displayTemperature(reading.value)
         }
-        return displayTemperature(reading.value)
     }
 
     func menuBarTitle(cpuCelsius: Double?) -> String {
@@ -265,6 +337,82 @@ struct AppSettings: Codable, Equatable {
 
     var accentColor: Color {
         Color(hex: accentHex) ?? Color(red: 0.46, green: 0.73, blue: 0)
+    }
+
+    mutating func applyProfile(_ name: String) {
+        switch name {
+        case HudProfiles.desktop:
+            resetLook(compact: false, extras: false, opacity: 0.80, font: 13)
+            showTemps(cpu: true, gpu: true, ssd: true, board: true, ram: true, fan: true)
+            thresholds = Self.defaultThresholds
+        case HudProfiles.game:
+            resetLook(compact: true, extras: true, opacity: 0.70, font: 12)
+            showTemps(cpu: true, gpu: true, ssd: false, board: false, ram: false, fan: true)
+            thresholds = Self.defaultThresholds
+            thresholds[SensorKind.cpu.rawValue] = Thresholds(warn: 80, critical: 95)
+            thresholds[SensorKind.gpu.rawValue] = Thresholds(warn: 80, critical: 95)
+        case HudProfiles.silent:
+            resetLook(compact: false, extras: false, opacity: 0.80, font: 13)
+            showTemps(cpu: true, gpu: true, ssd: true, board: false, ram: false, fan: false)
+            thresholds = Self.defaultThresholds
+        default:
+            return
+        }
+        activeProfile = name
+        sanitize()
+    }
+
+    mutating func markCustom() {
+        if activeProfile != HudProfiles.custom {
+            activeProfile = HudProfiles.custom
+        }
+    }
+
+    var lookFingerprint: String {
+        [
+            compactHud, showSparkline, showCpu, showGpu, showSsd, showBoard, showRam, showFan,
+            showCpuLoad, showGpuLoad, showPower
+        ].map { $0 ? "1" : "0" }.joined()
+            + "|\(overlayOpacity)|\(fontSize)"
+            + SensorKind.allCases.map { kind in
+                let t = thresholds(for: kind)
+                return "|\(kind.rawValue):\(t.warn):\(t.critical)"
+            }.joined()
+    }
+
+    private mutating func resetLook(compact: Bool, extras: Bool, opacity: Double, font: Double) {
+        compactHud = compact
+        showSparkline = false
+        showCpuLoad = extras
+        showGpuLoad = extras
+        showPower = extras
+        overlayOpacity = opacity
+        fontSize = font
+    }
+
+    private mutating func showTemps(cpu: Bool, gpu: Bool, ssd: Bool, board: Bool, ram: Bool, fan: Bool) {
+        showCpu = cpu
+        showGpu = gpu
+        showSsd = ssd
+        showBoard = board
+        showRam = ram
+        showFan = fan
+    }
+}
+
+enum HudProfiles {
+    static let desktop = "desktop"
+    static let game = "game"
+    static let silent = "silent"
+    static let custom = "custom"
+
+    static func title(_ name: String) -> String {
+        switch name {
+        case desktop: return "Desktop"
+        case game: return "Game"
+        case silent: return "Silent"
+        default: return "Custom"
+        }
     }
 }
 
@@ -288,6 +436,14 @@ extension AppSettings {
         compactHud = try c.decodeIfPresent(Bool.self, forKey: .compactHud) ?? d.compactHud
         showSparkline = try c.decodeIfPresent(Bool.self, forKey: .showSparkline) ?? d.showSparkline
         showFan = try c.decodeIfPresent(Bool.self, forKey: .showFan) ?? d.showFan
+        showCpuLoad = try c.decodeIfPresent(Bool.self, forKey: .showCpuLoad) ?? d.showCpuLoad
+        showGpuLoad = try c.decodeIfPresent(Bool.self, forKey: .showGpuLoad) ?? d.showGpuLoad
+        showPower = try c.decodeIfPresent(Bool.self, forKey: .showPower) ?? d.showPower
+        alertsEnabled = try c.decodeIfPresent(Bool.self, forKey: .alertsEnabled) ?? d.alertsEnabled
+        alertMuteUntil = try c.decodeIfPresent(Double.self, forKey: .alertMuteUntil) ?? d.alertMuteUntil
+        hideInFullscreen = try c.decodeIfPresent(Bool.self, forKey: .hideInFullscreen) ?? d.hideInFullscreen
+        hideDuringCapture = try c.decodeIfPresent(Bool.self, forKey: .hideDuringCapture) ?? d.hideDuringCapture
+        activeProfile = try c.decodeIfPresent(String.self, forKey: .activeProfile) ?? d.activeProfile
         position = try c.decodeIfPresent(OverlayPosition.self, forKey: .position) ?? d.position
         thresholds = try c.decodeIfPresent([String: Thresholds].self, forKey: .thresholds) ?? d.thresholds
         sensorBindings = try c.decodeIfPresent([String: String].self, forKey: .sensorBindings) ?? d.sensorBindings

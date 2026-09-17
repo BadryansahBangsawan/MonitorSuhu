@@ -5,18 +5,18 @@ namespace MonitorSuhu.Core.Tests;
 public sealed class ReleaseAssetsTests
 {
     private static readonly ReleaseAsset Mac = new(
-        "MonitorSuhu-1.0.4-macos.dmg",
-        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.4/MonitorSuhu-1.0.4-macos.dmg",
+        "MonitorSuhu-1.0.5-macos.dmg",
+        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.5/MonitorSuhu-1.0.5-macos.dmg",
         2_000_000);
 
     private static readonly ReleaseAsset Win = new(
-        "MonitorSuhu-1.0.4-windows-x64.exe",
-        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.4/MonitorSuhu-1.0.4-windows-x64.exe",
+        "MonitorSuhu-1.0.5-windows-x64.exe",
+        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.5/MonitorSuhu-1.0.5-windows-x64.exe",
         50_000_000);
 
     private static readonly ReleaseAsset Linux = new(
-        "MonitorSuhu-1.0.4-linux-x64.tar.gz",
-        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.4/MonitorSuhu-1.0.4-linux-x64.tar.gz",
+        "MonitorSuhu-1.0.5-linux-x64.tar.gz",
+        "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/download/v1.0.5/MonitorSuhu-1.0.5-linux-x64.tar.gz",
         40_000_000);
 
     [Fact]
@@ -42,9 +42,9 @@ public sealed class ReleaseAssetsTests
     [Fact]
     public void IsTrusted_RejectsHttpAndPath()
     {
-        Assert.False(ReleaseAssets.IsTrusted("http://github.com/a/b/MonitorSuhu-1.0.4-macos.dmg", Mac.Name, "macos"));
-        Assert.False(ReleaseAssets.IsTrusted(Mac.Url, "../MonitorSuhu-1.0.4-macos.dmg", "macos"));
-        Assert.False(ReleaseAssets.IsTrusted("https://evil.example/MonitorSuhu-1.0.4-macos.dmg", Mac.Name, "macos"));
+        Assert.False(ReleaseAssets.IsTrusted("http://github.com/a/b/MonitorSuhu-1.0.5-macos.dmg", Mac.Name, "macos"));
+        Assert.False(ReleaseAssets.IsTrusted(Mac.Url, "../MonitorSuhu-1.0.5-macos.dmg", "macos"));
+        Assert.False(ReleaseAssets.IsTrusted("https://evil.example/MonitorSuhu-1.0.5-macos.dmg", Mac.Name, "macos"));
         Assert.True(ReleaseAssets.IsTrusted(Mac.Url, Mac.Name, "macos"));
     }
 }

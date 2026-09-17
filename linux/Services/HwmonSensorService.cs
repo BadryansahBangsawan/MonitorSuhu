@@ -12,8 +12,10 @@ public sealed class HwmonSensorService : IDisposable
     private readonly Func<IReadOnlyDictionary<string, string>>? _bindings;
     private readonly string _hwmonRoot;
     private readonly string _thermalRoot;
+    private readonly string _procStatPath;
     private readonly Dictionary<SensorKind, List<double>> _rings = new();
     private readonly bool _isLinux;
+    private (ulong Idle, ulong Total)? _cpuStat;
 
     public HardwareSnapshot Snapshot { get; private set; } = new();
     public IReadOnlyList<HwmonCatalogEntry> LastCatalog { get; private set; } = [];
@@ -23,11 +25,13 @@ public sealed class HwmonSensorService : IDisposable
     public HwmonSensorService(
         Func<IReadOnlyDictionary<string, string>>? bindings = null,
         string hwmonRoot = "/sys/class/hwmon",
-        string thermalRoot = "/sys/class/thermal")
+        string thermalRoot = "/sys/class/thermal",
+        string procStatPath = "/proc/stat")
     {
         _bindings = bindings;
         _hwmonRoot = hwmonRoot;
         _thermalRoot = thermalRoot;
+        _procStatPath = procStatPath;
         _timer = new System.Timers.Timer(1000);
         _timer.AutoReset = true;
         _timer.Elapsed += (_, _) => Tick();
@@ -71,9 +75,15 @@ public sealed class HwmonSensorService : IDisposable
                 var bindings = _bindings?.Invoke() ?? new Dictionary<string, string>();
                 try
                 {
-                    var mapped = HwmonMapper.Map(_hwmonRoot, bindings, _thermalRoot);
+                    var mapped = HwmonMapper.Map(
+                        _hwmonRoot,
+                        bindings,
+                        _thermalRoot,
+                        _procStatPath,
+                        _cpuStat);
                     LastCatalog = mapped.Catalog ?? [];
                     LastError = mapped.Error;
+                    _cpuStat = mapped.CpuStat;
                     snapshot = new HardwareSnapshot
                     {
                         Readings = mapped.Readings ?? [],

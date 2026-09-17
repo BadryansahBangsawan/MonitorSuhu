@@ -164,7 +164,7 @@ jobs:
           body: |
             ## MonitorSuhu ${{ github.ref_name }}
 
-            Lightweight hardware temperature overlay for macOS and Windows. Install newer releases from Settings.
+            Lightweight hardware temperature overlay for macOS, Windows, and Linux. Install newer releases from Settings — that in-app path still works.
 
             ---
 
@@ -201,8 +201,8 @@ jobs:
 
             | Shortcut | Action |
             |---|---|
-            | `⌃⇧T` / `Ctrl+Shift+T` | Show / hide overlay |
-            | `⌃⇧E` / `Ctrl+Shift+E` | Unlock overlay for dragging |
+            | `⌃⇧T` / `Ctrl+Shift+T` | Show / hide overlay (rebindable) |
+            | `⌃⇧E` / `Ctrl+Shift+E` | Unlock overlay for dragging (rebindable) |
 
             ---
 

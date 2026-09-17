@@ -55,15 +55,15 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
 | Shortcut | Action |
 |---|---|
-| `⌃ ⇧ T` | Show / hide overlay |
-| `⌃ ⇧ E` | Unlock overlay for dragging |
+| `⌃ ⇧ T` | Show / hide overlay (rebindable in Settings) |
+| `⌃ ⇧ E` | Unlock overlay for dragging (rebindable in Settings) |
 
 ### Notes
 
 - Sensors are read natively via Apple Silicon HID (`IOHIDEventSystemClient`) or SMC keys on Intel.
-- RAM temperature only appears when a hardware sensor reports it.
+- RAM temperature only appears when a hardware sensor reports it. CPU load, GPU load, and power stay off until you enable them and hardware reports them.
 - **Start with macOS** uses `SMAppService` — the first enable may prompt you in **System Settings → General → Login Items**.
-- This is a desktop HUD, not a game capture overlay. Exclusive fullscreen games may cover it.
+- Native fullscreen apps hide the HUD while **Hide in fullscreen** is on. Screen-share hide needs Screen Recording permission on macOS 14+; MonitorSuhu never prompts for it.
 
 ---
 
@@ -77,16 +77,16 @@ Always-on-top HUD with NVIDIA-style dark theme — drag to any corner, snap to e
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl + Shift + T` | Show / hide overlay |
-| `Ctrl + Shift + E` | Unlock overlay for dragging |
+| `Ctrl + Shift + T` | Show / hide overlay (rebindable in Settings) |
+| `Ctrl + Shift + E` | Unlock overlay for dragging (rebindable in Settings) |
 
 ### Notes
 
 - Sensors are read via [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Antivirus software may flag its kernel driver — allow it if the HUD shows no readings.
 - A second launch exits immediately (only one overlay instance runs at a time).
 - **Start with Windows** creates a Task Scheduler task at highest privileges so the overlay retains sensor access after reboot. The task is applied when you press **Save** in Settings.
-- RAM temperature is rare on most consumer DIMMs.
-- Use **borderless windowed** mode in games — exclusive fullscreen will cover the overlay.
+- RAM temperature is rare on most consumer DIMMs. CPU load, GPU load, and power stay off until you enable them.
+- Exclusive fullscreen windows hide the HUD while **Hide in fullscreen** is on. Screensaver counts as capture.
 
 ---
 
@@ -96,11 +96,15 @@ Both platforms share the same settings surface:
 
 | Setting | Description |
 |---|---|
-| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM / Fan rows |
+| **Sensors** | Toggle CPU / GPU / SSD / Board / RAM / Fan, plus optional CPU%, GPU%, PWR |
 | **Assignments** | Pin a HUD row to a named sensor, or leave Auto |
-| **Thresholds** | Warn (yellow) and critical (red) per sensor. Fan uses RPM |
+| **Thresholds** | Warn (yellow) and critical (red) per sensor. Fan uses RPM; load uses %; power uses W |
+| **Alerts** | Notify when a visible reading crosses critical; mute 15 minutes from tray or Settings |
+| **Shortcuts** | Click a chord pill and press a modifier plus a letter or number. Esc cancels |
+| **Profiles** | Desktop / Game / Silent looks. Editing sensors or appearance marks Custom |
 | **Appearance** | Compact one-line HUD, 30-sample sparkline, opacity, font, accent, °C / °F |
 | **Position** | Corner presets or drag-to-place with edge snap |
+| **Auto-hide** | Hide during exclusive fullscreen (and capture where the OS can tell). Show overlay stays on |
 | **Poll interval** | How often sensors are read (400 ms – 3 s, default 1 s) |
 | **Start with OS** | Launch automatically on login |
 
@@ -110,6 +114,7 @@ Overlay position is stored as **relative corner edges**, so resizing the font or
 
 - macOS: `~/Library/Application Support/MonitorSuhu/settings.json`  
 - Windows: `%AppData%\MonitorSuhu\settings.json`
+- Linux: `~/.config/MonitorSuhu/settings.json`
 
 ---
 
