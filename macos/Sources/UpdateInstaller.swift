@@ -17,15 +17,8 @@ enum UpdateInstaller {
         NSApp.terminate(nil)
     }
 
-    static func destinationApp() -> URL {
-        let running = Bundle.main.bundleURL
-        if running.path.contains("/Volumes/") {
-            return URL(fileURLWithPath: "/Applications/MonitorSuhu.app")
-        }
-        if running.lastPathComponent == "MonitorSuhu.app" {
-            return running
-        }
-        return URL(fileURLWithPath: "/Applications/MonitorSuhu.app")
+    static func destinationApp(running: URL = Bundle.main.bundleURL) -> URL {
+        URL(fileURLWithPath: ReleaseAssets.installDestination(runningPath: running.path))
     }
 
     private static func extract(dmg: URL, to stagingApp: URL) throws {
@@ -40,8 +33,9 @@ enum UpdateInstaller {
             try? FileManager.default.removeItem(at: mountRoot)
         }
 
+        _ = try? run("/usr/bin/xattr", ["-cr", dmg.path])
         _ = try run("/usr/bin/hdiutil", [
-            "attach", "-nobrowse", "-readonly", "-mountroot", mountRoot.path, dmg.path
+            "attach", "-nobrowse", "-readonly", "-noverify", "-mountroot", mountRoot.path, dmg.path
         ])
         attached = true
 
@@ -62,23 +56,29 @@ enum UpdateInstaller {
         let pid = ProcessInfo.processInfo.processIdentifier
         let script = FileManager.default.temporaryDirectory
             .appendingPathComponent("MonitorSuhu-replace-\(pid).sh")
+        let destPath = dest.path
         let body = """
         #!/bin/bash
         set -euo pipefail
+        trap '' HUP
         while /bin/kill -0 \(pid) 2>/dev/null; do
           /bin/sleep 0.2
         done
-        /usr/bin/ditto \(shQuote(stagingApp.path)) \(shQuote(dest.path))
-        /usr/bin/xattr -cr \(shQuote(dest.path))
-        /usr/bin/open \(shQuote(dest.path))
+        /usr/bin/pkill -f '/Applications/MonitorSuhu.app/Contents/MacOS/MonitorSuhu' || true
+        /bin/sleep 0.4
+        /usr/bin/ditto \(shQuote(stagingApp.path)) \(shQuote(destPath))
+        /usr/bin/xattr -cr \(shQuote(destPath))
+        /usr/bin/open \(shQuote(destPath))
         /bin/rm -rf \(shQuote(stagingApp.path)) \(shQuote(script.path))
         """
         try body.write(to: script, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: script.path)
 
+        // nohup + HUP trap: NSApp.terminate() must not kill the waiter.
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = [script.path]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/nohup")
+        process.arguments = ["/bin/bash", script.path]
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         try process.run()

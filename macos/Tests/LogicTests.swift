@@ -105,9 +105,9 @@ enum LogicTests {
         check("compact worst is cpu critical", ReadingLevel.worst(rows, settings: settings) == .critical)
         check("fan 2000 rpm is ok", ReadingLevel.of(rows[1], settings: settings) == .ok)
 
-        check("isNewer true", Versioning.isNewer("1.0.5", than: "1.0.4"))
-        check("isNewer equal", !Versioning.isNewer("1.0.4", than: "1.0.4"))
-        check("isNewer false", !Versioning.isNewer("1.0.3", than: "1.0.4"))
+        check("isNewer true", Versioning.isNewer("1.0.6", than: "1.0.5"))
+        check("isNewer equal", !Versioning.isNewer("1.0.6", than: "1.0.6"))
+        check("isNewer false", !Versioning.isNewer("1.0.5", than: "1.0.6"))
 
         let dmg = ReleaseAsset(
             name: "MonitorSuhu-1.0.5-macos.dmg",
@@ -125,6 +125,9 @@ enum LogicTests {
             name: dmg.name,
             platform: "macos"
         ))
+        check("dest applications", ReleaseAssets.installDestination(runningPath: "/Applications/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
+        check("dest build copy", ReleaseAssets.installDestination(runningPath: "/Users/x/MonitorSuhu/macos/build/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
+        check("dest dmg volume", ReleaseAssets.installDestination(runningPath: "/Volumes/MonitorSuhu/MonitorSuhu.app") == "/Applications/MonitorSuhu.app")
 
         if failures > 0 {
             fputs("\(failures) failed\n", stderr)

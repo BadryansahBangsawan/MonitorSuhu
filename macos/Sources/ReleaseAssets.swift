@@ -9,6 +9,20 @@ struct ReleaseAsset: Equatable {
 enum ReleaseAssets {
     static let maxBytes: Int64 = 200 * 1024 * 1024
 
+    /// In-app updates always replace `/Applications/MonitorSuhu.app`.
+    /// Repo `build/` copies and mounted DMGs must not be the install target —
+    /// that left GitHub 1.0.5 "installed" only in the source tree.
+    static func installDestination(runningPath: String) -> String {
+        let path = URL(fileURLWithPath: runningPath).standardizedFileURL.path
+        if path == "/Applications/MonitorSuhu.app" || path.hasPrefix("/Applications/MonitorSuhu.app/") {
+            return "/Applications/MonitorSuhu.app"
+        }
+        if path.hasPrefix("/Applications/"), path.hasSuffix("/MonitorSuhu.app") {
+            return path
+        }
+        return "/Applications/MonitorSuhu.app"
+    }
+
     static func pick(_ assets: [ReleaseAsset], platform: String = "macos") -> ReleaseAsset? {
         assets.first { matches($0.name, platform: platform) && isTrusted($0.url, name: $0.name, platform: platform) }
     }
