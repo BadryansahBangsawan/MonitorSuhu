@@ -31,6 +31,17 @@ struct SettingsView: View {
                 .tabItem { Label("Appearance", systemImage: "paintpalette") }
         }
         .frame(minWidth: 520, minHeight: 440)
+        .onChange(of: store.settings.lookFingerprint) { _, _ in
+            let name = store.settings.activeProfile
+            guard name != HudProfiles.custom else { return }
+            var expected = store.settings
+            expected.applyProfile(name)
+            if store.settings.lookFingerprint != expected.lookFingerprint {
+                store.settings.markCustom()
+            }
+        }
+        .onChange(of: store.settings.useFahrenheit) { _, _ in store.settings.markCustom() }
+        .onChange(of: store.settings.accentHex) { _, _ in store.settings.markCustom() }
         .confirmationDialog(
             "Reset settings to defaults?",
             isPresented: $confirmReset,
@@ -403,6 +414,17 @@ struct SettingsView: View {
                 )
             }
 
+            SettingsSection("Profile") {
+                HStack(spacing: 8) {
+                    profileButton("Desktop", HudProfiles.desktop)
+                    profileButton("Game", HudProfiles.game)
+                    profileButton("Silent", HudProfiles.silent)
+                }
+                .padding(.vertical, 8)
+            } caption: {
+                SettingsCaption(profileCaption)
+            }
+
             SettingsSection("Display") {
                 SettingsToggleRow("Use Fahrenheit", isOn: $store.settings.useFahrenheit)
                 SettingsRowDivider()
@@ -493,6 +515,23 @@ struct SettingsView: View {
                 .padding(.vertical, 10)
             }
         }
+    }
+
+    private var profileCaption: String {
+        store.settings.activeProfile == HudProfiles.custom
+            ? "Custom look. Position, lock, and shortcuts stay as they are."
+            : "\(HudProfiles.title(store.settings.activeProfile)) look. Editing sensors or appearance marks Custom."
+    }
+
+    private func profileButton(_ title: String, _ name: String) -> some View {
+        let selected = store.settings.activeProfile == name
+        return Button(title) {
+            store.settings.applyProfile(name)
+        }
+        .buttonStyle(.bordered)
+        .tint(selected ? Color.accentColor : nil)
+        .controlSize(.regular)
+        .frame(maxWidth: .infinity)
     }
 
     private var anySensorEnabled: Bool {

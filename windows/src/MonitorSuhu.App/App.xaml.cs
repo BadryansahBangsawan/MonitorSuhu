@@ -73,7 +73,9 @@ public partial class App : Application
             muteAlerts: MuteAlerts,
             openSettings: OpenSettings,
             checkUpdates: () => _ = CheckForUpdatesAsync(),
-            exit: Shutdown);
+            exit: Shutdown,
+            applyProfile: ApplyProfile,
+            activeProfile: () => _store!.Settings.ActiveProfile);
         ApplyTrayStatus(_sensors.Snapshot);
 
         _sensors.Start(_store.Settings.PollIntervalMs);
@@ -122,6 +124,19 @@ public partial class App : Application
     {
         if (_store is null) return;
         _store.Settings.MuteAlerts();
+        _store.Save();
+    }
+
+    public void ApplyProfile(string name)
+    {
+        if (_settingsWindow?.DataContext is SettingsViewModel vm)
+        {
+            vm.ApplyProfile(name);
+            return;
+        }
+        if (_store is null || _overlay is null) return;
+        HudProfiles.Apply(_store.Settings, name);
+        _overlay.ApplyTheme();
         _store.Save();
     }
 

@@ -136,6 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Show / Hide Overlay", #selector(toggleOverlay), key: "t"))
         menu.addItem(item("Edit Layout", #selector(editLayout), key: "e"))
         menu.addItem(item("Mute alerts 15 min", #selector(muteAlerts)))
+        menu.addItem(profileMenu())
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(openSettings), key: ","))
         let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
@@ -146,7 +147,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let quit = NSMenuItem(title: "Quit MonitorSuhu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.keyEquivalentModifierMask = [.command]
         menu.addItem(quit)
+        menu.delegate = self
         return menu
+    }
+
+    private func profileMenu() -> NSMenuItem {
+        let item = NSMenuItem(title: "Profile", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        submenu.addItem(profileItem("Desktop", HudProfiles.desktop))
+        submenu.addItem(profileItem("Game", HudProfiles.game))
+        submenu.addItem(profileItem("Silent", HudProfiles.silent))
+        let custom = NSMenuItem(title: "Custom", action: nil, keyEquivalent: "")
+        custom.isEnabled = false
+        custom.state = store.settings.activeProfile == HudProfiles.custom ? .on : .off
+        submenu.addItem(custom)
+        item.submenu = submenu
+        return item
+    }
+
+    private func profileItem(_ title: String, _ name: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: #selector(applyNamedProfile(_:)), keyEquivalent: "")
+        item.target = self
+        item.representedObject = name
+        item.state = store.settings.activeProfile == name ? .on : .off
+        return item
+    }
+
+    @objc func applyNamedProfile(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String else { return }
+        store.settings.applyProfile(name)
     }
 
     private func item(_ title: String, _ sel: Selector, key: String = "") -> NSMenuItem {
@@ -229,6 +258,19 @@ extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         if notification.object as? NSWindow === settingsWindow {
             settingsWindow = nil
+        }
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard let profile = menu.items.first(where: { $0.title == "Profile" })?.submenu else { return }
+        for item in profile.items {
+            if let name = item.representedObject as? String {
+                item.state = store.settings.activeProfile == name ? .on : .off
+            } else if item.title == "Custom" {
+                item.state = store.settings.activeProfile == HudProfiles.custom ? .on : .off
+            }
         }
     }
 }

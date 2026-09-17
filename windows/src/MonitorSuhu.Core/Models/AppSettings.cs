@@ -154,7 +154,8 @@ public sealed class AppSettings
         PollIntervalMs = (int)Clamp(PollIntervalMs, 400, 3000);
         var hex = NormalizeHex(AccentHex);
         AccentHex = hex.Length == 6 ? "#" + hex : NvidiaGreen;
-        if (string.IsNullOrWhiteSpace(ActiveProfile)) ActiveProfile = "custom";
+        if (ActiveProfile is not (HudProfiles.Desktop or HudProfiles.Game or HudProfiles.Silent or HudProfiles.Custom))
+            ActiveProfile = HudProfiles.Custom;
 
         var next = DefaultThresholds();
         foreach (var (key, value) in Thresholds ?? [])

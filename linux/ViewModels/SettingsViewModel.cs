@@ -143,6 +143,36 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    public string ActiveProfile => Settings.ActiveProfile;
+
+    public bool IsDesktopProfile => Settings.ActiveProfile == HudProfiles.Desktop;
+
+    public bool IsGameProfile => Settings.ActiveProfile == HudProfiles.Game;
+
+    public bool IsSilentProfile => Settings.ActiveProfile == HudProfiles.Silent;
+
+    public string ProfileCaption =>
+        Settings.ActiveProfile == HudProfiles.Custom
+            ? "Custom look. Position, lock, and shortcuts stay as they are."
+            : $"{HudProfiles.Title(Settings.ActiveProfile)} look. Editing sensors or appearance marks Custom.";
+
+    [RelayCommand]
+    private void ApplyDesktop() => ApplyProfile(HudProfiles.Desktop);
+
+    [RelayCommand]
+    private void ApplyGame() => ApplyProfile(HudProfiles.Game);
+
+    [RelayCommand]
+    private void ApplySilent() => ApplyProfile(HudProfiles.Silent);
+
+    public void ApplyProfile(string name)
+    {
+        HudProfiles.Apply(Settings, name);
+        RefreshLook();
+        _overlay.ApplyTheme();
+        _store.SaveDebounced();
+    }
+
     public bool ShowCpu { get => Settings.ShowCpu; set => SetFlag(v => Settings.ShowCpu = v, Settings.ShowCpu, value); }
     public bool ShowGpu { get => Settings.ShowGpu; set => SetFlag(v => Settings.ShowGpu = v, Settings.ShowGpu, value); }
     public bool ShowSsd { get => Settings.ShowSsd; set => SetFlag(v => Settings.ShowSsd = v, Settings.ShowSsd, value); }
@@ -245,6 +275,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (Settings.UseFahrenheit == value) return;
             Settings.UseFahrenheit = value;
             OnPropertyChanged();
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -258,6 +289,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (Settings.CompactHud == value) return;
             Settings.CompactHud = value;
             OnPropertyChanged();
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -271,6 +303,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (Settings.ShowSparkline == value) return;
             Settings.ShowSparkline = value;
             OnPropertyChanged();
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -285,6 +318,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             Settings.OverlayOpacity = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(OpacityLabel));
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -299,6 +333,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             Settings.FontSize = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(FontSizeLabel));
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -312,6 +347,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(value) || Settings.AccentHex == value) return;
             Settings.AccentHex = value;
             OnPropertyChanged();
+            MarkCustom();
             _overlay.ApplyTheme();
             _store.SaveDebounced();
         }
@@ -470,8 +506,61 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (current == value) return;
         assign(value);
         OnPropertyChanged(propertyName);
+        MarkCustom();
         _overlay.ApplyTheme();
         _store.SaveDebounced();
+    }
+
+    private void MarkCustom()
+    {
+        HudProfiles.MarkCustom(Settings);
+        OnPropertyChanged(nameof(ActiveProfile));
+        OnPropertyChanged(nameof(IsDesktopProfile));
+        OnPropertyChanged(nameof(IsGameProfile));
+        OnPropertyChanged(nameof(IsSilentProfile));
+        OnPropertyChanged(nameof(ProfileCaption));
+    }
+
+    private void RefreshLook()
+    {
+        OnPropertyChanged(nameof(ShowCpu));
+        OnPropertyChanged(nameof(ShowGpu));
+        OnPropertyChanged(nameof(ShowSsd));
+        OnPropertyChanged(nameof(ShowBoard));
+        OnPropertyChanged(nameof(ShowRam));
+        OnPropertyChanged(nameof(ShowFan));
+        OnPropertyChanged(nameof(ShowCpuLoad));
+        OnPropertyChanged(nameof(ShowGpuLoad));
+        OnPropertyChanged(nameof(ShowPower));
+        OnPropertyChanged(nameof(CompactHud));
+        OnPropertyChanged(nameof(ShowSparkline));
+        OnPropertyChanged(nameof(OverlayOpacity));
+        OnPropertyChanged(nameof(OpacityLabel));
+        OnPropertyChanged(nameof(FontSize));
+        OnPropertyChanged(nameof(FontSizeLabel));
+        OnPropertyChanged(nameof(CpuWarn));
+        OnPropertyChanged(nameof(CpuCrit));
+        OnPropertyChanged(nameof(GpuWarn));
+        OnPropertyChanged(nameof(GpuCrit));
+        OnPropertyChanged(nameof(SsdWarn));
+        OnPropertyChanged(nameof(SsdCrit));
+        OnPropertyChanged(nameof(BoardWarn));
+        OnPropertyChanged(nameof(BoardCrit));
+        OnPropertyChanged(nameof(RamWarn));
+        OnPropertyChanged(nameof(RamCrit));
+        OnPropertyChanged(nameof(FanWarn));
+        OnPropertyChanged(nameof(FanCrit));
+        OnPropertyChanged(nameof(CpuLoadWarn));
+        OnPropertyChanged(nameof(CpuLoadCrit));
+        OnPropertyChanged(nameof(GpuLoadWarn));
+        OnPropertyChanged(nameof(GpuLoadCrit));
+        OnPropertyChanged(nameof(PowerWarn));
+        OnPropertyChanged(nameof(PowerCrit));
+        OnPropertyChanged(nameof(ActiveProfile));
+        OnPropertyChanged(nameof(IsDesktopProfile));
+        OnPropertyChanged(nameof(IsGameProfile));
+        OnPropertyChanged(nameof(IsSilentProfile));
+        OnPropertyChanged(nameof(ProfileCaption));
     }
 
     private double Warn(SensorKind kind) => Settings.ThresholdsFor(kind).Warn;
@@ -483,6 +572,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var t = Settings.ThresholdsFor(kind);
         if (Math.Abs(t.Warn - value) < 0.05) return;
         Settings.SetThresholds(kind, value, t.Critical);
+        MarkCustom();
         _overlay.ApplyTheme();
         _store.SaveDebounced();
     }
@@ -492,6 +582,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var t = Settings.ThresholdsFor(kind);
         if (Math.Abs(t.Critical - value) < 0.05) return;
         Settings.SetThresholds(kind, t.Warn, value);
+        MarkCustom();
         _overlay.ApplyTheme();
         _store.SaveDebounced();
     }

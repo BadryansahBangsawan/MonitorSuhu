@@ -263,7 +263,9 @@ struct AppSettings: Codable, Equatable {
         pollIntervalMs = Self.clamp(pollIntervalMs, 400, 3000)
         let hex = Self.normalizeHex(accentHex)
         accentHex = hex.count == 6 ? hex : Self.nvidiaGreen
-        if activeProfile.isEmpty { activeProfile = "custom" }
+        if activeProfile != "desktop" && activeProfile != "game" && activeProfile != "silent" && activeProfile != "custom" {
+            activeProfile = "custom"
+        }
         var next = Self.defaultThresholds
         for (key, value) in thresholds {
             var t = value
@@ -335,6 +337,82 @@ struct AppSettings: Codable, Equatable {
 
     var accentColor: Color {
         Color(hex: accentHex) ?? Color(red: 0.46, green: 0.73, blue: 0)
+    }
+
+    mutating func applyProfile(_ name: String) {
+        switch name {
+        case HudProfiles.desktop:
+            resetLook(compact: false, extras: false, opacity: 0.80, font: 13)
+            showTemps(cpu: true, gpu: true, ssd: true, board: true, ram: true, fan: true)
+            thresholds = Self.defaultThresholds
+        case HudProfiles.game:
+            resetLook(compact: true, extras: true, opacity: 0.70, font: 12)
+            showTemps(cpu: true, gpu: true, ssd: false, board: false, ram: false, fan: true)
+            thresholds = Self.defaultThresholds
+            thresholds[SensorKind.cpu.rawValue] = Thresholds(warn: 80, critical: 95)
+            thresholds[SensorKind.gpu.rawValue] = Thresholds(warn: 80, critical: 95)
+        case HudProfiles.silent:
+            resetLook(compact: false, extras: false, opacity: 0.80, font: 13)
+            showTemps(cpu: true, gpu: true, ssd: true, board: false, ram: false, fan: false)
+            thresholds = Self.defaultThresholds
+        default:
+            return
+        }
+        activeProfile = name
+        sanitize()
+    }
+
+    mutating func markCustom() {
+        if activeProfile != HudProfiles.custom {
+            activeProfile = HudProfiles.custom
+        }
+    }
+
+    var lookFingerprint: String {
+        [
+            compactHud, showSparkline, showCpu, showGpu, showSsd, showBoard, showRam, showFan,
+            showCpuLoad, showGpuLoad, showPower
+        ].map { $0 ? "1" : "0" }.joined()
+            + "|\(overlayOpacity)|\(fontSize)"
+            + SensorKind.allCases.map { kind in
+                let t = thresholds(for: kind)
+                return "|\(kind.rawValue):\(t.warn):\(t.critical)"
+            }.joined()
+    }
+
+    private mutating func resetLook(compact: Bool, extras: Bool, opacity: Double, font: Double) {
+        compactHud = compact
+        showSparkline = false
+        showCpuLoad = extras
+        showGpuLoad = extras
+        showPower = extras
+        overlayOpacity = opacity
+        fontSize = font
+    }
+
+    private mutating func showTemps(cpu: Bool, gpu: Bool, ssd: Bool, board: Bool, ram: Bool, fan: Bool) {
+        showCpu = cpu
+        showGpu = gpu
+        showSsd = ssd
+        showBoard = board
+        showRam = ram
+        showFan = fan
+    }
+}
+
+enum HudProfiles {
+    static let desktop = "desktop"
+    static let game = "game"
+    static let silent = "silent"
+    static let custom = "custom"
+
+    static func title(_ name: String) -> String {
+        switch name {
+        case desktop: return "Desktop"
+        case game: return "Game"
+        case silent: return "Silent"
+        default: return "Custom"
+        }
     }
 }
 

@@ -55,6 +55,23 @@ enum LogicTests {
         check("chord display", rebound?.display == "⌃⇧U")
         check("chord conflict", rebound != settings.toggleHotkey)
 
+        let locked = settings.locked
+        let poll = settings.pollIntervalMs
+        let toggle = settings.toggleHotkey
+        settings.applyProfile(HudProfiles.game)
+        check("game compact", settings.compactHud)
+        check("game extras", settings.showCpuLoad && settings.showGpuLoad && settings.showPower)
+        check("game hide ssd", !settings.showSsd && !settings.showBoard && settings.showFan)
+        check("game opacity", abs(settings.overlayOpacity - 0.70) < 0.001)
+        check("game font", settings.fontSize == 12)
+        check("game cpu thresh", settings.thresholds(for: .cpu).warn == 80 && settings.thresholds(for: .cpu).critical == 95)
+        check("game keeps lock", settings.locked == locked)
+        check("game keeps poll", settings.pollIntervalMs == poll)
+        check("game keeps hotkey", settings.toggleHotkey == toggle)
+        settings.overlayOpacity = 0.90
+        settings.markCustom()
+        check("mutate marks custom", settings.activeProfile == HudProfiles.custom)
+
         var clock: Double = 1_000_000
         let gate = AlertGate(nowMs: { clock })
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)
