@@ -48,6 +48,13 @@ enum LogicTests {
         check("cpu still visible", settings.isKindVisible(.cpu))
         check("cpu load hidden", !settings.isKindVisible(.cpuLoad))
 
+        check("chord needs modifier", KeyChord.from(keyCode: 0x11, control: false, option: false, shift: false, command: false) == nil)
+        check("chord rejects space", KeyChord.from(keyCode: 0x31, control: true, option: false, shift: false, command: false) == nil)
+        check("chord digit", KeyChord.from(keyCode: 0x12, control: true, option: false, shift: false, command: false)?.display == "⌃1")
+        let rebound = KeyChord.from(keyCode: 0x20, control: true, option: false, shift: true, command: false)
+        check("chord display", rebound?.display == "⌃⇧U")
+        check("chord conflict", rebound != settings.toggleHotkey)
+
         var clock: Double = 1_000_000
         let gate = AlertGate(nowMs: { clock })
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)

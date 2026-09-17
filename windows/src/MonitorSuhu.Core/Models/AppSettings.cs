@@ -16,7 +16,7 @@ public sealed class OverlayPosition
     public double? RelativeMaxY { get; set; }
 }
 
-public sealed class KeyChord
+public sealed class KeyChord : IEquatable<KeyChord>
 {
     public uint VirtualKey { get; set; }
     public bool Control { get; set; }
@@ -46,12 +46,44 @@ public sealed class KeyChord
             if (Alt) parts.Add("Alt");
             if (Shift) parts.Add("Shift");
             if (Win) parts.Add("Win");
-            parts.Add(VirtualKey is >= 0x41 and <= 0x5A
-                ? ((char)VirtualKey).ToString()
-                : $"0x{VirtualKey:X}");
+            parts.Add(KeyName(VirtualKey));
             return string.Join("+", parts);
         }
     }
+
+    public static KeyChord? TryCreate(uint virtualKey, bool control, bool shift, bool alt, bool win)
+    {
+        if (!control && !shift && !alt && !win) return null;
+        if (!IsLetterOrDigit(virtualKey)) return null;
+        return new KeyChord
+        {
+            VirtualKey = virtualKey,
+            Control = control,
+            Shift = shift,
+            Alt = alt,
+            Win = win
+        };
+    }
+
+    public bool Equals(KeyChord? other) =>
+        other is not null
+        && VirtualKey == other.VirtualKey
+        && Control == other.Control
+        && Shift == other.Shift
+        && Alt == other.Alt
+        && Win == other.Win;
+
+    public override bool Equals(object? obj) => obj is KeyChord other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(VirtualKey, Control, Shift, Alt, Win);
+
+    private static bool IsLetterOrDigit(uint virtualKey) =>
+        virtualKey is (>= 0x41 and <= 0x5A) or (>= 0x30 and <= 0x39);
+
+    private static string KeyName(uint virtualKey) =>
+        virtualKey is (>= 0x41 and <= 0x5A) or (>= 0x30 and <= 0x39)
+            ? ((char)virtualKey).ToString()
+            : $"0x{virtualKey:X}";
 }
 
 public sealed class AppSettings

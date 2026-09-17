@@ -114,6 +114,18 @@ struct KeyChord: Codable, Equatable {
         return parts.joined()
     }
 
+    static func from(keyCode: UInt32, control: Bool, option: Bool, shift: Bool, command: Bool) -> KeyChord? {
+        guard control || option || shift || command else { return nil }
+        guard Self.isLetterOrNumber(keyCode) else { return nil }
+        return KeyChord(keyCode: keyCode, control: control, option: option, shift: shift, command: command)
+    }
+
+    private static func isLetterOrNumber(_ code: UInt32) -> Bool {
+        let name = keyName(code)
+        guard name.count == 1, let ch = name.first else { return false }
+        return ch.isLetter || ch.isNumber
+    }
+
     private static func keyName(_ code: UInt32) -> String {
         // Carbon virtual key codes (kVK_ANSI_*). Look up by the integer value
         // so JSON-decoded 17 matches T (0x11) rather than rendering as "#17".

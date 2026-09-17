@@ -197,7 +197,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openSettings() {
         if settingsWindow == nil {
-            let root = SettingsView(store: store, sensors: sensors, updates: updates, overlay: overlay, hotkeyMessage: hotkeys.failedMessage)
+            let root = SettingsView(
+                store: store,
+                sensors: sensors,
+                updates: updates,
+                overlay: overlay,
+                hotkeyMessage: hotkeys.failedMessage,
+                restartHotkeys: { [weak self] in
+                    guard let self else { return nil }
+                    self.registerHotkeys()
+                    return self.hotkeys.failedMessage
+                }
+            )
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
             window.title = "MonitorSuhu Settings"

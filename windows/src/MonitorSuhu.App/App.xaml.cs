@@ -125,12 +125,25 @@ public partial class App : Application
         _store.Save();
     }
 
+    public string? RestartHotkeys()
+    {
+        if (_hotkeys is null || _store is null) return null;
+        _hotkeys.Start(_store.Settings.ToggleHotkey, _store.Settings.EditHotkey, ToggleOverlay, EditLayout);
+        return _hotkeys.FailedMessage;
+    }
+
     public void OpenSettings()
     {
         if (_store is null || _sensors is null || _overlay is null || _updates is null) return;
         if (_settingsWindow is null)
         {
-            var vm = new SettingsViewModel(_store, _overlay, _sensors, _updates);
+            var vm = new SettingsViewModel(
+                _store,
+                _overlay,
+                _sensors,
+                _updates,
+                restartHotkeys: RestartHotkeys,
+                hotkeyFailedMessage: _hotkeys?.FailedMessage);
             _settingsWindow = new SettingsWindow(vm);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }

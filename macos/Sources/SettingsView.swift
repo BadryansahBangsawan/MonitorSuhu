@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,9 +8,11 @@ struct SettingsView: View {
     @ObservedObject var updates: UpdateChecker
     var overlay: OverlayController
     var hotkeyMessage: String? = nil
+    var restartHotkeys: () -> String? = { nil }
 
     @State private var autostartMessage: String?
     @State private var confirmReset = false
+    @StateObject private var recorder = HotkeyRecorder()
 
     private static let accents: [(name: String, hex: String)] = [
         ("NVIDIA", AppSettings.nvidiaGreen),
@@ -110,14 +113,28 @@ struct SettingsView: View {
             }
 
             SettingsSection("Shortcuts") {
-                SettingsKeyRow("Toggle overlay", chord: store.settings.toggleHotkey.display)
+                SettingsKeyRow(
+                    "Toggle overlay",
+                    chord: store.settings.toggleHotkey.display,
+                    recording: recorder.slot == .toggle,
+                    onStart: { recorder.begin(.toggle) }
+                )
                 SettingsRowDivider()
-                SettingsKeyRow("Edit layout", chord: store.settings.editHotkey.display)
+                SettingsKeyRow(
+                    "Edit layout",
+                    chord: store.settings.editHotkey.display,
+                    recording: recorder.slot == .edit,
+                    onStart: { recorder.begin(.edit) }
+                )
             } caption: {
-                if let hotkeyMessage, !hotkeyMessage.isEmpty {
-                    SettingsCallout(hotkeyMessage)
+                if recorder.slot != nil {
+                    SettingsCaption("Press a shortcut with a modifier. Esc cancels.")
+                } else if let conflict = recorder.conflict, !conflict.isEmpty {
+                    SettingsCallout(conflict)
+                } else if let live = recorder.failedMessage, !live.isEmpty {
+                    SettingsCallout(live)
                 } else {
-                    SettingsCaption("⌃⇧T shows or hides the HUD. ⌃⇧E unlocks it so you can drag.")
+                    SettingsCaption("Click a shortcut to rebind. At least one modifier plus a letter or number.")
                 }
             }
 
@@ -173,6 +190,18 @@ struct SettingsView: View {
         }
         .onAppear {
             autostartMessage = AutostartService.statusMessage()
+            recorder.failedMessage = hotkeyMessage
+            recorder.otherChord = { slot in
+                slot == .toggle ? store.settings.editHotkey : store.settings.toggleHotkey
+            }
+            recorder.apply = { slot, chord in
+                if slot == .toggle {
+                    store.settings.toggleHotkey = chord
+                } else {
+                    store.settings.editHotkey = chord
+                }
+                return restartHotkeys()
+            }
         }
     }
 
@@ -646,32 +675,114 @@ private struct SettingsRowDivider: View {
 private struct SettingsKeyRow: View {
     let title: String
     let chord: String
+    var recording: Bool = false
+    var onStart: (() -> Void)? = nil
 
-    init(_ title: String, chord: String) {
+    init(_ title: String, chord: String, recording: Bool = false, onStart: (() -> Void)? = nil) {
         self.title = title
         self.chord = chord
+        self.recording = recording
+        self.onStart = onStart
     }
 
     var body: some View {
         HStack {
             Text(title)
             Spacer(minLength: 12)
-            Text(chord)
+            Text(recording ? "Press a shortcut…" : chord)
                 .font(.body.monospaced())
+                .foregroundStyle(recording ? Color.accentColor : Color.primary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.primary.opacity(0.06))
+                        .fill(Color.primary.opacity(recording ? 0.12 : 0.06))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 )
-                .accessibilityLabel(chord)
+                .accessibilityLabel(recording ? "Press a shortcut" : chord)
+                .help("Click to rebind")
+                .contentShape(Rectangle())
+                .onTapGesture { onStart?() }
         }
         .padding(.vertical, 8)
     }
+}
+
+private final class HotkeyRecorder: ObservableObject {
+    enum Slot: Equatable { case toggle, edit }
+
+    @Published var slot: Slot?
+    @Published var conflict: String?
+    @Published var failedMessage: String?
+
+    var otherChord: ((Slot) -> KeyChord)?
+    var apply: ((Slot, KeyChord) -> String?)?
+
+    private var monitor: Any?
+
+    func begin(_ slot: Slot) {
+        if self.slot == slot {
+            cancel()
+            return
+        }
+        conflict = nil
+        self.slot = slot
+        startMonitor()
+    }
+
+    func cancel() {
+        slot = nil
+        stopMonitor()
+    }
+
+    private func startMonitor() {
+        stopMonitor()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handle(event) ?? event
+        }
+    }
+
+    private func stopMonitor() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        monitor = nil
+    }
+
+    private func handle(_ event: NSEvent) -> NSEvent? {
+        guard slot != nil else { return event }
+        if event.keyCode == 53 {
+            DispatchQueue.main.async { self.cancel() }
+            return nil
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard let chord = KeyChord.from(
+            keyCode: UInt32(event.keyCode),
+            control: flags.contains(.control),
+            option: flags.contains(.option),
+            shift: flags.contains(.shift),
+            command: flags.contains(.command)
+        ) else { return nil }
+
+        let current = slot
+        DispatchQueue.main.async {
+            self.stopMonitor()
+            self.slot = nil
+            guard let current else { return }
+            if let other = self.otherChord?(current), other == chord {
+                self.conflict = "That shortcut is already used by the other action."
+                return
+            }
+            self.conflict = nil
+            self.failedMessage = self.apply?(current, chord)
+        }
+        return nil
+    }
+
+    deinit { stopMonitor() }
 }
 
 private struct SettingsCaption: View {

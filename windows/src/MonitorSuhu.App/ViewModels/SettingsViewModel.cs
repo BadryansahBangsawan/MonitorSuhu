@@ -18,6 +18,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly SettingsStore _store;
     private readonly OverlayWindow _overlay;
     private readonly SensorService _sensors;
+    private readonly Func<string?>? _restartHotkeys;
+    private HotkeySlot _recording;
 
     public AppSettings Settings => _store.Settings;
 
@@ -35,16 +37,43 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool HasSensorError => !string.IsNullOrWhiteSpace(_sensors.LastError);
 
-    public string ToggleHotkeyDisplay => Settings.ToggleHotkey.Display;
+    public string ToggleHotkeyDisplay =>
+        _recording == HotkeySlot.Toggle ? "Press a shortcut…" : Settings.ToggleHotkey.Display;
 
-    public string EditHotkeyDisplay => Settings.EditHotkey.Display;
+    public string EditHotkeyDisplay =>
+        _recording == HotkeySlot.Edit ? "Press a shortcut…" : Settings.EditHotkey.Display;
 
-    public SettingsViewModel(SettingsStore store, OverlayWindow overlay, SensorService sensors, UpdateChecker updates)
+    public bool IsRecording => _recording != HotkeySlot.None;
+
+    public string? HotkeyConflict { get; private set; }
+
+    public string? HotkeyFailedMessage { get; private set; }
+
+    public string ShortcutsCaption
+    {
+        get
+        {
+            if (IsRecording) return "Press a shortcut with a modifier. Esc cancels.";
+            if (!string.IsNullOrEmpty(HotkeyConflict)) return HotkeyConflict;
+            if (!string.IsNullOrEmpty(HotkeyFailedMessage)) return HotkeyFailedMessage;
+            return "Click a shortcut to rebind. At least one modifier plus a letter or number.";
+        }
+    }
+
+    public SettingsViewModel(
+        SettingsStore store,
+        OverlayWindow overlay,
+        SensorService sensors,
+        UpdateChecker updates,
+        Func<string?>? restartHotkeys = null,
+        string? hotkeyFailedMessage = null)
     {
         _store = store;
         _overlay = overlay;
         _sensors = sensors;
         Updates = updates;
+        _restartHotkeys = restartHotkeys;
+        HotkeyFailedMessage = hotkeyFailedMessage;
     }
 
     [RelayCommand]
@@ -135,6 +164,68 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(MuteCaption));
         _store.SaveDebounced();
     }
+
+    [RelayCommand]
+    private void RecordToggle() => ToggleRecording(HotkeySlot.Toggle);
+
+    [RelayCommand]
+    private void RecordEdit() => ToggleRecording(HotkeySlot.Edit);
+
+    public bool HandleRecordKey(uint virtualKey, bool control, bool shift, bool alt, bool win, bool escape)
+    {
+        if (!IsRecording) return false;
+        if (escape)
+        {
+            _recording = HotkeySlot.None;
+            NotifyHotkeys();
+            return true;
+        }
+
+        var chord = KeyChord.TryCreate(virtualKey, control, shift, alt, win);
+        if (chord is null) return true;
+
+        var target = _recording;
+        _recording = HotkeySlot.None;
+        var other = target == HotkeySlot.Toggle ? Settings.EditHotkey : Settings.ToggleHotkey;
+        if (chord.Equals(other))
+        {
+            HotkeyConflict = "That shortcut is already used by the other action.";
+            NotifyHotkeys();
+            return true;
+        }
+
+        HotkeyConflict = null;
+        if (target == HotkeySlot.Toggle) Settings.ToggleHotkey = chord;
+        else Settings.EditHotkey = chord;
+        _store.Save();
+        HotkeyFailedMessage = _restartHotkeys?.Invoke();
+        NotifyHotkeys();
+        return true;
+    }
+
+    private void ToggleRecording(HotkeySlot slot)
+    {
+        if (_recording == slot)
+        {
+            _recording = HotkeySlot.None;
+        }
+        else
+        {
+            HotkeyConflict = null;
+            _recording = slot;
+        }
+        NotifyHotkeys();
+    }
+
+    private void NotifyHotkeys()
+    {
+        OnPropertyChanged(nameof(ToggleHotkeyDisplay));
+        OnPropertyChanged(nameof(EditHotkeyDisplay));
+        OnPropertyChanged(nameof(ShortcutsCaption));
+        OnPropertyChanged(nameof(IsRecording));
+    }
+
+    private enum HotkeySlot { None, Toggle, Edit }
 
 
     public bool UseFahrenheit

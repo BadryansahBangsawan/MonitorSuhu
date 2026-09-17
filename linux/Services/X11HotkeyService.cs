@@ -91,11 +91,11 @@ public sealed class X11HotkeyService : IDisposable
         var editOk = _editCode != 0 && Grab(_editCode, _editMods);
 
         if (!toggleOk && !editOk)
-            FailedMessage = "Ctrl+Shift+T and Ctrl+Shift+E are already in use.";
+            FailedMessage = $"{toggle.Display} and {edit.Display} are already in use.";
         else if (!toggleOk)
-            FailedMessage = "Ctrl+Shift+T is already in use — overlay toggle was not registered.";
+            FailedMessage = $"{toggle.Display} is already in use — overlay toggle was not registered.";
         else if (!editOk)
-            FailedMessage = "Ctrl+Shift+E is already in use — edit-layout was not registered.";
+            FailedMessage = $"{edit.Display} is already in use — edit-layout was not registered.";
 
         if (!toggleOk && !editOk)
         {

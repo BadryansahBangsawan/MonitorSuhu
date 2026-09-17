@@ -139,9 +139,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Toggle overlay" VerticalAlignment="Center"/>
-                            <Border Grid.Column="1" Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                            <Button Grid.Column="1" Command="{Binding RecordToggleCommand}" Padding="8,4" ToolTip.Tip="Click to rebind">
                                 <TextBlock Text="{Binding ToggleHotkeyDisplay}" FontFamily="monospace" Foreground="#BBBBBB"/>
-                            </Border>
+                            </Button>
                         </Grid>
                         <Grid Margin="0,0,0,6">
                             <Grid.ColumnDefinitions>
@@ -149,9 +149,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Edit layout" VerticalAlignment="Center"/>
-                            <Border Grid.Column="1" Background="#2A2A2A" BorderBrush="#3A3A3A" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                            <Button Grid.Column="1" Command="{Binding RecordEditCommand}" Padding="8,4" ToolTip.Tip="Click to rebind">
                                 <TextBlock Text="{Binding EditHotkeyDisplay}" FontFamily="monospace" Foreground="#BBBBBB"/>
-                            </Border>
+                            </Button>
                         </Grid>
                     </StackPanel>
                 </Border>
