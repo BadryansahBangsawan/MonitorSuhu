@@ -213,6 +213,9 @@ Delete (or rename) the settings file and relaunch: `~/Library/Application Suppor
 **How do I mute the critical alert sound temporarily?**  
 From the menu extra / tray or **Settings → Alerts**, choose mute for 15 minutes. Rising-edge critical beeps stay silenced until that window ends or you unmute.
 
+**How do I fully quit the HUD (not just close Settings)?**  
+Closing the Settings window leaves the overlay and menu extra running. Quit from the menu extra / tray (**Quit**), or use the configured overlay toggle shortcut then quit from there — the Dock icon on macOS only reopens Settings.
+
 ---
 
 <div align="center">
