@@ -198,7 +198,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public string AutoHideCaption =>
-        "Hides when a window covers the whole screen. Screensaver counts as capture.";
+        "The HUD stays on games. Hide in fullscreen only covers PowerPoint-style presentation mode.";
 
     public bool AlertsEnabled
     {

@@ -96,6 +96,9 @@ public partial class OverlayWindow : Window
         if (!IsVisible) return;
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;
+        ApplyExtendedStyle();
+        Topmost = false;
+        Topmost = true;
         Native.SetWindowPos(
             hwnd,
             HwndTopmost,
