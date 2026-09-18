@@ -193,6 +193,25 @@ Do not run the Linux ELF on macOS.
 
 ---
 
+## ❓ FAQ
+
+**Why does the HUD show `NO SENSORS`?**  
+On Linux, `/sys/class/hwmon` may not be readable by your user. Run `sudo sensors-detect --auto` once to load kernel modules, or add your user to the `video` group. On Windows, ensure you launched with Administrator / UAC so the LibreHardwareMonitor driver can load.
+
+**Can I display temperatures in Fahrenheit?**  
+Yes — open **Settings → Appearance** and switch the °C / °F toggle. The change applies immediately without a restart.
+
+**The HUD disappears in fullscreen games. Is that intentional?**  
+Yes. Auto-hide in exclusive fullscreen is enabled by default to avoid interfering with captures and screen recordings. Disable it in **Settings → Overlay → Hide in fullscreen / capture**.
+
+**My GPU sensor is missing on Apple Silicon.**  
+MonitorSuhu only shows a GPU row when a HID product name contains `gpu`, `agx`, `dgpu`, or `gfx`. On Apple Silicon this matches the integrated GPU reported by `IOHIDEventSystemClient`. If the row is absent, the sensor name on your chip may differ — check the **Assignments** panel for available names.
+
+**How do I reset settings to defaults?**  
+Delete (or rename) the settings file and relaunch: `~/Library/Application Support/MonitorSuhu/settings.json` (macOS), `%AppData%\MonitorSuhu\settings.json` (Windows), or `~/.config/MonitorSuhu/settings.json` (Linux).
+
+---
+
 <div align="center">
 
 Made with ♥ for people who want to know how hot their machine is.
