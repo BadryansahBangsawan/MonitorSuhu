@@ -34,7 +34,7 @@ The `58°C` block is example layout only. Runtime numbers come from the machine.
 | **HUD** | Always-on-top overlay. CPU / GPU / SSD / BOARD / RAM / FAN. Optional CPU%, GPU%, PWR. |
 | **Extra / tray** | CPU only: `Suhu 46°` (no `C`/`F` suffix). Missing CPU → `Suhu`. |
 | **Lock** | Clicks pass through the HUD. Unlock to drag; it snaps to edges. |
-| **Compact** | One line, worst-threshold color (RPM is never compared to °C). Default off. |
+| **Compact** | One line, worst-threshold color (RPM is never compared to °C). Default off. The color follows the hottest enabled °C row among CPU/GPU/SSD/BOARD — fan RPM is excluded from that pick. |
 | **Sparkline** | Last 30 polls on stacked rows. Default off. |
 | **Alerts** | One system sound on rising-edge critical. Mute 15 minutes from the extra/tray or Settings. |
 
