@@ -1,5 +1,5 @@
 #define MyAppName "MonitorSuhu"
-#define MyAppVersion "1.0.12"
+#define MyAppVersion "1.0.13"
 #define MyAppPublisher "MonitorSuhu"
 #define MyAppURL "https://github.com/BadryansahBangsawan/MonitorSuhu"
 #define MyAppExeName "MonitorSuhu.exe"
