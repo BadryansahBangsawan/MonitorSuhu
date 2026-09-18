@@ -210,6 +210,9 @@ MonitorSuhu only shows a GPU row when a HID product name contains `gpu`, `agx`, 
 **How do I reset settings to defaults?**  
 Delete (or rename) the settings file and relaunch: `~/Library/Application Support/MonitorSuhu/settings.json` (macOS), `%AppData%\MonitorSuhu\settings.json` (Windows), or `~/.config/MonitorSuhu/settings.json` (Linux).
 
+**How do I mute the critical alert sound temporarily?**  
+From the menu extra / tray or **Settings → Alerts**, choose mute for 15 minutes. Rising-edge critical beeps stay silenced until that window ends or you unmute.
+
 ---
 
 <div align="center">
