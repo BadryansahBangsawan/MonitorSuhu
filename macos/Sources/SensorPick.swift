@@ -33,22 +33,6 @@ enum SensorPick {
         return hits.map(\.celsius).max()
     }
 
-    /// Hottest remaining HID row, skipping calibration / NAND / battery.
-    static func lastResortCpu(_ rows: [(name: String, celsius: Double)]) -> Double? {
-        valid(rows)
-            .filter { row in
-                let n = row.name.lowercased()
-                return !n.contains("tdev")
-                    && !n.contains("tcal")
-                    && !n.contains("gas gauge")
-                    && !n.contains("battery")
-                    && !n.contains("nand")
-                    && !n.contains("ssd")
-            }
-            .map(\.celsius)
-            .max()
-    }
-
     static func cpuScore(_ name: String) -> Int {
         let n = name.lowercased()
         if n.contains("tdev") || n.contains("tcal") { return 0 }
@@ -73,6 +57,6 @@ enum SensorPick {
     }
 
     private static func valid(_ rows: [(name: String, celsius: Double)]) -> [(name: String, celsius: Double)] {
-        rows.filter { $0.celsius > 1 && $0.celsius < 110 }
+        rows.filter { $0.celsius > 1 && $0.celsius < 120 }
     }
 }

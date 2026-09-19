@@ -5,13 +5,10 @@ namespace MonitorSuhu.Linux;
 
 internal static class Program
 {
-    private const string LockPath = "/tmp/id.monitorsuhu.lock";
     private const int O_RDWR = 2;
     private const int O_CREAT = 64;
     private const int S_IRUSR = 0x100;
     private const int S_IWUSR = 0x080;
-    private const int S_IRGRP = 0x020;
-    private const int S_IROTH = 0x004;
     private const int LockEx = 2;
     private const int LockNb = 4;
 
@@ -34,7 +31,31 @@ internal static class Program
 
     private static bool TryAcquireInstanceLock()
     {
-        var fd = Open(LockPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        var runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+        string lockPath;
+        if (!string.IsNullOrEmpty(runtime))
+        {
+            lockPath = Path.Combine(runtime, "monitorsuhu.lock");
+        }
+        else
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".cache",
+                "MonitorSuhu");
+            try
+            {
+                Directory.CreateDirectory(dir);
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+
+            lockPath = Path.Combine(dir, "monitorsuhu.lock");
+        }
+
+        var fd = Open(lockPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
         if (fd < 0)
             return false;
 

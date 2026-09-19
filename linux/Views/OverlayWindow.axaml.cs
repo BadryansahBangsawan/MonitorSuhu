@@ -64,8 +64,11 @@ public partial class OverlayWindow : Window
         Cursor = _store.Settings.Locked
             ? new Cursor(StandardCursorType.Arrow)
             : new Cursor(StandardCursorType.SizeAll);
+        IsHitTestVisible = !_store.Settings.Locked;
         _vm.RefreshTheme();
         KeepAbove();
+        if (TryGetPlatformHandle()?.Handle is { } hwnd && hwnd != IntPtr.Zero)
+            NativeX11.SetInputPassthrough(hwnd, _store.Settings.Locked);
     }
 
     public void ApplySuppressed(bool suppressed)
@@ -450,6 +453,8 @@ public partial class OverlayWindow : Window
         private const long SubstructureNotify = 0x00080000;
         private const long SubstructureRedirect = 0x00100000;
         private const long NetWmStateAdd = 1;
+        private const int ShapeInput = 2;
+        private const int ShapeSet = 0;
 
         public static void SetNetWmWindowType(IntPtr window, bool notification)
         {
@@ -507,6 +512,30 @@ public partial class OverlayWindow : Window
             }
         }
 
+        public static void SetInputPassthrough(IntPtr window, bool passthrough)
+        {
+            var display = XOpenDisplay(IntPtr.Zero);
+            if (display == IntPtr.Zero) return;
+            try
+            {
+                if (passthrough)
+                    XShapeCombineRectangles(display, window, ShapeInput, 0, 0, IntPtr.Zero, 0, ShapeSet, 0);
+                else
+                    XShapeCombineMask(display, window, ShapeInput, 0, 0, IntPtr.Zero, ShapeSet);
+                XFlush(display);
+            }
+            catch (DllNotFoundException)
+            {
+            }
+            catch (EntryPointNotFoundException)
+            {
+            }
+            finally
+            {
+                XCloseDisplay(display);
+            }
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct XClientMessageEvent
         {
@@ -557,5 +586,11 @@ public partial class OverlayWindow : Window
 
         [DllImport("libX11.so.6")]
         private static extern int XFlush(IntPtr display);
+
+        [DllImport("libXext.so.6")]
+        private static extern int XShapeCombineRectangles(IntPtr display, IntPtr dest, int destKind, int xOff, int yOff, IntPtr rectangles, int nRects, int op, int ordering);
+
+        [DllImport("libXext.so.6")]
+        private static extern int XShapeCombineMask(IntPtr display, IntPtr dest, int destKind, int xOff, int yOff, IntPtr src, int op);
     }
 }

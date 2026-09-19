@@ -1,12 +1,12 @@
 import Foundation
 
-/// Fires when a visible reading is at or above critical. Cooldown is 60 s per kind
-/// even if the value stays critical. Mute skips sound/notification; HUD color is unchanged.
+/// Fires on transition into critical per kind; stay-critical does not re-fire;
+/// drop below critical then re-cross does fire. Mute/disable skip sound without
+/// clearing `active`. HUD color is unchanged.
 final class AlertGate {
-    static let cooldownMs: Double = 60_000
     static let muteMs: Double = 15 * 60_000
 
-    private var lastFired: [SensorKind: Double] = [:]
+    private var active: Set<SensorKind> = []
     private let nowMs: () -> Double
 
     init(nowMs: @escaping () -> Double = { Date().timeIntervalSince1970 * 1000 }) {
@@ -18,14 +18,17 @@ final class AlertGate {
         let now = nowMs()
         if let until = settings.alertMuteUntil, until > now { return [] }
 
+        var currently = Set<SensorKind>()
         var messages: [String] = []
         for reading in readings where settings.isKindVisible(reading.kind) {
             let t = settings.thresholds(for: reading.kind)
             guard reading.value >= t.critical else { continue }
-            if let last = lastFired[reading.kind], now - last < Self.cooldownMs { continue }
-            lastFired[reading.kind] = now
+            currently.insert(reading.kind)
+            if active.contains(reading.kind) { continue }
+            active.insert(reading.kind)
             messages.append("\(reading.label) \(settings.displayValue(reading))")
         }
+        active.formIntersection(currently)
         return messages
     }
 }

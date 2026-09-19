@@ -66,7 +66,7 @@ final class SensorService: ObservableObject {
             }
         }
 
-        let valid = hidRows.filter { $0.celsius > 1 && $0.celsius < 110 }
+        let valid = hidRows.filter { $0.celsius > 1 && $0.celsius < 120 }
         var readings: [SensorReading] = []
 
         if let cpu = Self.boundTemp(
@@ -113,10 +113,6 @@ final class SensorService: ObservableObject {
         // Intel Mac fallback: SMC keys when HID is empty.
         if readings.isEmpty, let smc = SMCTemperatureReader.poll() {
             readings.append(contentsOf: smc)
-        }
-
-        if readings.isEmpty, let hottest = SensorPick.lastResortCpu(valid) {
-            readings.append(SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: hottest))
         }
 
         if let rpm = Self.fanValue(bindings: bound, catalog: nextCatalog), rpm > 0 {
@@ -267,10 +263,6 @@ enum GpuLoadReader {
 }
 
 enum SMCPowerReader {
-    static func poll() -> Double? {
-        catalogKeys().first?.value
-    }
-
     static func catalogKeys() -> [(id: String, name: String, value: Double)] {
         var conn: io_connect_t = 0
         guard SMCTemperatureReader.openSMC(&conn) else { return [] }
@@ -406,10 +398,6 @@ enum SMCTemperatureReader {
 }
 
 enum SMCFanReader {
-    static func poll() -> Double? {
-        catalogKeys().first?.value
-    }
-
     static func catalogKeys() -> [(id: String, name: String, value: Double)] {
         var conn: io_connect_t = 0
         guard SMCTemperatureReader.openSMC(&conn) else { return [] }

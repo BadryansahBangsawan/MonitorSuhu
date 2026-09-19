@@ -77,9 +77,12 @@ enum LogicTests {
         settings.setThresholds(for: .cpu, warn: 75, critical: 90)
         let hot = SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: 90)
         check("alert first fire", gate.evaluate(readings: [hot], settings: settings) == ["CPU 90°C"])
-        check("alert cooldown", gate.evaluate(readings: [hot], settings: settings).isEmpty)
-        clock += AlertGate.cooldownMs
-        check("alert after cooldown", gate.evaluate(readings: [hot], settings: settings) == ["CPU 90°C"])
+        check("alert stay critical", gate.evaluate(readings: [hot], settings: settings).isEmpty)
+        clock += 60_000
+        check("alert stay critical after clock", gate.evaluate(readings: [hot], settings: settings).isEmpty)
+        let cool = SensorReading(id: "cpu", kind: .cpu, label: "CPU", value: 80)
+        check("alert cool empty", gate.evaluate(readings: [cool], settings: settings).isEmpty)
+        check("alert rise fires", gate.evaluate(readings: [hot], settings: settings) == ["CPU 90°C"])
         settings.muteAlerts(nowMs: clock)
         check("alert muted", gate.evaluate(readings: [hot], settings: settings).isEmpty)
 
@@ -143,6 +146,9 @@ enum LogicTests {
         check("board none if only battery", SensorPick.board([
             (name: "gas gauge battery", celsius: 26.8)
         ]) == nil)
+        let wifi = [("wifi", 41.0)]
+        check("wifi is not cpu", SensorPick.cpu(wifi) == nil)
+        check("wifi is board", SensorPick.board(wifi) == 41.0)
 
         let dmg7 = ReleaseAsset(
             name: "MonitorSuhu-1.0.7-macos.dmg",

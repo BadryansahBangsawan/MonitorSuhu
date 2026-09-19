@@ -105,6 +105,8 @@
                         <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
                                   ToolTip.Tip="{Binding LockCaption}"/>
                         <CheckBox Content="Start with Linux" IsChecked="{Binding StartWithWindows}"/>
+                        <TextBlock Text="{Binding AutostartError}" Foreground="#FF8A80" TextWrapping="Wrap" Margin="0,4,0,4"
+                                   IsVisible="{Binding HasAutostartError}"/>
                         <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
                                   ToolTip.Tip="Off keeps the HUD on games. On hides when the active window is _NET_WM_STATE_FULLSCREEN."/>
                     </StackPanel>

@@ -22,6 +22,28 @@ public static class UpdateInstaller
         if (!ReleaseAssets.Matches(name, "linux") || !File.Exists(tarPath))
             throw new InvalidOperationException("Update file is not a MonitorSuhu Linux package.");
 
+        var list = Process.Start(new ProcessStartInfo
+        {
+            FileName = "/usr/bin/tar",
+            ArgumentList = { "-tzf", tarPath },
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        });
+        if (list is null)
+            throw new InvalidOperationException("Could not list the update archive.");
+        var listing = list.StandardOutput.ReadToEnd();
+        list.WaitForExit();
+        if (list.ExitCode != 0)
+            throw new InvalidOperationException("Could not list the update archive.");
+        foreach (var raw in listing.Split(['\r', '\n']))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0) continue;
+            if (line.StartsWith('/') || line.StartsWith('\\') || line.Contains("..", StringComparison.Ordinal))
+                throw new InvalidOperationException("Update archive has unsafe paths.");
+        }
+
         var dest = DestinationDir();
         Directory.CreateDirectory(dest);
         var pid = Environment.ProcessId;
@@ -37,7 +59,7 @@ public static class UpdateInstaller
             while /bin/kill -0 {pid} 2>/dev/null; do
               /bin/sleep 0.2
             done
-            /usr/bin/tar -xzf {quotedTar} -C {quotedDest}
+            /usr/bin/tar --no-absolute-filenames -xzf {quotedTar} -C {quotedDest}
             /bin/chmod +x {quotedBin}
             nohup {quotedBin} >/dev/null 2>&1 &
             /bin/rm -f {quotedTar} {quotedScript}

@@ -275,6 +275,18 @@
                         <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
                                   ToolTip="When locked, clicks pass through the HUD."/>
                         <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"/>
+                        <TextBlock Text="{Binding AutostartError}" Foreground="#FF8A80" TextWrapping="Wrap" Margin="0,4,0,4">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Setter Property="Visibility" Value="Collapsed"/>
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasAutostartError}" Value="True">
+                                  <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
                         <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
                                   ToolTip="Hides during slideshow / presentation mode only. Games keep the HUD."/>
                         <CheckBox Content="Hide during screensaver" IsChecked="{Binding HideDuringCapture}"

@@ -2,7 +2,7 @@ namespace MonitorSuhu.Linux.Services;
 
 public static class AutostartService
 {
-    public static void Apply(bool enabled, string exePath)
+    public static string? Apply(bool enabled, string exePath)
     {
         try
         {
@@ -15,12 +15,12 @@ public static class AutostartService
             {
                 if (File.Exists(file))
                     File.Delete(file);
-                return;
+                return null;
             }
 
             var exec = string.IsNullOrWhiteSpace(exePath) ? Environment.ProcessPath : exePath;
             if (string.IsNullOrWhiteSpace(exec))
-                return;
+                return "Could not update Start with Linux: missing executable path.";
 
             Directory.CreateDirectory(dir);
             var quoted = "\"" + exec.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
@@ -29,10 +29,11 @@ public static class AutostartService
                 "Type=Application\n" +
                 "Name=MonitorSuhu\n" +
                 "Exec=" + quoted + "\n");
+            return null;
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore IO errors besides a status string owned by the settings VM.
+            return $"Could not update Start with Linux: {ex.Message}";
         }
     }
 }

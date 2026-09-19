@@ -12,6 +12,7 @@ public sealed class FullscreenGuard : IDisposable
     private readonly DispatcherTimer _timer;
     private readonly bool _wayland =
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+    private IntPtr _display;
 
     public FullscreenGuard(SettingsStore store, OverlayWindow overlay)
     {
@@ -23,6 +24,20 @@ public sealed class FullscreenGuard : IDisposable
 
     public void Start()
     {
+        if (!_wayland && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")))
+        {
+            try
+            {
+                _display = Native.XOpenDisplay(null);
+            }
+            catch (DllNotFoundException)
+            {
+            }
+            catch (EntryPointNotFoundException)
+            {
+            }
+        }
+
         _timer.Start();
         Tick();
     }
@@ -30,6 +45,11 @@ public sealed class FullscreenGuard : IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        if (_display != IntPtr.Zero)
+        {
+            Native.XCloseDisplay(_display);
+            _display = IntPtr.Zero;
+        }
     }
 
     private void Tick()
@@ -41,33 +61,16 @@ public sealed class FullscreenGuard : IDisposable
 
     private bool IsX11Fullscreen()
     {
-        if (_wayland) return false;
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY"))) return false;
-
-        IntPtr display;
-        try
-        {
-            display = Native.XOpenDisplay(null);
-        }
-        catch (DllNotFoundException)
-        {
-            return false;
-        }
-        catch (EntryPointNotFoundException)
-        {
-            return false;
-        }
-
-        if (display == IntPtr.Zero) return false;
+        if (_wayland || _display == IntPtr.Zero) return false;
 
         try
         {
             var overlayHandle = OverlayXid();
-            var root = Native.XDefaultRootWindow(display);
-            var activeAtom = Native.XInternAtom(display, "_NET_ACTIVE_WINDOW", false);
+            var root = Native.XDefaultRootWindow(_display);
+            var activeAtom = Native.XInternAtom(_display, "_NET_ACTIVE_WINDOW", false);
             if (activeAtom == IntPtr.Zero) return false;
 
-            if (!ReadProperty(display, root, activeAtom, (IntPtr)Native.XaWindow, 1, out var activeRaw, out var nitems)
+            if (!ReadProperty(_display, root, activeAtom, (IntPtr)Native.XaWindow, 1, out var activeRaw, out var nitems)
                 || nitems == 0)
             {
                 return false;
@@ -77,11 +80,11 @@ public sealed class FullscreenGuard : IDisposable
             Native.XFree(activeRaw);
             if (active == IntPtr.Zero || active == overlayHandle) return false;
 
-            var stateAtom = Native.XInternAtom(display, "_NET_WM_STATE", false);
-            var fullscreenAtom = Native.XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", false);
+            var stateAtom = Native.XInternAtom(_display, "_NET_WM_STATE", false);
+            var fullscreenAtom = Native.XInternAtom(_display, "_NET_WM_STATE_FULLSCREEN", false);
             if (stateAtom == IntPtr.Zero || fullscreenAtom == IntPtr.Zero) return false;
 
-            if (!ReadProperty(display, active, stateAtom, (IntPtr)Native.XaAtom, 64, out var stateRaw, out var count))
+            if (!ReadProperty(_display, active, stateAtom, (IntPtr)Native.XaAtom, 64, out var stateRaw, out var count))
                 return false;
 
             try
@@ -102,10 +105,6 @@ public sealed class FullscreenGuard : IDisposable
         catch
         {
             return false;
-        }
-        finally
-        {
-            Native.XCloseDisplay(display);
         }
     }
 

@@ -67,7 +67,9 @@ public sealed class SettingsStore
     {
         lock (_saveGate)
         {
-            File.WriteAllText(_path, JsonSerializer.Serialize(Settings, JsonOptions));
+            var tmp = _path + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(Settings, JsonOptions));
+            File.Move(tmp, _path, overwrite: true);
         }
     }
 

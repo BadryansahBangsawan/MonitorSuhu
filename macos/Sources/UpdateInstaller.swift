@@ -39,7 +39,7 @@ enum UpdateInstaller {
 
         _ = try? run("/usr/bin/xattr", ["-cr", dmg.path])
         let plist = try run("/usr/bin/hdiutil", [
-            "attach", "-plist", "-nobrowse", "-readonly", "-noverify",
+            "attach", "-plist", "-nobrowse", "-readonly",
             "-mountroot", mountRoot.path, dmg.path
         ])
         attached = true

@@ -76,7 +76,7 @@ Default shortcuts on every OS: **Ctrl+Shift+T** (toggle overlay), **Ctrl+Shift+E
 
 **Start with macOS:** `SMAppService`. First enable may prompt **System Settings → General → Login Items**.
 
-**Auto-hide:** exclusive fullscreen. Screen-share hide needs Screen Recording on macOS 14+; the app never prompts for it.
+**Auto-hide:** off by default. If enabled, another on-screen layer-0 window that covers a display. Screen-share hide needs Screen Recording on macOS 14+; the app never prompts for it.
 
 Settings: `~/Library/Application Support/MonitorSuhu/settings.json`
 
@@ -92,7 +92,7 @@ Settings: `~/Library/Application Support/MonitorSuhu/settings.json`
 
 **Start with Windows:** Task Scheduler logon task at highest privileges, applied when you press **Save**.
 
-**Auto-hide:** exclusive fullscreen. Screensaver counts as capture.
+**Auto-hide:** off by default. If enabled, slideshow / presentation mode only (games keep the HUD). Screensaver hide is a separate setting, on by default.
 
 A second launch exits (single instance).
 
@@ -118,9 +118,11 @@ Settings: `%AppData%\MonitorSuhu\settings.json`
 
 **Start with Linux:** same JSON flag as Windows autostart (`StartWithWindows` in the file).
 
+**Auto-hide:** off by default. If enabled, X11 `_NET_WM_STATE_FULLSCREEN` on the active window. Ignored on Wayland (`WAYLAND_DISPLAY`).
+
 **Hotkeys:** skipped on Wayland (`WAYLAND_DISPLAY`). X11 grabs on the overlay; a failed grab still leaves the HUD running.
 
-Second launch exits (`/tmp/id.monitorsuhu.lock`).
+Second launch exits (`$XDG_RUNTIME_DIR/monitorsuhu.lock`, or `~/.cache/MonitorSuhu/monitorsuhu.lock`).
 
 Settings: `~/.config/MonitorSuhu/settings.json`
 
@@ -202,7 +204,7 @@ On Linux, `/sys/class/hwmon` may not be readable by your user. Run `sudo sensors
 Yes — open **Settings → Appearance** and switch the °C / °F toggle. The change applies immediately without a restart.
 
 **The HUD disappears in fullscreen games. Is that intentional?**  
-Yes. Auto-hide in exclusive fullscreen is enabled by default to avoid interfering with captures and screen recordings. Disable it in **Settings → Overlay → Hide in fullscreen / capture**.
+Only if you turn on Hide in fullscreen. Default is off so games keep the HUD. Windows still only hides for slideshow / presentation mode, not D3D exclusive.
 
 **My GPU sensor is missing on Apple Silicon.**  
 MonitorSuhu only shows a GPU row when a HID product name contains `gpu`, `agx`, `dgpu`, or `gfx`. On Apple Silicon this matches the integrated GPU reported by `IOHIDEventSystemClient`. If the row is absent, the sensor name on your chip may differ — check the **Assignments** panel for available names.

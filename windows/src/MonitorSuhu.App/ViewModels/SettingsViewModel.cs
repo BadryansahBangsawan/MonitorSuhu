@@ -37,6 +37,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool HasSensorError => !string.IsNullOrWhiteSpace(_sensors.LastError);
 
+    public string? AutostartError { get; private set; }
+
+    public bool HasAutostartError => !string.IsNullOrWhiteSpace(AutostartError);
+
     public string ToggleHotkeyDisplay =>
         _recording == HotkeySlot.Toggle ? "Press a shortcut…" : Settings.ToggleHotkey.Display;
 
@@ -127,8 +131,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             if (Settings.StartWithWindows == value) return;
             Settings.StartWithWindows = value;
             OnPropertyChanged();
-            var exe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
-            AutostartService.Apply(value, exe);
+            ApplyAutostart();
             _store.SaveDebounced();
         }
     }
@@ -492,8 +495,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         _overlay.ApplyLock();
         _overlay.ApplyTheme();
         if (Settings.OverlayVisible) _overlay.Show(); else _overlay.Hide();
+        ApplyAutostart();
+    }
+
+    private void ApplyAutostart()
+    {
         var exe = Environment.ProcessPath ?? Assembly.GetExecutingAssembly().Location;
-        AutostartService.Apply(Settings.StartWithWindows, exe);
+        AutostartError = AutostartService.Apply(Settings.StartWithWindows, exe);
+        OnPropertyChanged(nameof(AutostartError));
+        OnPropertyChanged(nameof(HasAutostartError));
     }
 
     [RelayCommand]

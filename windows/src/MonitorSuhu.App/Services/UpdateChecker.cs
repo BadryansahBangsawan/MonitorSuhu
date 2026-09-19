@@ -10,7 +10,7 @@ namespace MonitorSuhu.App.Services;
 public sealed partial class UpdateChecker : ObservableObject
 {
     public const string ReleasesPage = "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest";
-    private const string Api = "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=30";
+    private const string Api = "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=100";
 
     public string CurrentVersion { get; }
 

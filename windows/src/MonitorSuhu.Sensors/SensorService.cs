@@ -15,7 +15,7 @@ public sealed class SensorService : IDisposable
 
     public HardwareSnapshot Snapshot { get; private set; } = new();
     public IReadOnlyList<CatalogEntry> LastCatalog { get; private set; } = [];
-    public string? LastError { get; }
+    public string? LastError { get; private set; }
     public event Action<HardwareSnapshot>? Updated;
 
     public SensorService(Func<IReadOnlyDictionary<string, string>>? bindings = null)
@@ -82,13 +82,25 @@ public sealed class SensorService : IDisposable
             }
             else
             {
-                var bindings = _bindings?.Invoke() ?? new Dictionary<string, string>();
-                LastCatalog = SensorMapper.MapCatalog(_computer);
-                snapshot = new HardwareSnapshot
+                try
                 {
-                    Readings = SensorMapper.Map(LastCatalog, _computer, bindings),
-                    Timestamp = DateTime.Now
-                };
+                    var bindings = _bindings?.Invoke() ?? new Dictionary<string, string>();
+                    LastCatalog = SensorMapper.MapCatalog(_computer);
+                    snapshot = new HardwareSnapshot
+                    {
+                        Readings = SensorMapper.Map(LastCatalog, _computer, bindings),
+                        Timestamp = DateTime.Now
+                    };
+                    LastError = null;
+                }
+                catch (Exception ex)
+                {
+                    LastCatalog = [];
+                    LastError = string.IsNullOrWhiteSpace(ex.Message)
+                        ? "Could not read hardware sensors."
+                        : ex.Message;
+                    snapshot = new HardwareSnapshot { Readings = [], Timestamp = DateTime.Now };
+                }
             }
 
             foreach (var reading in snapshot.Readings)

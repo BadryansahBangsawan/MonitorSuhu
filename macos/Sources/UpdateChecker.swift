@@ -4,7 +4,7 @@ import Combine
 
 final class UpdateChecker: ObservableObject {
     static let releasesPage = URL(string: "https://github.com/BadryansahBangsawan/MonitorSuhu/releases/latest")!
-    private static let api = URL(string: "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=30")!
+    private static let api = URL(string: "https://api.github.com/repos/BadryansahBangsawan/MonitorSuhu/releases?per_page=100")!
 
     let currentVersion: String
 

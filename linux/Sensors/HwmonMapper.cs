@@ -238,21 +238,68 @@ public static class HwmonMapper
             }
         }
 
-        if (!TryBind(readings, byId, bindings, SensorKind.Power, "power", "PWR", CatalogHint.Power))
+        if (!TryBind(readings, byId, bindings, SensorKind.Power, "power", "PWR", CatalogHint.Power)
+            && PickPower(catalog) is { } watts)
         {
-            var watts = 0d;
-            var any = false;
-            foreach (var entry in catalog)
+            readings.Add(new SensorReading("power", SensorKind.Power, "PWR", watts));
+        }
+    }
+
+    private static double? PickPower(List<HwmonCatalogEntry> catalog)
+    {
+        var bestByChip = new Dictionary<string, HwmonCatalogEntry>(StringComparer.Ordinal);
+        foreach (var entry in catalog)
+        {
+            if (entry.Hint != CatalogHint.Power || entry.Value <= 0)
             {
-                if (entry.Hint != CatalogHint.Power || entry.Value <= 0) continue;
-                watts += entry.Value;
-                any = true;
+                continue;
             }
-            if (any)
+
+            var chip = ChipKey(entry.Id);
+            if (!bestByChip.TryGetValue(chip, out var existing) || entry.Value > existing.Value)
             {
-                readings.Add(new SensorReading("power", SensorKind.Power, "PWR", watts));
+                bestByChip[chip] = entry;
             }
         }
+
+        if (bestByChip.Count == 0)
+        {
+            return null;
+        }
+
+        double? cpu = null;
+        double? gpu = null;
+        double? allMax = null;
+        foreach (var entry in bestByChip.Values)
+        {
+            if (allMax is null || entry.Value > allMax)
+            {
+                allMax = entry.Value;
+            }
+
+            if (Matches(entry, CpuInclude, CpuExclude))
+            {
+                if (cpu is null || entry.Value > cpu)
+                {
+                    cpu = entry.Value;
+                }
+            }
+
+            if (Matches(entry, GpuInclude, GpuExclude))
+            {
+                if (gpu is null || entry.Value > gpu)
+                {
+                    gpu = entry.Value;
+                }
+            }
+        }
+
+        if (cpu is not null && gpu is not null)
+        {
+            return cpu + gpu;
+        }
+
+        return cpu ?? gpu ?? allMax;
     }
 
     public static double? CpuLoadPercent(
@@ -470,7 +517,7 @@ public static class HwmonMapper
         }
 
         celsius = raw / 1000.0;
-        return double.IsFinite(celsius) && celsius > 1 && celsius < 110;
+        return double.IsFinite(celsius) && celsius > 1 && celsius < 120;
     }
 
     private static bool TryReadRpm(string path, out double rpm)
@@ -482,7 +529,7 @@ public static class HwmonMapper
         }
 
         rpm = raw;
-        return double.IsFinite(rpm) && rpm > 0;
+        return double.IsFinite(rpm) && rpm >= 200 && rpm <= 15000;
     }
 
     private static bool TryReadWatts(string path, out double watts)

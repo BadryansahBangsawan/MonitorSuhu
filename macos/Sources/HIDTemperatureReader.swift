@@ -62,6 +62,10 @@ final class HIDTemperatureReader {
             release?(client)
             self.client = nil
         }
+        if handle != nil {
+            dlclose(handle)
+            handle = nil
+        }
     }
 
     deinit { close() }

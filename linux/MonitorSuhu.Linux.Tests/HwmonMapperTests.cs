@@ -100,6 +100,30 @@ public sealed class HwmonMapperTests
     }
 
     [Fact]
+    public void Map_CpuAndGpuPower_SumsPerChipMaxNotRails()
+    {
+        using var tree = FixtureTree.Create();
+        File.WriteAllText(Path.Combine(tree.HwmonRoot, "hwmon0", "power1_input"), "90000000");
+        File.WriteAllText(Path.Combine(tree.HwmonRoot, "hwmon2", "power1_input"), "45000000");
+        File.WriteAllText(Path.Combine(tree.HwmonRoot, "hwmon2", "power2_input"), "10000000");
+        var result = HwmonMapper.Map(tree.HwmonRoot, new Dictionary<string, string>(), tree.ThermalRoot);
+
+        var power = Assert.Single(result.Readings, r => r.Kind == SensorKind.Power);
+        Assert.Equal("PWR", power.Label);
+        Assert.Equal(135, power.Value);
+    }
+
+    [Fact]
+    public void Map_FanBelow200_Excluded()
+    {
+        using var tree = FixtureTree.Create();
+        File.WriteAllText(Path.Combine(tree.HwmonRoot, "hwmon3", "fan1_input"), "1");
+        var result = HwmonMapper.Map(tree.HwmonRoot, new Dictionary<string, string>(), tree.ThermalRoot);
+
+        Assert.DoesNotContain(result.Readings, r => r.Kind == SensorKind.Fan);
+    }
+
+    [Fact]
     public void CpuLoadPercent_UsesIdleDelta()
     {
         var percent = HwmonMapper.CpuLoadPercent((Idle: 100, Total: 200), (Idle: 110, Total: 300));

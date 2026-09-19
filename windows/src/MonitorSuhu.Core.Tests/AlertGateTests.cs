@@ -7,7 +7,7 @@ namespace MonitorSuhu.Core.Tests;
 public sealed class AlertGateTests
 {
     [Fact]
-    public void FirstCriticalFires_SecondPollDoesNot_CooldownThenFires()
+    public void FirstCriticalFires_StayCriticalDoesNot_DropThenRiseFires()
     {
         var now = 1_000_000L;
         var gate = new AlertGate(() => now);
@@ -21,9 +21,14 @@ public sealed class AlertGateTests
         var second = gate.Evaluate([cpu], settings);
         Assert.Empty(second);
 
-        now += AlertGate.CooldownMs;
-        var third = gate.Evaluate([cpu], settings);
-        Assert.Equal("CPU 90°C", Assert.Single(third).Message);
+        var stillHot = gate.Evaluate([cpu], settings);
+        Assert.Empty(stillHot);
+
+        var cool = new SensorReading("cpu", SensorKind.Cpu, "CPU", 80);
+        Assert.Empty(gate.Evaluate([cool], settings));
+
+        var rise = new SensorReading("cpu", SensorKind.Cpu, "CPU", 90);
+        Assert.Equal("CPU 90°C", Assert.Single(gate.Evaluate([rise], settings)).Message);
     }
 
     [Fact]
@@ -74,5 +79,22 @@ public sealed class AlertGateTests
 
         var events = gate.Evaluate(readings, settings);
         Assert.Equal(new[] { "CPU% 99%", "PWR 312 W" }, events.Select(e => e.Message).ToArray());
+    }
+
+    [Fact]
+    public void ReenableWhileStillCriticalDoesNotFire()
+    {
+        var gate = new AlertGate(() => 1);
+        var settings = new AppSettings();
+        settings.Sanitize();
+        var cpu = new SensorReading("cpu", SensorKind.Cpu, "CPU", 90);
+
+        Assert.Equal("CPU 90°C", Assert.Single(gate.Evaluate([cpu], settings)).Message);
+
+        settings.AlertsEnabled = false;
+        Assert.Empty(gate.Evaluate([cpu], settings));
+
+        settings.AlertsEnabled = true;
+        Assert.Empty(gate.Evaluate([cpu], settings));
     }
 }
