@@ -70,7 +70,7 @@ Default shortcuts on every OS: **Ctrl+Shift+T** (toggle overlay), **Ctrl+Shift+E
 
    Or right-click → **Open** → **Open**. Still blocked: **System Settings → Privacy & Security → Open Anyway**.
 
-4. Menu extra title is **Suhu** (right side of the menu bar). Dock icon reopens Settings; closing Settings does not quit the HUD.
+4. Menu extra title is **Suhu** (right side of the menu bar). Dock icon reopens Settings; closing Settings does not quit the HUD. **Quit** from the Dock or **Cmd+Q** while Settings is focused still exits the extra and the overlay together.
 
 **Sensors:** Apple Silicon HID (`IOHIDEventSystemClient`, usage page `0xff00` / usage `0x0005`). Intel fallback: SMC. CPU pick ranks pACC / eACC / SoC over PMU `tdie`. BOARD is wifi / skin / ambient — not the battery (`gas gauge`). No GPU row unless a HID product name contains `gpu` / `agx` / `dgpu` / `gfx`. FAN from SMC `F0Ac` / `F1Ac` (200–15000 RPM).
 
