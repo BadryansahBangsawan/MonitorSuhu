@@ -2,61 +2,202 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MonitorSuhu Settings"
-        MinWidth="540" MinHeight="580"
-        Width="560" Height="640"
+        MinWidth="700" MinHeight="480"
+        Width="780" Height="600"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="OnPreviewKeyDown"
-        Background="#141414"
-        Foreground="#EEEEEE"
+        Background="#0E0E10"
+        Foreground="#F4F4F5"
         FontFamily="Segoe UI"
-        FontSize="13">
+        FontSize="13"
+        UseLayoutRounding="True">
     <Window.Resources>
-        <SolidColorBrush x:Key="CardBrush" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="StrokeBrush" Color="#2E2E2E"/>
-        <SolidColorBrush x:Key="ControlBrush" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#8A8A8A"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#76B900"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#121214"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#17171A"/>
+        <SolidColorBrush x:Key="HairlineBrush" Color="#14FFFFFF"/>
+        <SolidColorBrush x:Key="ControlBrush" Color="#222226"/>
+        <SolidColorBrush x:Key="ControlHoverBrush" Color="#2C2C31"/>
+        <SolidColorBrush x:Key="ControlPressedBrush" Color="#1B1B1E"/>
+        <SolidColorBrush x:Key="TrackBrush" Color="#34343A"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#F4F4F5"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#9A9AA2"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#FF8A80"/>
 
+        <!-- Text -->
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-
-        <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
+        <Style x:Key="PageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="2,0,0,8"/>
+            <Setter Property="Margin" Value="0,0,0,18"/>
         </Style>
-
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Margin" Value="4,0,0,8"/>
+        </Style>
         <Style x:Key="Caption" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8A8A8A"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="2,8,0,0"/>
+            <Setter Property="Margin" Value="4,8,4,22"/>
+        </Style>
+        <Style x:Key="Value" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="ColumnHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
+        <!-- Surfaces -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource CardBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16,2"/>
+        </Style>
+        <Style x:Key="Div" TargetType="Border">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource HairlineBrush}"/>
+        </Style>
+        <Style x:Key="Row" TargetType="DockPanel">
+            <Setter Property="MinHeight" Value="44"/>
+        </Style>
+        <Style x:Key="Page" TargetType="StackPanel">
+            <Setter Property="Margin" Value="28,24,28,12"/>
         </Style>
 
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Margin" Value="0,7"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <!-- Sidebar navigation -->
+        <Style x:Key="Nav" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="172"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{StaticResource SidebarBrush}"
+                                    BorderBrush="{StaticResource HairlineBrush}"
+                                    BorderThickness="0,0,1,0"
+                                    Padding="10,16">
+                                <StackPanel IsItemsHost="True"
+                                            KeyboardNavigation.TabNavigation="Once"
+                                            KeyboardNavigation.DirectionalNavigation="Contained"/>
+                            </Border>
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              Grid.Column="1"
+                                              ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-
-        <Style TargetType="Button">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="Margin" Value="0"/>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bg"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="11,7"
+                                Margin="0,0,0,2">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#0DFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#17FFFFFF"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Switch: the whole row is the hit target -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="MinHeight" Value="44"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="False"/>
+                            <Border x:Name="Track"
+                                    Grid.Column="1"
+                                    Width="36" Height="20"
+                                    CornerRadius="10"
+                                    BorderThickness="1"
+                                    BorderBrush="Transparent"
+                                    Background="{StaticResource TrackBrush}"
+                                    VerticalAlignment="Center">
+                                <Ellipse x:Name="Knob"
+                                         Width="14" Height="14"
+                                         Margin="2,0"
+                                         Fill="#F4F4F5"
+                                         HorizontalAlignment="Left"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="Knob" Property="Fill" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Track" Property="BorderBrush" Value="#F4F4F5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Buttons -->
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -64,16 +205,20 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
+                                CornerRadius="8"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              RecognizesAccessKey="False"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#333333"/>
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource ControlHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1A1A1A"/>
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource ControlPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="bd" Property="Opacity" Value="0.45"/>
@@ -83,40 +228,195 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="Primary" TargetType="Button">
+            <Setter Property="Foreground" Value="#0B0B0D"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{StaticResource AccentBrush}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              RecognizesAccessKey="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#86C81A"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#6AA600"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#F4F4F5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Kbd" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
 
+        <!-- Segmented profile picker -->
+        <Style x:Key="Seg" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="7"
+                                Padding="0,6">
+                            <ContentPresenter HorizontalAlignment="Center" RecognizesAccessKey="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#2C2C31"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Accent swatches -->
+        <Style x:Key="SwatchItem" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Ring"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="2"
+                                CornerRadius="15"
+                                Padding="3">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="#4DFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="#F4F4F5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Swatches" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource SwatchItem}"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <ItemsPresenter/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Inputs -->
         <Style TargetType="TextBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="CaretBrush" Value="#EEEEEE"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="CaretBrush" Value="#F4F4F5"/>
+            <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
             <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="Width" Value="72"/>
+            <Setter Property="Width" Value="68"/>
+            <Setter Property="Height" Value="28"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="False"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Padding" Value="10,6"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBoxItem">
                         <Border x:Name="Bd"
                                 Background="{TemplateBinding Background}"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#333333"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#17FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#777777"/>
+                                <Setter Property="Foreground" Value="#77777D"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -125,15 +425,16 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="MaxDropDownHeight" Value="360"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
@@ -151,31 +452,29 @@
                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="6">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="22"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Path Grid.Column="1"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"
-                                                      Data="M 0 0 L 4 4 L 8 0 Z"
-                                                      Fill="#EEEEEE"/>
-                                            </Grid>
+                                            <Path HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,1,11,0"
+                                                  Data="M 0 0 L 4 4 L 8 0"
+                                                  Stroke="#9A9AA2"
+                                                  StrokeThickness="1.5"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round"
+                                                  StrokeLineJoin="Round"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Chrome" Property="Background" Value="#333333"/>
+                                                <Setter TargetName="Chrome" Property="Background" Value="#2C2C31"/>
                                             </Trigger>
                                             <Trigger Property="IsChecked" Value="True">
-                                                <Setter TargetName="Chrome" Property="Background" Value="#1A1A1A"/>
+                                                <Setter TargetName="Chrome" Property="Background" Value="#1B1B1E"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </ToggleButton.Template>
                             </ToggleButton>
                             <ContentPresenter IsHitTestVisible="False"
-                                              Margin="8,6,28,6"
+                                              Margin="10,0,30,0"
                                               VerticalAlignment="Center"
                                               HorizontalAlignment="Left"
                                               Content="{TemplateBinding SelectionBoxItem}"
@@ -184,471 +483,578 @@
                                               ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"/>
                             <Popup x:Name="PART_Popup"
                                    Placement="Bottom"
+                                   VerticalOffset="4"
                                    IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                    AllowsTransparency="True"
                                    Focusable="False"
-                                   PopupAnimation="Slide">
+                                   PopupAnimation="Fade">
                                 <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                         MaxHeight="{Binding MaxDropDownHeight, RelativeSource={RelativeSource TemplatedParent}}"
-                                        Background="#1E1E1E"
-                                        BorderBrush="#3A3A3A"
+                                        Background="#1D1D21"
+                                        BorderBrush="#24FFFFFF"
                                         BorderThickness="1"
-                                        CornerRadius="6"
-                                        Padding="2">
+                                        CornerRadius="10"
+                                        Padding="4">
                                     <ScrollViewer SnapsToDevicePixels="True">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                     </ScrollViewer>
                                 </Border>
                             </Popup>
                         </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
+        <!-- Slider -->
+        <Style x:Key="SliderFill" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" Height="20">
+                            <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                    Background="{TemplateBinding Background}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style TargetType="Slider">
-            <Setter Property="Margin" Value="0,4,0,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+            <Setter Property="IsMoveToPointEnabled" Value="True"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="20">
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge"
+                                                  Style="{StaticResource SliderFill}"
+                                                  Background="{StaticResource AccentBrush}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge"
+                                                  Style="{StaticResource SliderFill}"
+                                                  Background="{StaticResource TrackBrush}"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Focusable="False">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Width="16" Height="16" Fill="#F4F4F5"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Slim scrollbar (vertical only; horizontal scrolling is disabled on every page) -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="MinWidth" Value="12"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="Transparent">
+                                                    <Border x:Name="Bar" Margin="4,2" CornerRadius="2" Background="#3A3A40"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bar" Property="Background" Value="#55555C"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ProgressBar">
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border x:Name="PART_Track" CornerRadius="2" Background="#26FFFFFF"/>
+                            <Border x:Name="PART_Indicator" CornerRadius="2" HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Save" Command="{Binding SaveCommand}" MinWidth="88"
-                    Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"/>
-        </StackPanel>
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <Border>
-                    <Border.Style>
-                        <Style TargetType="Border" BasedOn="{StaticResource Card}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Setter Property="Background" Value="#243018"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Updates.HasUpdate}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel Margin="0,4,0,4">
-                        <TextBlock Text="{Binding Updates.UpdateMessage}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding Updates.UpdateHint}" TextWrapping="Wrap"
-                                   Foreground="#B8C9A0" FontSize="12" Margin="0,6,0,0"/>
-                        <ProgressBar Height="6" Margin="0,12,0,2" Minimum="0" Maximum="1"
-                                     Value="{Binding Updates.Progress}"
-                                     Foreground="#76B900" Background="#1A2410" BorderThickness="0">
-                            <ProgressBar.Style>
-                                <Style TargetType="ProgressBar">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ProgressBar.Style>
-                        </ProgressBar>
-                        <Button Content="Install update…" Command="{Binding ApplyUpdateCommand}"
-                                HorizontalAlignment="Left" Margin="0,10,0,0"
-                                Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-                </Border>
+    <TabControl Style="{StaticResource Nav}">
+        <!-- ============================= General ============================= -->
+        <TabItem Header="General">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource Page}">
+                    <TextBlock Text="General" Style="{StaticResource PageTitle}"/>
 
-                <TextBlock Text="Overlay" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <CheckBox Content="Show overlay" IsChecked="{Binding OverlayVisible}"/>
-                        <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
-                                  ToolTip="When locked, clicks pass through the HUD."/>
-                        <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"/>
-                        <TextBlock Text="{Binding AutostartError}" Foreground="#FF8A80" TextWrapping="Wrap" Margin="0,4,0,4">
-                          <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                              <Setter Property="Visibility" Value="Collapsed"/>
-                              <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasAutostartError}" Value="True">
-                                  <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                              </Style.Triggers>
+                    <Border BorderThickness="1" CornerRadius="12" Padding="16,14" Margin="0,0,0,22"
+                            Background="#1B2410" BorderBrush="#3376B900">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Updates.HasUpdate}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
-                          </TextBlock.Style>
-                        </TextBlock>
-                        <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
-                                  ToolTip="Hides during slideshow / presentation mode only. Games keep the HUD."/>
-                        <CheckBox Content="Hide during screensaver" IsChecked="{Binding HideDuringCapture}"
-                                  ToolTip="Hide while the screensaver is running. Windows has no global screen-share signal."/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding AutoHideCaption}"
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Updates.UpdateMessage}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Updates.UpdateHint}" TextWrapping="Wrap"
+                                       Foreground="#B8C9A0" FontSize="12" Margin="0,6,0,0"/>
+                            <ProgressBar Margin="0,14,0,2" Minimum="0" Maximum="1"
+                                         Value="{Binding Updates.Progress}">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                            <Button Content="Install update…" Command="{Binding ApplyUpdateCommand}"
+                                    HorizontalAlignment="Left" Margin="0,12,0,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Primary}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Updates.Installing}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                    </Border>
 
-                <TextBlock Text="Alerts" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
-                                  ToolTip="Beep and show a tray balloon when a visible reading crosses critical."/>
-                        <Button Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"
-                                HorizontalAlignment="Left" Margin="0,4,0,6"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding MuteCaption}"
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+                    <TextBlock Text="Overlay" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Content="Show overlay" IsChecked="{Binding OverlayVisible}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
+                                      ToolTip="When locked, clicks pass through the HUD."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Start with Windows" IsChecked="{Binding StartWithWindows}"/>
+                            <TextBlock Text="{Binding AutostartError}" Foreground="{StaticResource DangerBrush}"
+                                       FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasAutostartError}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
+                                      ToolTip="Hides during slideshow / presentation mode only. Games keep the HUD."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Hide during screensaver" IsChecked="{Binding HideDuringCapture}"
+                                      ToolTip="Hide while the screensaver is running. Windows has no global screen-share signal."/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding AutoHideCaption}" Style="{StaticResource Caption}"/>
 
-                <TextBlock Text="Position" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <UniformGrid Columns="2" Margin="0,6,0,8">
-                            <Button Content="Top left" Command="{Binding TopLeftCommand}" Margin="0,0,8,8" HorizontalAlignment="Stretch"/>
-                            <Button Content="Top right" Command="{Binding TopRightCommand}" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
-                            <Button Content="Bottom left" Command="{Binding BottomLeftCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                            <Button Content="Bottom right" Command="{Binding BottomRightCommand}" HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Position" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid Margin="0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Button Content="Top left" Command="{Binding TopLeftCommand}"/>
+                                <Button Grid.Column="2" Content="Top right" Command="{Binding TopRightCommand}"/>
+                                <Button Grid.Row="2" Content="Bottom left" Command="{Binding BottomLeftCommand}"/>
+                                <Button Grid.Row="2" Grid.Column="2" Content="Bottom right" Command="{Binding BottomRightCommand}"/>
+                            </Grid>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <Button DockPanel.Dock="Right" Content="Edit overlay" Command="{Binding EditOverlayCommand}"/>
+                                <TextBlock Text="Place it by hand"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Unlock, then drag the HUD. It snaps to edges and remembers the corner."
+                               Style="{StaticResource Caption}"/>
+
+                    <TextBlock Text="Shortcuts" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource Row}">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Kbd}"
+                                        Command="{Binding RecordToggleCommand}"
+                                        Content="{Binding ToggleHotkeyDisplay}" ToolTip="Click to rebind"/>
+                                <TextBlock Text="Toggle overlay"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Kbd}"
+                                        Command="{Binding RecordEditCommand}"
+                                        Content="{Binding EditHotkeyDisplay}" ToolTip="Click to rebind"/>
+                                <TextBlock Text="Edit layout"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding ShortcutsCaption}" Style="{StaticResource Caption}"/>
+
+                    <TextBlock Text="Alerts" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
+                                      ToolTip="Beep and show a tray balloon when a visible reading crosses critical."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <Button DockPanel.Dock="Right" Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"/>
+                                <TextBlock Text="Silence alerts for now"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding MuteCaption}" Style="{StaticResource Caption}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- ============================= Sensors ============================= -->
+        <TabItem Header="Sensors">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource Page}">
+                    <TextBlock Text="Sensors" Style="{StaticResource PageTitle}"/>
+
+                    <TextBlock Text="Show in HUD" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SensorError}" Foreground="{StaticResource DangerBrush}"
+                                       FontSize="12" TextWrapping="Wrap" Margin="0,12,0,4">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasSensorError}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <CheckBox Content="CPU" IsChecked="{Binding ShowCpu}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="GPU" IsChecked="{Binding ShowGpu}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="SSD" IsChecked="{Binding ShowSsd}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Motherboard" IsChecked="{Binding ShowBoard}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="RAM" IsChecked="{Binding ShowRam}"
+                                      ToolTip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
+                                      ToolTip="Hidden in the HUD when this PC has no fan RPM sensor."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="CPU load" IsChecked="{Binding ShowCpuLoad}"
+                                      ToolTip="Off by default. Hidden when this PC has no CPU utilization reading."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="GPU load" IsChecked="{Binding ShowGpuLoad}"
+                                      ToolTip="Off by default. Hidden when this PC has no GPU utilization reading."/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Power" IsChecked="{Binding ShowPower}"
+                                      ToolTip="Off by default. Hidden when this PC has no package / GPU power reading."/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan."
+                               Style="{StaticResource Caption}"/>
+
+                    <TextBlock Text="Assignments" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="CPU"/>
+                                <ComboBox ItemsSource="{Binding ThermalOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding CpuBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="GPU"/>
+                                <ComboBox ItemsSource="{Binding ThermalOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding GpuBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="SSD"/>
+                                <ComboBox ItemsSource="{Binding ThermalOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding SsdBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="Motherboard"/>
+                                <ComboBox ItemsSource="{Binding ThermalOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding BoardBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="RAM"/>
+                                <ComboBox ItemsSource="{Binding ThermalOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding RamBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="Fan"/>
+                                <ComboBox ItemsSource="{Binding FanOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding FanBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="CPU load"/>
+                                <ComboBox ItemsSource="{Binding LoadOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding CpuLoadBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="GPU load"/>
+                                <ComboBox ItemsSource="{Binding LoadOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding GpuLoadBinding}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="Power"/>
+                                <ComboBox ItemsSource="{Binding PowerOptions}" DisplayMemberPath="Label"
+                                          SelectedValuePath="Id" SelectedValue="{Binding PowerBinding}"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor."
+                               Style="{StaticResource Caption}"/>
+
+                    <TextBlock Text="Thresholds" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <DockPanel Margin="0,12,0,8">
+                                <TextBlock DockPanel.Dock="Right" Width="68" Margin="10,0,0,0" Text="Critical" Style="{StaticResource ColumnHeader}"/>
+                                <TextBlock DockPanel.Dock="Right" Width="68" Text="Warn" Style="{StaticResource ColumnHeader}"/>
+                                <TextBlock Text="Sensor" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding CpuCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding CpuWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="CPU"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding GpuCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding GpuWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="GPU"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding SsdCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding SsdWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="SSD"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding BoardCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding BoardWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Motherboard"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="RAM"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Fan"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding CpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding CpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="CPU load"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding GpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding GpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="GPU load"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBox DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding PowerCrit, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox DockPanel.Dock="Right" Text="{Binding PowerWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Power"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts."
+                               Style="{StaticResource Caption}"/>
+
+                    <TextBlock Text="Polling" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel Style="{StaticResource Row}">
+                            <TextBlock Width="110" Text="Poll interval"/>
+                            <TextBlock DockPanel.Dock="Right" Width="64" Text="{Binding PollIntervalLabel}" Style="{StaticResource Value}"/>
+                            <Slider Minimum="400" Maximum="3000" TickFrequency="100" IsSnapToTickEnabled="True"
+                                    Value="{Binding PollIntervalMs}"/>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Text="How often sensors are read. 1000 ms is a good default."
+                               Style="{StaticResource Caption}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- ============================ Appearance ============================ -->
+        <TabItem Header="Appearance">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource Page}">
+                    <TextBlock Text="Appearance" Style="{StaticResource PageTitle}"/>
+
+                    <TextBlock Text="Profile" Style="{StaticResource SectionTitle}"/>
+                    <Border Background="{StaticResource CardBrush}"
+                            BorderBrush="{StaticResource HairlineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="3">
+                        <UniformGrid Columns="3">
+                            <RadioButton Style="{StaticResource Seg}" Content="Desktop" GroupName="Profile"
+                                         IsChecked="{Binding IsDesktopProfile, Mode=OneWay}"
+                                         Command="{Binding ApplyDesktopCommand}"/>
+                            <RadioButton Style="{StaticResource Seg}" Content="Game" GroupName="Profile"
+                                         IsChecked="{Binding IsGameProfile, Mode=OneWay}"
+                                         Command="{Binding ApplyGameCommand}"/>
+                            <RadioButton Style="{StaticResource Seg}" Content="Silent" GroupName="Profile"
+                                         IsChecked="{Binding IsSilentProfile, Mode=OneWay}"
+                                         Command="{Binding ApplySilentCommand}"/>
                         </UniformGrid>
-                        <Button Content="Edit overlay" Command="{Binding EditOverlayCommand}" HorizontalAlignment="Left" Margin="0,4,0,6"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Unlock, then drag the HUD. It snaps to edges and remembers the corner."
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+                    </Border>
+                    <TextBlock Text="{Binding ProfileCaption}" Style="{StaticResource Caption}"/>
 
-                <TextBlock Text="Shortcuts" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <Grid Margin="0,6,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Toggle overlay" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding RecordToggleCommand}" Padding="8,4" ToolTip="Click to rebind">
-                                <TextBlock Text="{Binding ToggleHotkeyDisplay}" FontFamily="Consolas" Foreground="#BBBBBB"/>
-                            </Button>
-                        </Grid>
-                        <Grid Margin="0,0,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Edit layout" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding RecordEditCommand}" Padding="8,4" ToolTip="Click to rebind">
-                                <TextBlock Text="{Binding EditHotkeyDisplay}" FontFamily="Consolas" Foreground="#BBBBBB"/>
-                            </Button>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding ShortcutsCaption}"
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+                    <TextBlock Text="Display" Style="{StaticResource SectionTitle}"/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Content="Use Fahrenheit" IsChecked="{Binding UseFahrenheit}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Compact HUD" IsChecked="{Binding CompactHud}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <CheckBox Content="Sparkline" IsChecked="{Binding ShowSparkline}"/>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="Opacity"/>
+                                <TextBlock DockPanel.Dock="Right" Width="64" Text="{Binding OpacityLabel}" Style="{StaticResource Value}"/>
+                                <Slider Minimum="0.4" Maximum="0.95" Value="{Binding OverlayOpacity}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock Width="110" Text="Font size"/>
+                                <TextBlock DockPanel.Dock="Right" Width="64" Text="{Binding FontSizeLabel}" Style="{StaticResource Value}"/>
+                                <Slider Minimum="11" Maximum="18" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding FontSize}"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <ListBox DockPanel.Dock="Right" Style="{StaticResource Swatches}"
+                                         ItemsSource="{Binding Accents}"
+                                         SelectedValuePath="Hex"
+                                         SelectedValue="{Binding AccentHex}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Ellipse Width="20" Height="20" Fill="{Binding Hex}" ToolTip="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Text="Accent"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Compact puts every sensor on one line. Sparkline draws the last 30 polls."
+                               Style="{StaticResource Caption}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
 
-                <TextBlock Text="Sensors" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SensorError}"
-                                   Foreground="#FF8A80"
-                                   TextWrapping="Wrap"
-                                   Margin="0,6,0,8">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasSensorError}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <CheckBox Content="CPU" IsChecked="{Binding ShowCpu}"/>
-                        <CheckBox Content="GPU" IsChecked="{Binding ShowGpu}"/>
-                        <CheckBox Content="SSD" IsChecked="{Binding ShowSsd}"/>
-                        <CheckBox Content="Motherboard" IsChecked="{Binding ShowBoard}"/>
-                        <CheckBox Content="RAM" IsChecked="{Binding ShowRam}"
-                                  ToolTip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
-                        <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
-                                  ToolTip="Hidden in the HUD when this PC has no fan RPM sensor."/>
-                        <CheckBox Content="CPU load" IsChecked="{Binding ShowCpuLoad}"
-                                  ToolTip="Off by default. Hidden when this PC has no CPU utilization reading."/>
-                        <CheckBox Content="GPU load" IsChecked="{Binding ShowGpuLoad}"
-                                  ToolTip="Off by default. Hidden when this PC has no GPU utilization reading."/>
-                        <CheckBox Content="Power" IsChecked="{Binding ShowPower}"
-                                  ToolTip="Off by default. Hidden when this PC has no package / GPU power reading."/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan."
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
+        <!-- ============================== About ============================== -->
+        <TabItem Header="About">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource Page}">
+                    <TextBlock Text="About" Style="{StaticResource PageTitle}"/>
 
-                <TextBlock Text="Assignments" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel Margin="0,6,0,6">
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="CPU" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding CpuBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="GPU" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding GpuBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="SSD" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding SsdBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Board" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding BoardBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="RAM" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding RamBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Fan" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding FanOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding FanBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="CPU%" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding LoadOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding CpuLoadBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="GPU%" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding LoadOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding GpuLoadBinding}"/>
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="PWR" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding PowerOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding PowerBinding}"/>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor."
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Thresholds" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <Grid Margin="0,6,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="72"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="72"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="Sensor" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Column="1" Text="Warn" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Column="3" Text="Crit" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-
-                        <TextBlock Grid.Row="1" Text="CPU" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CpuWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding CpuCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="2" Text="GPU" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GpuWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding GpuCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="3" Text="SSD" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SsdWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding SsdCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="4" Text="Board" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BoardWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding BoardCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="5" Text="RAM" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="6" Text="Fan" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="7" Text="CPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding CpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="7" Grid.Column="3" Text="{Binding CpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="8" Text="GPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding GpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="8" Grid.Column="3" Text="{Binding GpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="9" Text="PWR" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding PowerWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="9" Grid.Column="3" Text="{Binding PowerCrit, UpdateSourceTrigger=LostFocus}"/>
-                    </Grid>
-                </Border>
-                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts."
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Polling" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel Margin="0,6,0,2">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Poll interval" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding PollIntervalLabel}" Foreground="#8A8A8A" FontFamily="Consolas"/>
-                        </Grid>
-                        <Slider Minimum="400" Maximum="3000" TickFrequency="100" IsSnapToTickEnabled="True"
-                                Value="{Binding PollIntervalMs}"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="How often sensors are read. 1000 ms is a good default."
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Profile" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <UniformGrid Columns="3" Margin="0,6,0,6">
-                        <Button Content="Desktop" Command="{Binding ApplyDesktopCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                        <Button Content="Game" Command="{Binding ApplyGameCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                        <Button Content="Silent" Command="{Binding ApplySilentCommand}" HorizontalAlignment="Stretch"/>
-                    </UniformGrid>
-                </Border>
-                <TextBlock Text="{Binding ProfileCaption}"
-                           Style="{StaticResource Caption}" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Appearance" Style="{StaticResource SectionTitle}"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <CheckBox Content="Use Fahrenheit" IsChecked="{Binding UseFahrenheit}"/>
-                        <CheckBox Content="Compact HUD" IsChecked="{Binding CompactHud}"/>
-                        <CheckBox Content="Sparkline (30 samples)" IsChecked="{Binding ShowSparkline}"/>
-                        <Grid Margin="0,8,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Opacity" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding OpacityLabel}" Foreground="#8A8A8A" FontFamily="Consolas"/>
-                        </Grid>
-                        <Slider Minimum="0.4" Maximum="0.95" Value="{Binding OverlayOpacity}"/>
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Font size" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding FontSizeLabel}" Foreground="#8A8A8A" FontFamily="Consolas"/>
-                        </Grid>
-                        <Slider Minimum="11" Maximum="18" TickFrequency="1" IsSnapToTickEnabled="True"
-                                Value="{Binding FontSize}"/>
-                        <TextBlock Text="Accent" Margin="0,8,0,0" VerticalAlignment="Center"/>
-                        <ComboBox ItemsSource="{Binding Accents}"
-                                  DisplayMemberPath="Name"
-                                  SelectedValuePath="Hex"
-                                  SelectedValue="{Binding AccentHex}"/>
-                    </StackPanel>
-                </Border>
-
-                <TextBlock Text="About" Style="{StaticResource SectionTitle}" Margin="0,16,0,8"/>
-                <Border Style="{StaticResource Card}">
-                    <StackPanel Margin="0,6,0,6">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Version" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" Foreground="#8A8A8A" FontFamily="Consolas"/>
-                        </Grid>
-                        <Button Content="Check for Updates…" Command="{Binding CheckUpdatesCommand}"
-                                HorizontalAlignment="Left" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Install closes the app to finish. Open MonitorSuhu again from the Start menu if it does not restart."
-                           Style="{StaticResource Caption}" Margin="2,0,0,8"/>
-            </StackPanel>
-        </ScrollViewer>
-    </DockPanel>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <DockPanel Style="{StaticResource Row}">
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Updates.CurrentVersion}" Style="{StaticResource Value}"/>
+                                <TextBlock Text="Version"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Div}"/>
+                            <DockPanel Style="{StaticResource Row}">
+                                <Button DockPanel.Dock="Right" Content="Check for updates…" Command="{Binding CheckUpdatesCommand}"/>
+                                <TextBlock Text="Updates"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Install closes the app to finish. Open MonitorSuhu again from the Start menu if it does not restart."
+                               Style="{StaticResource Caption}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
 </Window>

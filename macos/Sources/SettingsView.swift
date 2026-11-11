@@ -281,7 +281,7 @@ struct SettingsView: View {
                 )
             } caption: {
                 if !anySensorEnabled {
-                    SettingsCallout("Turn on at least one sensor or the HUD shows NO SENSORS.")
+                    SettingsCallout("Turn on at least one sensor or the HUD shows No sensors.")
                 } else if sensors.snapshot.readings.isEmpty {
                     SettingsCallout("No temperature sensors found on this Mac yet. The HUD fills in after the first poll.")
                 } else {
@@ -438,12 +438,19 @@ struct SettingsView: View {
             }
 
             SettingsSection("Profile") {
-                HStack(spacing: 8) {
-                    profileButton("Desktop", HudProfiles.desktop)
-                    profileButton("Game", HudProfiles.game)
-                    profileButton("Silent", HudProfiles.silent)
+                Picker("Profile", selection: Binding(
+                    get: { store.settings.activeProfile },
+                    set: { name in
+                        if name != HudProfiles.custom { store.settings.applyProfile(name) }
+                    }
+                )) {
+                    Text("Desktop").tag(HudProfiles.desktop)
+                    Text("Game").tag(HudProfiles.game)
+                    Text("Silent").tag(HudProfiles.silent)
                 }
-                .padding(.vertical, 8)
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(.vertical, 10)
             } caption: {
                 SettingsCaption(profileCaption)
             }
@@ -453,7 +460,7 @@ struct SettingsView: View {
                 SettingsRowDivider()
                 SettingsToggleRow("Compact HUD", isOn: $store.settings.compactHud)
                 SettingsRowDivider()
-                SettingsToggleRow("Sparkline (30 samples)", isOn: $store.settings.showSparkline)
+                SettingsToggleRow("Sparkline", isOn: $store.settings.showSparkline)
                 SettingsRowDivider()
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -480,81 +487,46 @@ struct SettingsView: View {
                         .accessibilityLabel("Font size")
                 }
                 .padding(.vertical, 10)
+                SettingsRowDivider()
+                accentRow
             } caption: {
-                SettingsCaption("Compact puts every sensor on one line. Sparkline is the last 30 polls.")
-            }
-
-            SettingsSection("Accent") {
-                HStack(spacing: 8) {
-                    ForEach(Self.accents, id: \.hex) { item in
-                        let selected = AppSettings.normalizeHex(store.settings.accentHex)
-                            == AppSettings.normalizeHex(item.hex)
-                        Button {
-                            store.settings.accentHex = item.hex
-                        } label: {
-                            VStack(spacing: 8) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .fill(Color(hex: item.hex) ?? .green)
-                                        .frame(height: 28)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                .strokeBorder(
-                                                    Color.primary.opacity(item.hex == "FFFFFF" ? 0.28 : 0.12),
-                                                    lineWidth: 1
-                                                )
-                                        )
-                                    if selected {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundStyle(item.hex == "FFFFFF" ? Color.black : Color.white)
-                                    }
-                                }
-                                Text(item.name)
-                                    .font(.caption)
-                                    .foregroundStyle(selected ? .primary : .secondary)
-                            }
-                            .padding(8)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color.primary.opacity(selected ? 0.08 : 0.04))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .strokeBorder(
-                                        selected
-                                            ? (Color(hex: item.hex) ?? .accentColor)
-                                            : Color.primary.opacity(0.08),
-                                        lineWidth: 1
-                                    )
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(item.name)
-                        .accessibilityAddTraits(selected ? .isSelected : [])
-                    }
-                }
-                .padding(.vertical, 10)
+                SettingsCaption("Compact puts every sensor on one line. Sparkline draws the last 30 polls.")
             }
         }
+    }
+
+    private var accentRow: some View {
+        HStack(spacing: 6) {
+            Text("Accent")
+            Spacer(minLength: 12)
+            ForEach(Self.accents, id: \.hex) { item in
+                let selected = AppSettings.normalizeHex(store.settings.accentHex)
+                    == AppSettings.normalizeHex(item.hex)
+                Button {
+                    store.settings.accentHex = item.hex
+                } label: {
+                    Circle()
+                        .fill(Color(hex: item.hex) ?? .green)
+                        .frame(width: 20, height: 20)
+                        .padding(3)
+                        .overlay(
+                            Circle().strokeBorder(Color.primary.opacity(selected ? 0.9 : 0), lineWidth: 2)
+                        )
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help(item.name)
+                .accessibilityLabel(item.name)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(.vertical, 8)
     }
 
     private var profileCaption: String {
         store.settings.activeProfile == HudProfiles.custom
             ? "Custom look. Position, lock, and shortcuts stay as they are."
             : "\(HudProfiles.title(store.settings.activeProfile)) look. Editing sensors or appearance marks Custom."
-    }
-
-    private func profileButton(_ title: String, _ name: String) -> some View {
-        let selected = store.settings.activeProfile == name
-        return Button(title) {
-            store.settings.applyProfile(name)
-        }
-        .buttonStyle(.bordered)
-        .tint(selected ? Color.accentColor : nil)
-        .controlSize(.regular)
-        .frame(maxWidth: .infinity)
     }
 
     private var anySensorEnabled: Bool {

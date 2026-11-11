@@ -7,6 +7,6 @@
         <SolidColorBrush x:Key="WarnBrush" Color="#F5C518"/>
         <SolidColorBrush x:Key="CritBrush" Color="#FF3B30"/>
         <SolidColorBrush x:Key="HudBg" Color="#CC000000"/>
-        <FontFamily x:Key="HudFont">Segoe UI Semibold</FontFamily>
+        <FontFamily x:Key="HudFont">Segoe UI</FontFamily>
     </Application.Resources>
 </Application>

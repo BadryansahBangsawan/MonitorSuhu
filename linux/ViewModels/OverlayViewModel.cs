@@ -60,7 +60,8 @@ public sealed class OverlayViewModel : ObservableObject
     public bool ShowEmpty => Rows.Count == 0;
     public bool ShowCompact => CompactHud && Rows.Count > 0;
     public bool ShowStacked => !CompactHud && Rows.Count > 0;
-    public IBrush ChromeBrush => Locked ? Brushes.Transparent : Accent;
+    private static readonly IBrush Hairline = new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF));
+    public IBrush ChromeBrush => Locked ? Hairline : Accent;
 
     private string _compactLine = "";
     public string CompactLine

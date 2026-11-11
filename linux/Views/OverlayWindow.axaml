@@ -10,61 +10,67 @@
         ShowInTaskbar="False"
         CanResize="False"
         SizeToContent="WidthAndHeight"
-        FontFamily="Inter, Segoe UI Semibold, Noto Sans, DejaVu Sans, sans-serif"
+        FontFamily="Inter, Segoe UI, Noto Sans, DejaVu Sans, sans-serif"
         PointerPressed="OnDrag">
     <Border x:Name="HudRoot"
-            CornerRadius="2"
+            CornerRadius="10"
             BorderThickness="1"
-            BorderBrush="{Binding ChromeBrush}">
+            BorderBrush="{Binding ChromeBrush}"
+            Padding="12,9">
         <Border.Background>
-            <SolidColorBrush Color="Black" Opacity="{Binding Opacity}"/>
+            <SolidColorBrush Color="#0B0B0D" Opacity="{Binding Opacity}"/>
         </Border.Background>
-        <DockPanel>
-            <Rectangle Width="3" Fill="{Binding Accent}" DockPanel.Dock="Left"/>
-            <StackPanel Margin="10,8">
-                <TextBlock Text="NO SENSORS"
-                           Foreground="#8CFFFFFF"
-                           FontSize="{Binding FontSize}"
-                           IsVisible="{Binding ShowEmpty}"/>
-                <TextBlock Text="{Binding CompactLine}"
-                           Foreground="{Binding CompactColor}"
-                           FontSize="{Binding FontSize}"
-                           IsVisible="{Binding ShowCompact}"/>
-                <ItemsControl ItemsSource="{Binding Rows}"
-                              IsVisible="{Binding ShowStacked}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Label}"
-                                           Foreground="#C7FFFFFF"
-                                           FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"/>
-                                <Grid Grid.Column="1"
-                                      Width="36"
-                                      Height="12"
-                                      VerticalAlignment="Center"
-                                      IsVisible="{Binding DataContext.ShowSparkline, ElementName=HudWindow}">
-                                    <Polyline Points="{Binding Points}"
-                                              Stretch="Fill"
-                                              Stroke="{Binding Color}"
-                                              StrokeThickness="1"
-                                              Fill="Transparent"/>
-                                </Grid>
-                                <TextBlock Grid.Column="3"
-                                           Text="{Binding Value}"
-                                           Foreground="{Binding Color}"
-                                           FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"
-                                           FontWeight="SemiBold"/>
+        <StackPanel>
+            <TextBlock Text="No sensors"
+                       Foreground="#8CFFFFFF"
+                       FontSize="{Binding FontSize}"
+                       IsVisible="{Binding ShowEmpty}"/>
+            <TextBlock Text="{Binding CompactLine}"
+                       Foreground="{Binding CompactColor}"
+                       FontSize="{Binding FontSize}"
+                       FontWeight="SemiBold"
+                       FontFeatures="tnum"
+                       IsVisible="{Binding ShowCompact}"/>
+            <ItemsControl ItemsSource="{Binding Rows}"
+                          IsVisible="{Binding ShowStacked}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Label}"
+                                       Foreground="#A6FFFFFF"
+                                       VerticalAlignment="Center"
+                                       FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"/>
+                            <Grid Grid.Column="1"
+                                  Width="36"
+                                  Height="12"
+                                  Margin="14,0,0,0"
+                                  VerticalAlignment="Center"
+                                  IsVisible="{Binding DataContext.ShowSparkline, ElementName=HudWindow}">
+                                <Polyline Points="{Binding Points}"
+                                          Stretch="Fill"
+                                          Stroke="{Binding Color}"
+                                          StrokeThickness="1.25"
+                                          StrokeJoin="Round"
+                                          Fill="Transparent"/>
                             </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </DockPanel>
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding Value}"
+                                       Foreground="{Binding Color}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       FontSize="{Binding DataContext.FontSize, ElementName=HudWindow}"
+                                       FontWeight="SemiBold"
+                                       FontFeatures="tnum"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </Border>
 </Window>

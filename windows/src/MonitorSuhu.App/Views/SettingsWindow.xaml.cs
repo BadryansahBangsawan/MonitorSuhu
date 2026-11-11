@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Window = System.Windows.Window;
 using MonitorSuhu.App.ViewModels;
 
@@ -13,7 +15,31 @@ public partial class SettingsWindow : Window
         DataContext = vm;
         vm.RefreshCatalog();
         Activated += (_, _) => vm.RefreshCatalog();
+        SourceInitialized += (_, _) => UseDarkTitleBar();
     }
+
+    // The window is dark; without this Windows draws a white caption bar on top of it.
+    private void UseDarkTitleBar()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        var on = 1;
+        try
+        {
+            // 20 = DWMWA_USE_IMMERSIVE_DARK_MODE (Windows 10 2004+ and 11); 19 on older Windows 10 builds.
+            if (DwmSetWindowAttribute(hwnd, 20, ref on, sizeof(int)) != 0)
+                DwmSetWindowAttribute(hwnd, 19, ref on, sizeof(int));
+        }
+        catch (DllNotFoundException)
+        {
+        }
+        catch (EntryPointNotFoundException)
+        {
+        }
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {

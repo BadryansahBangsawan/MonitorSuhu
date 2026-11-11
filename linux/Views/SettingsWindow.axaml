@@ -2,463 +2,706 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MonitorSuhu.Linux.Views.SettingsWindow"
         Title="MonitorSuhu Settings"
-        MinWidth="540" MinHeight="580"
-        Width="560" Height="640"
+        MinWidth="700" MinHeight="480"
+        Width="780" Height="600"
         WindowStartupLocation="CenterScreen"
-        Background="#141414"
-        Foreground="#EEEEEE"
+        Background="#0E0E10"
+        Foreground="#F4F4F5"
+        FontFamily="Inter, Segoe UI, Noto Sans, DejaVu Sans, sans-serif"
         FontSize="13">
     <Window.Resources>
-        <SolidColorBrush x:Key="CardBrush" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="StrokeBrush" Color="#2E2E2E"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#8A8A8A"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#121214"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#17171A"/>
+        <SolidColorBrush x:Key="HairlineBrush" Color="#14FFFFFF"/>
+        <SolidColorBrush x:Key="ControlBrush" Color="#222226"/>
+        <SolidColorBrush x:Key="TrackBrush" Color="#34343A"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#F4F4F5"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#9A9AA2"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#FF8A80"/>
     </Window.Resources>
     <Window.Styles>
-        <Style Selector="TextBlock.section">
-            <Setter Property="FontSize" Value="13"/>
+        <!-- Text -->
+        <Style Selector="TextBlock.page">
+            <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="2,0,0,8"/>
+            <Setter Property="Margin" Value="0,0,0,18"/>
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Margin" Value="4,0,0,8"/>
         </Style>
         <Style Selector="TextBlock.caption">
-            <Setter Property="Foreground" Value="#8A8A8A"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="2,8,0,0"/>
+            <Setter Property="Margin" Value="4,8,4,22"/>
         </Style>
-        <Style Selector="Border.card">
-            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="14,8"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
+        <Style Selector="TextBlock.value">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="FontFeatures" Value="tnum"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.error">
+            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
-        <Style Selector="CheckBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Margin" Value="0,7"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-        <Style Selector="Button">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+        <!-- Surfaces -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="Margin" Value="0"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16,2"/>
         </Style>
-        <Style Selector="TextBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="CaretBrush" Value="#EEEEEE"/>
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="Width" Value="72"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Style Selector="Border.div">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource HairlineBrush}"/>
+        </Style>
+        <Style Selector="Grid.row">
+            <Setter Property="MinHeight" Value="44"/>
+        </Style>
+        <Style Selector="Grid.row > TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Sidebar navigation -->
+        <Style Selector="TabControl.nav">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="2"/>
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="172,*">
+                        <Border Background="{StaticResource SidebarBrush}"
+                                BorderBrush="{StaticResource HairlineBrush}"
+                                BorderThickness="0,0,1,0"
+                                Padding="10,16">
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                          Name="PART_SelectedContentHost"
+                                          Content="{TemplateBinding SelectedContent}"
+                                          ContentTemplate="{TemplateBinding SelectedContentTemplate}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="TabControl.nav TabItem">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="MinHeight" Value="0"/>
             <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Bg"
+                            Background="Transparent"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Name="Hdr"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="TabControl.nav TabItem:pointerover /template/ Border#Bg">
+            <Setter Property="Background" Value="#0DFFFFFF"/>
+        </Style>
+        <Style Selector="TabControl.nav TabItem:selected">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="TabControl.nav TabItem:selected /template/ Border#Bg">
+            <Setter Property="Background" Value="#17FFFFFF"/>
+        </Style>
+        <Style Selector="TabControl.nav TabItem:focus-visible /template/ Border#Bg">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <!-- Switch: the whole row is the hit target -->
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="MinHeight" Value="44"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="*,Auto" Background="Transparent">
+                        <ContentPresenter Name="Lbl"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          VerticalAlignment="Center"/>
+                        <Border Name="Track"
+                                Grid.Column="1"
+                                Width="36" Height="20"
+                                CornerRadius="10"
+                                BorderThickness="1"
+                                BorderBrush="Transparent"
+                                Background="{StaticResource TrackBrush}"
+                                VerticalAlignment="Center">
+                            <Ellipse Name="Knob"
+                                     Width="14" Height="14"
+                                     Margin="2,0"
+                                     Fill="#F4F4F5"
+                                     HorizontalAlignment="Left"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="CheckBox:checked /template/ Border#Track">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+        </Style>
+        <Style Selector="CheckBox:checked /template/ Ellipse#Knob">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Fill" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="CheckBox:focus-visible /template/ Border#Track">
+            <Setter Property="BorderBrush" Value="#F4F4F5"/>
+        </Style>
+
+        <!-- Buttons -->
+        <Style Selector="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="#0B0B0D"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#86C81A"/>
+            <Setter Property="BorderBrush" Value="#86C81A"/>
+            <Setter Property="Foreground" Value="#0B0B0D"/>
+        </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#6AA600"/>
+            <Setter Property="BorderBrush" Value="#6AA600"/>
+            <Setter Property="Foreground" Value="#0B0B0D"/>
+        </Style>
+        <Style Selector="Button.kbd">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+
+        <!-- Segmented profile picker -->
+        <Style Selector="RadioButton.seg">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Bg"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="7"
+                            Padding="0,6">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="RadioButton.seg:pointerover">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        </Style>
+        <Style Selector="RadioButton.seg:checked">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="RadioButton.seg:checked /template/ Border#Bg">
+            <Setter Property="Background" Value="#2C2C31"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+        </Style>
+        <Style Selector="RadioButton.seg:focus-visible /template/ Border#Bg">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+        </Style>
+
+        <!-- Accent swatches -->
+        <Style Selector="ListBox.swatches">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="ListBox.swatches ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Ring"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="2"
+                            CornerRadius="15"
+                            Padding="3">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.swatches ListBoxItem:pointerover /template/ Border#Ring">
+            <Setter Property="BorderBrush" Value="#4DFFFFFF"/>
+        </Style>
+        <Style Selector="ListBox.swatches ListBoxItem:selected /template/ Border#Ring">
+            <Setter Property="BorderBrush" Value="#F4F4F5"/>
+        </Style>
+
+        <!-- Inputs -->
+        <Style Selector="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="CaretBrush" Value="#F4F4F5"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Width" Value="68"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style Selector="ComboBox">
-            <Setter Property="Foreground" Value="#EEEEEE"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderBrush" Value="#3A3A3A"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ControlBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style Selector="Slider">
-            <Setter Property="Margin" Value="0,4,0,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style Selector="ScrollViewer.page > StackPanel">
+            <Setter Property="Margin" Value="28,24,28,12"/>
         </Style>
     </Window.Styles>
 
-    <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Save" Command="{Binding SaveCommand}" MinWidth="88"
-                    Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"/>
-        </StackPanel>
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <Border Background="#243018"
-                        BorderBrush="#2E2E2E"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="14,8"
-                        Margin="0,0,0,8"
-                        IsVisible="{Binding Updates.BannerVisible}">
-                    <StackPanel Margin="0,4,0,4">
-                        <TextBlock Text="{Binding Updates.UpdateMessage}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding Updates.UpdateHint}" TextWrapping="Wrap"
-                                   Foreground="#B8C9A0" FontSize="12" Margin="0,6,0,0"/>
-                        <ProgressBar Height="6" Margin="0,12,0,2" Minimum="0" Maximum="1"
-                                     Value="{Binding Updates.Progress}"
-                                     Foreground="#76B900"
-                                     IsVisible="{Binding Updates.Installing}"/>
-                        <Button Content="Install update…" Command="{Binding ApplyUpdateCommand}"
-                                HorizontalAlignment="Left" Margin="0,10,0,0"
-                                Background="#76B900" BorderBrush="#76B900" Foreground="#111111" FontWeight="SemiBold"
-                                IsVisible="{Binding Updates.ShowInstallButton}"/>
-                    </StackPanel>
-                </Border>
+    <TabControl Classes="nav">
+        <!-- ============================= General ============================= -->
+        <TabItem Header="General">
+            <ScrollViewer Classes="page" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <TextBlock Text="General" Classes="page"/>
 
-                <TextBlock Text="Overlay" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <CheckBox Content="Show overlay" IsChecked="{Binding OverlayVisible}"/>
-                        <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
-                                  ToolTip.Tip="{Binding LockCaption}"/>
-                        <CheckBox Content="Start with Linux" IsChecked="{Binding StartWithWindows}"/>
-                        <TextBlock Text="{Binding AutostartError}" Foreground="#FF8A80" TextWrapping="Wrap" Margin="0,4,0,4"
-                                   IsVisible="{Binding HasAutostartError}"/>
-                        <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
-                                  ToolTip.Tip="Off keeps the HUD on games. On hides when the active window is _NET_WM_STATE_FULLSCREEN."/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding AutoHideCaption}"
-                           Classes="caption" Margin="2,0,0,14"/>
+                    <Border Background="#1B2410"
+                            BorderBrush="#3376B900"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,14"
+                            Margin="0,0,0,22"
+                            IsVisible="{Binding Updates.BannerVisible}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{Binding Updates.UpdateMessage}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Updates.UpdateHint}" TextWrapping="Wrap"
+                                       Foreground="#B8C9A0" FontSize="12"/>
+                            <ProgressBar Height="4" Margin="0,8,0,2" Minimum="0" Maximum="1"
+                                         Value="{Binding Updates.Progress}"
+                                         Foreground="{StaticResource AccentBrush}"
+                                         IsVisible="{Binding Updates.Installing}"/>
+                            <Button Content="Install update…" Classes="primary"
+                                    Command="{Binding ApplyUpdateCommand}"
+                                    HorizontalAlignment="Left" Margin="0,6,0,0"
+                                    IsVisible="{Binding Updates.ShowInstallButton}"/>
+                        </StackPanel>
+                    </Border>
 
-                <TextBlock Text="Alerts" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
-                                  ToolTip.Tip="Tray tooltip plus notify-send when a visible reading crosses critical."/>
-                        <Button Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"
-                                HorizontalAlignment="Left" Margin="0,4,0,6"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding MuteCaption}"
-                           Classes="caption" Margin="2,0,0,14"/>
+                    <TextBlock Text="Overlay" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <CheckBox Content="Show overlay" IsChecked="{Binding OverlayVisible}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Lock overlay" IsChecked="{Binding Locked}"
+                                      ToolTip.Tip="{Binding LockCaption}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Start with Linux" IsChecked="{Binding StartWithWindows}"/>
+                            <TextBlock Text="{Binding AutostartError}" Classes="error"
+                                       IsVisible="{Binding HasAutostartError}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Hide in fullscreen" IsChecked="{Binding HideInFullscreen}"
+                                      ToolTip.Tip="Off keeps the HUD on games. On hides when the active window is _NET_WM_STATE_FULLSCREEN."/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding AutoHideCaption}" Classes="caption"/>
 
-                <TextBlock Text="Position" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <UniformGrid Columns="2" Margin="0,6,0,8">
-                            <Button Content="Top left" Command="{Binding TopLeftCommand}" Margin="0,0,8,8" HorizontalAlignment="Stretch"/>
-                            <Button Content="Top right" Command="{Binding TopRightCommand}" Margin="0,0,0,8" HorizontalAlignment="Stretch"/>
-                            <Button Content="Bottom left" Command="{Binding BottomLeftCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                            <Button Content="Bottom right" Command="{Binding BottomRightCommand}" HorizontalAlignment="Stretch"/>
+                    <TextBlock Text="Position" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,8,Auto" Margin="0,14">
+                                <Button Content="Top left" Command="{Binding TopLeftCommand}" HorizontalAlignment="Stretch"/>
+                                <Button Grid.Column="2" Content="Top right" Command="{Binding TopRightCommand}" HorizontalAlignment="Stretch"/>
+                                <Button Grid.Row="2" Content="Bottom left" Command="{Binding BottomLeftCommand}" HorizontalAlignment="Stretch"/>
+                                <Button Grid.Row="2" Grid.Column="2" Content="Bottom right" Command="{Binding BottomRightCommand}" HorizontalAlignment="Stretch"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Place it by hand"/>
+                                <Button Grid.Column="1" Content="Edit overlay" Command="{Binding EditOverlayCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Unlock, then drag the HUD. It snaps to edges and remembers the corner."
+                               Classes="caption"/>
+
+                    <TextBlock Text="Shortcuts" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Toggle overlay"/>
+                                <Button Grid.Column="1" Classes="kbd" Command="{Binding RecordToggleCommand}"
+                                        Content="{Binding ToggleHotkeyDisplay}" ToolTip.Tip="Click to rebind"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Edit layout"/>
+                                <Button Grid.Column="1" Classes="kbd" Command="{Binding RecordEditCommand}"
+                                        Content="{Binding EditHotkeyDisplay}" ToolTip.Tip="Click to rebind"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding ShortcutsCaption}" Classes="caption"/>
+
+                    <TextBlock Text="Alerts" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <CheckBox Content="Critical alerts" IsChecked="{Binding AlertsEnabled}"
+                                      ToolTip.Tip="Tray tooltip plus notify-send when a visible reading crosses critical."/>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Silence alerts for now"/>
+                                <Button Grid.Column="1" Content="Mute 15 minutes" Command="{Binding MuteAlertsCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding MuteCaption}" Classes="caption"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- ============================= Sensors ============================= -->
+        <TabItem Header="Sensors">
+            <ScrollViewer Classes="page" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <TextBlock Text="Sensors" Classes="page"/>
+
+                    <TextBlock Text="Show in HUD" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SensorError}" Classes="error" Margin="0,12,0,4"
+                                       IsVisible="{Binding HasSensorError}"/>
+                            <CheckBox Content="CPU" IsChecked="{Binding ShowCpu}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="GPU" IsChecked="{Binding ShowGpu}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="SSD" IsChecked="{Binding ShowSsd}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Motherboard" IsChecked="{Binding ShowBoard}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="RAM" IsChecked="{Binding ShowRam}"
+                                      ToolTip.Tip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
+                                      ToolTip.Tip="Hidden in the HUD when this PC has no fan RPM sensor."/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="CPU load" IsChecked="{Binding ShowCpuLoad}"
+                                      ToolTip.Tip="Off by default. Hidden when this PC has no CPU utilization reading."/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="GPU load" IsChecked="{Binding ShowGpuLoad}"
+                                      ToolTip.Tip="Off by default. Hidden when this PC has no GPU utilization reading."/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Power" IsChecked="{Binding ShowPower}"
+                                      ToolTip.Tip="Off by default. Hidden when this PC has no hwmon power reading."/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan."
+                               Classes="caption"/>
+
+                    <TextBlock Text="Assignments" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="CPU"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThermalOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding CpuBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="GPU"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThermalOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding GpuBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="SSD"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThermalOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding SsdBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="Motherboard"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThermalOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding BoardBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="RAM"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThermalOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding RamBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="Fan"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding FanOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding FanBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="CPU load"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding LoadOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding CpuLoadBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="GPU load"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding LoadOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding GpuLoadBinding}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*">
+                                <TextBlock Text="Power"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding PowerOptions}"
+                                          DisplayMemberBinding="{Binding Label}" SelectedValueBinding="{Binding Id}"
+                                          SelectedValue="{Binding PowerBinding}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor."
+                               Classes="caption"/>
+
+                    <TextBlock Text="Thresholds" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,68,10,68" Margin="0,12,0,6">
+                                <TextBlock Text="Sensor" FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+                                <TextBlock Grid.Column="1" Text="Warn" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Critical" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="CPU"/>
+                                <TextBox Grid.Column="1" Text="{Binding CpuWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding CpuCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="GPU"/>
+                                <TextBox Grid.Column="1" Text="{Binding GpuWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding GpuCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="SSD"/>
+                                <TextBox Grid.Column="1" Text="{Binding SsdWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding SsdCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="Motherboard"/>
+                                <TextBox Grid.Column="1" Text="{Binding BoardWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding BoardCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="RAM"/>
+                                <TextBox Grid.Column="1" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="Fan"/>
+                                <TextBox Grid.Column="1" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="CPU load"/>
+                                <TextBox Grid.Column="1" Text="{Binding CpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding CpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="GPU load"/>
+                                <TextBox Grid.Column="1" Text="{Binding GpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding GpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,68,10,68">
+                                <TextBlock Text="Power"/>
+                                <TextBox Grid.Column="1" Text="{Binding PowerWarn, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBox Grid.Column="3" Text="{Binding PowerCrit, UpdateSourceTrigger=LostFocus}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts."
+                               Classes="caption"/>
+
+                    <TextBlock Text="Polling" Classes="section"/>
+                    <Border Classes="card">
+                        <Grid Classes="row" ColumnDefinitions="110,*,64">
+                            <TextBlock Text="Poll interval"/>
+                            <Slider Grid.Column="1" Minimum="400" Maximum="3000" TickFrequency="100" IsSnapToTickEnabled="True"
+                                    Value="{Binding PollIntervalMs}"/>
+                            <TextBlock Grid.Column="2" Text="{Binding PollIntervalLabel}" Classes="value"/>
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="How often sensors are read. 1000 ms is a good default."
+                               Classes="caption"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- ============================ Appearance ============================ -->
+        <TabItem Header="Appearance">
+            <ScrollViewer Classes="page" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <TextBlock Text="Appearance" Classes="page"/>
+
+                    <TextBlock Text="Profile" Classes="section"/>
+                    <Border Background="{StaticResource CardBrush}"
+                            BorderBrush="{StaticResource HairlineBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="3">
+                        <UniformGrid Columns="3">
+                            <RadioButton Classes="seg" Content="Desktop" GroupName="Profile"
+                                         IsChecked="{Binding IsDesktopProfile, Mode=OneWay}"
+                                         Command="{Binding ApplyDesktopCommand}"/>
+                            <RadioButton Classes="seg" Content="Game" GroupName="Profile"
+                                         IsChecked="{Binding IsGameProfile, Mode=OneWay}"
+                                         Command="{Binding ApplyGameCommand}"/>
+                            <RadioButton Classes="seg" Content="Silent" GroupName="Profile"
+                                         IsChecked="{Binding IsSilentProfile, Mode=OneWay}"
+                                         Command="{Binding ApplySilentCommand}"/>
                         </UniformGrid>
-                        <Button Content="Edit overlay" Command="{Binding EditOverlayCommand}" HorizontalAlignment="Left" Margin="0,4,0,6"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Unlock, then drag the HUD. It snaps to edges and remembers the corner."
-                           Classes="caption" Margin="2,0,0,14"/>
+                    </Border>
+                    <TextBlock Text="{Binding ProfileCaption}" Classes="caption"/>
 
-                <TextBlock Text="Shortcuts" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <Grid Margin="0,6,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Toggle overlay" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding RecordToggleCommand}" Padding="8,4" ToolTip.Tip="Click to rebind">
-                                <TextBlock Text="{Binding ToggleHotkeyDisplay}" FontFamily="monospace" Foreground="#BBBBBB"/>
-                            </Button>
-                        </Grid>
-                        <Grid Margin="0,0,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Edit layout" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding RecordEditCommand}" Padding="8,4" ToolTip.Tip="Click to rebind">
-                                <TextBlock Text="{Binding EditHotkeyDisplay}" FontFamily="monospace" Foreground="#BBBBBB"/>
-                            </Button>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="{Binding ShortcutsCaption}"
-                           Classes="caption" Margin="2,0,0,14"/>
+                    <TextBlock Text="Display" Classes="section"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <CheckBox Content="Use Fahrenheit" IsChecked="{Binding UseFahrenheit}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Compact HUD" IsChecked="{Binding CompactHud}"/>
+                            <Border Classes="div"/>
+                            <CheckBox Content="Sparkline" IsChecked="{Binding ShowSparkline}"/>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*,64">
+                                <TextBlock Text="Opacity"/>
+                                <Slider Grid.Column="1" Minimum="0.4" Maximum="0.95" Value="{Binding OverlayOpacity}"/>
+                                <TextBlock Grid.Column="2" Text="{Binding OpacityLabel}" Classes="value"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="110,*,64">
+                                <TextBlock Text="Font size"/>
+                                <Slider Grid.Column="1" Minimum="11" Maximum="18" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding FontSize}"/>
+                                <TextBlock Grid.Column="2" Text="{Binding FontSizeLabel}" Classes="value"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Accent"/>
+                                <ListBox Grid.Column="1" Classes="swatches"
+                                         ItemsSource="{Binding Accents}"
+                                         SelectedValueBinding="{Binding Hex}"
+                                         SelectedValue="{Binding AccentHex}">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Ellipse Width="20" Height="20"
+                                                     Fill="{Binding Hex}"
+                                                     ToolTip.Tip="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Compact puts every sensor on one line. Sparkline draws the last 30 polls."
+                               Classes="caption"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
 
-                <TextBlock Text="Sensors" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SensorError}"
-                                   Foreground="#FF8A80"
-                                   TextWrapping="Wrap"
-                                   Margin="0,6,0,8"
-                                   IsVisible="{Binding HasSensorError}"/>
-                        <CheckBox Content="CPU" IsChecked="{Binding ShowCpu}"/>
-                        <CheckBox Content="GPU" IsChecked="{Binding ShowGpu}"/>
-                        <CheckBox Content="SSD" IsChecked="{Binding ShowSsd}"/>
-                        <CheckBox Content="Motherboard" IsChecked="{Binding ShowBoard}"/>
-                        <CheckBox Content="RAM" IsChecked="{Binding ShowRam}"
-                                  ToolTip.Tip="Hidden in the HUD when this PC has no RAM temperature sensor."/>
-                        <CheckBox Content="Fan" IsChecked="{Binding ShowFan}"
-                                  ToolTip.Tip="Hidden in the HUD when this PC has no fan RPM sensor."/>
-                        <CheckBox Content="CPU load" IsChecked="{Binding ShowCpuLoad}"
-                                  ToolTip.Tip="Off by default. Hidden when this PC has no CPU utilization reading."/>
-                        <CheckBox Content="GPU load" IsChecked="{Binding ShowGpuLoad}"
-                                  ToolTip.Tip="Off by default. Hidden when this PC has no GPU utilization reading."/>
-                        <CheckBox Content="Power" IsChecked="{Binding ShowPower}"
-                                  ToolTip.Tip="Off by default. Hidden when this PC has no hwmon power reading."/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Extra rows stay off until you turn them on. Missing sensors stay omitted, same as RAM and fan."
-                           Classes="caption" Margin="2,0,0,14"/>
+        <!-- ============================== About ============================== -->
+        <TabItem Header="About">
+            <ScrollViewer Classes="page" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <TextBlock Text="About" Classes="page"/>
 
-                <TextBlock Text="Assignments" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel Margin="0,6,0,6">
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="CPU" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding CpuBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="GPU" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding GpuBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="SSD" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding SsdBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Board" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding BoardBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="RAM" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding ThermalOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding RamBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Fan" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding FanOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding FanBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="CPU%" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding LoadOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding CpuLoadBinding}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="GPU%" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding LoadOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding GpuLoadBinding}"/>
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="88"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="PWR" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding PowerOptions}"
-                                      DisplayMemberBinding="{Binding Label}"
-                                      SelectedValueBinding="{Binding Id}"
-                                      SelectedValue="{Binding PowerBinding}"/>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Auto uses name tokens (tdie, nand, …). Pick a row to pin that sensor."
-                           Classes="caption" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Thresholds" Classes="section"/>
-                <Border Classes="card">
-                    <Grid Margin="0,6,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="72"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="72"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="Sensor" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Column="1" Text="Warn" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Column="3" Text="Crit" FontSize="11" FontWeight="SemiBold" Foreground="#8A8A8A" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-
-                        <TextBlock Grid.Row="1" Text="CPU" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CpuWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding CpuCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="2" Text="GPU" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding GpuWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding GpuCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="3" Text="SSD" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SsdWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding SsdCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="4" Text="Board" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BoardWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="4" Grid.Column="3" Text="{Binding BoardCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="5" Text="RAM" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RamWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding RamCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="6" Text="Fan" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FanWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="6" Grid.Column="3" Text="{Binding FanCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="7" Text="CPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding CpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="7" Grid.Column="3" Text="{Binding CpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="8" Text="GPU%" VerticalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding GpuLoadWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="8" Grid.Column="3" Text="{Binding GpuLoadCrit, UpdateSourceTrigger=LostFocus}"/>
-
-                        <TextBlock Grid.Row="9" Text="PWR" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding PowerWarn, UpdateSourceTrigger=LostFocus}"/>
-                        <TextBox Grid.Row="9" Grid.Column="3" Text="{Binding PowerCrit, UpdateSourceTrigger=LostFocus}"/>
-                    </Grid>
-                </Border>
-                <TextBlock Text="Warn turns the reading yellow. Critical turns it red. Temperatures are °C, fans are RPM, load is %, power is watts."
-                           Classes="caption" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Polling" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel Margin="0,6,0,2">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Poll interval" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding PollIntervalLabel}" Foreground="#8A8A8A" FontFamily="monospace"/>
-                        </Grid>
-                        <Slider Minimum="400" Maximum="3000" TickFrequency="100" IsSnapToTickEnabled="True"
-                                Value="{Binding PollIntervalMs}"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="How often sensors are read. 1000 ms is a good default."
-                           Classes="caption" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Profile" Classes="section"/>
-                <Border Classes="card">
-                    <UniformGrid Columns="3" Margin="0,6,0,6">
-                        <Button Content="Desktop" Command="{Binding ApplyDesktopCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                        <Button Content="Game" Command="{Binding ApplyGameCommand}" Margin="0,0,8,0" HorizontalAlignment="Stretch"/>
-                        <Button Content="Silent" Command="{Binding ApplySilentCommand}" HorizontalAlignment="Stretch"/>
-                    </UniformGrid>
-                </Border>
-                <TextBlock Text="{Binding ProfileCaption}"
-                           Classes="caption" Margin="2,0,0,14"/>
-
-                <TextBlock Text="Appearance" Classes="section"/>
-                <Border Classes="card">
-                    <StackPanel>
-                        <CheckBox Content="Use Fahrenheit" IsChecked="{Binding UseFahrenheit}"/>
-                        <CheckBox Content="Compact HUD" IsChecked="{Binding CompactHud}"/>
-                        <CheckBox Content="Sparkline (30 samples)" IsChecked="{Binding ShowSparkline}"/>
-                        <Grid Margin="0,8,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Opacity" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding OpacityLabel}" Foreground="#8A8A8A" FontFamily="monospace"/>
-                        </Grid>
-                        <Slider Minimum="0.4" Maximum="0.95" Value="{Binding OverlayOpacity}"/>
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Font size" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding FontSizeLabel}" Foreground="#8A8A8A" FontFamily="monospace"/>
-                        </Grid>
-                        <Slider Minimum="11" Maximum="18" TickFrequency="1" IsSnapToTickEnabled="True"
-                                Value="{Binding FontSize}"/>
-                        <TextBlock Text="Accent" Margin="0,8,0,0" VerticalAlignment="Center"/>
-                        <ComboBox ItemsSource="{Binding Accents}"
-                                  DisplayMemberBinding="{Binding Name}"
-                                  SelectedValueBinding="{Binding Hex}"
-                                  SelectedValue="{Binding AccentHex}"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Compact puts every sensor on one line. Sparkline is the last 30 polls."
-                           Classes="caption" Margin="2,0,0,14"/>
-
-                <TextBlock Text="About" Classes="section" Margin="0,16,0,8"/>
-                <Border Classes="card">
-                    <StackPanel Margin="0,6,0,6">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Version" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" Foreground="#8A8A8A" FontFamily="monospace"/>
-                        </Grid>
-                        <Button Content="Check for Updates…" Command="{Binding CheckUpdatesCommand}"
-                                HorizontalAlignment="Left" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Border>
-                <TextBlock Text="Install from Settings replaces this folder. Settings stay in ~/.config/MonitorSuhu."
-                           Classes="caption" Margin="2,0,0,8"/>
-            </StackPanel>
-        </ScrollViewer>
-    </DockPanel>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Version"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" Classes="value"/>
+                            </Grid>
+                            <Border Classes="div"/>
+                            <Grid Classes="row" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Updates"/>
+                                <Button Grid.Column="1" Content="Check for updates…" Command="{Binding CheckUpdatesCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Install from Settings replaces this folder. Settings stay in ~/.config/MonitorSuhu."
+                               Classes="caption"/>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
 </Window>

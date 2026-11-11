@@ -38,7 +38,7 @@ The `58°C` block is example layout only. Runtime numbers come from the machine.
 | **Sparkline** | Last 30 polls on stacked rows. Default off. |
 | **Alerts** | One system sound on rising-edge critical. Mute 15 minutes from the extra/tray or Settings. |
 
-No dummy temperatures. Empty HUD is `NO SENSORS`.
+No dummy temperatures. Empty HUD is `No sensors`.
 
 ---
 
@@ -90,7 +90,7 @@ Settings: `~/Library/Application Support/MonitorSuhu/settings.json`
 
 **Sensors:** [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor). Empty HUD is usually driver/UAC, not fake zeros. Antivirus may flag the kernel driver — allow it. BOARD skips Super-I/O sensors named like CPU. FAN is the highest real RPM.
 
-**Start with Windows:** Task Scheduler logon task at highest privileges, applied when you press **Save**.
+**Start with Windows:** Task Scheduler logon task at highest privileges, applied as soon as you switch it on.
 
 **Auto-hide:** off by default. If enabled, slideshow / presentation mode only (games keep the HUD). Screensaver hide is a separate setting, on by default.
 
@@ -114,7 +114,7 @@ Settings: `%AppData%\MonitorSuhu\settings.json`
 
 **Sensors:** `/sys/class/hwmon` millidegree temps and fan inputs. If that tree is empty, `/sys/class/thermal`. CPU% from `/proc/stat`. No dummy °C. To list available sensor names before setting Assignments, run `sensors` (from the `lm-sensors` package).
 
-> **Tip — empty HUD on Linux:** if `/sys/class/hwmon` exists but the HUD shows `NO SENSORS`, the hwmon entries may not be world-readable. Run `sudo sensors-detect --auto` once to load the correct kernel modules, then re-launch. On some distros (Arch, NixOS) you may also need to add your user to the `video` group: `sudo usermod -aG video $USER` (log out and back in).
+> **Tip — empty HUD on Linux:** if `/sys/class/hwmon` exists but the HUD shows `No sensors`, the hwmon entries may not be world-readable. Run `sudo sensors-detect --auto` once to load the correct kernel modules, then re-launch. On some distros (Arch, NixOS) you may also need to add your user to the `video` group: `sudo usermod -aG video $USER` (log out and back in).
 
 **Start with Linux:** same JSON flag as Windows autostart (`StartWithWindows` in the file).
 
@@ -197,7 +197,7 @@ Do not run the Linux ELF on macOS.
 
 ## ❓ FAQ
 
-**Why does the HUD show `NO SENSORS`?**  
+**Why does the HUD show `No sensors`?**  
 On Linux, `/sys/class/hwmon` may not be readable by your user. Run `sudo sensors-detect --auto` once to load kernel modules, or add your user to the `video` group. On Windows, ensure you launched with Administrator / UAC so the LibreHardwareMonitor driver can load.
 
 **Can I display temperatures in Fahrenheit?**  

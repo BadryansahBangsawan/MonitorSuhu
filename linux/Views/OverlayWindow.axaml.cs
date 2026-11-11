@@ -67,8 +67,7 @@ public partial class OverlayWindow : Window
         IsHitTestVisible = !_store.Settings.Locked;
         _vm.RefreshTheme();
         KeepAbove();
-        if (TryGetPlatformHandle()?.Handle is { } hwnd && hwnd != IntPtr.Zero)
-            NativeX11.SetInputPassthrough(hwnd, _store.Settings.Locked);
+        TryApplyX11InputPassthrough();
     }
 
     public void ApplySuppressed(bool suppressed)
@@ -414,6 +413,26 @@ public partial class OverlayWindow : Window
         catch
         {
             // best-effort; Wayland and missing libX11 stay as drag-lock only
+        }
+    }
+
+    private void TryApplyX11InputPassthrough()
+    {
+        try
+        {
+            var handle = TryGetPlatformHandle();
+            if (handle is null || handle.Handle == IntPtr.Zero) return;
+            var desc = handle.HandleDescriptor;
+            if (!string.Equals(desc, "XID", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(desc, "X11", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            NativeX11.SetInputPassthrough(handle.Handle, _store.Settings.Locked);
+        }
+        catch
+        {
+            // best-effort, same as the window type and above hints
         }
     }
 
