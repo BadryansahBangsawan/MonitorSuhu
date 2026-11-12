@@ -7,7 +7,7 @@ enum UpdateInstaller {
         guard dmg.isFileURL,
               ReleaseAssets.matches(dmg.lastPathComponent, platform: "macos")
         else {
-            throw error("Update file is not a MonitorSuhu disk image.")
+            throw error("Update file is not a Bara disk image.")
         }
 
         let stagingApp = FileManager.default.temporaryDirectory

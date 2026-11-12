@@ -5,7 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MonitorSuhu</AssemblyName>
-    <Product>MonitorSuhu</Product>
+    <Product>Bara</Product>
+    <AssemblyTitle>Bara</AssemblyTitle>
     <Version>1.0.14</Version>
     <ApplicationIcon>../windows/src/MonitorSuhu.App/Assets/MonitorSuhu.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);MonitorSuhu.Linux.Tests/**;dist/**</DefaultItemExcludes>

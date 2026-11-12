@@ -9,7 +9,7 @@ public static class UpdateInstaller
     {
         var name = System.IO.Path.GetFileName(setupPath);
         if (!ReleaseAssets.Matches(name, "windows") || !System.IO.File.Exists(setupPath))
-            throw new InvalidOperationException("Update file is not a MonitorSuhu installer.");
+            throw new InvalidOperationException("Update file is not a Bara installer.");
 
         var quoted = setupPath.Replace("\"", "\\\"");
         var started = Process.Start(new ProcessStartInfo

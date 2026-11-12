@@ -28,10 +28,12 @@ all: app
 
 app: $(APP)/Contents/MacOS/$(APP_NAME)
 
-$(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist Resources/AppIcon.icns
+$(APP)/Contents/MacOS/$(APP_NAME): $(SOURCES) Resources/Info.plist Resources/AppIcon.icns Resources/en.lproj/InfoPlist.strings
 	@mkdir -p "$(MACOS_DIR)" "$(RES_DIR)" "$(BUILD_DIR)"
 	@cp Resources/Info.plist "$(APP)/Contents/Info.plist"
 	@cp Resources/AppIcon.icns "$(RES_DIR)/AppIcon.icns"
+	@mkdir -p "$(RES_DIR)/en.lproj"
+	@cp Resources/en.lproj/InfoPlist.strings "$(RES_DIR)/en.lproj/InfoPlist.strings"
 	@printf 'APPL????' > "$(APP)/Contents/PkgInfo"
 	$(SWIFTC) -parse-as-library -O \
 		-target $(ARM_TARGET) \

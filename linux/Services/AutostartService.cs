@@ -27,7 +27,7 @@ public static class AutostartService
             File.WriteAllText(file,
                 "[Desktop Entry]\n" +
                 "Type=Application\n" +
-                "Name=MonitorSuhu\n" +
+                "Name=Bara\n" +
                 "Exec=" + quoted + "\n");
             return null;
         }

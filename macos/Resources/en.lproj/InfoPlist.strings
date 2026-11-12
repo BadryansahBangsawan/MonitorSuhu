@@ -1,0 +1,4 @@
+/* The app is shown as "Bara". The bundle keeps its old file name (MonitorSuhu.app)
+   so that installs made under that name can still update in place. */
+"CFBundleDisplayName" = "Bara";
+"CFBundleName" = "Bara";

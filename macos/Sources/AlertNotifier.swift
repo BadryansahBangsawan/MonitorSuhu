@@ -11,7 +11,7 @@ enum AlertNotifier {
             switch settings.authorizationStatus {
             case .authorized, .provisional, .ephemeral:
                 let content = UNMutableNotificationContent()
-                content.title = "MonitorSuhu"
+                content.title = "Bara"
                 content.body = message
                 content.sound = .default
                 let request = UNNotificationRequest(

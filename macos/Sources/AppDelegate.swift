@@ -128,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .foregroundColor: critical ? NSColor.systemRed : NSColor.labelColor
             ]
         )
-        var tip = cpu.map { store.settings.displayValue($0) } ?? "MonitorSuhu"
+        var tip = cpu.map { store.settings.displayValue($0) } ?? "Bara"
         if let failed = hotkeys.failedMessage {
             tip += "\n" + failed
         }
@@ -148,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(check)
         updateMenuItem = check
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit MonitorSuhu", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Bara", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.keyEquivalentModifierMask = [.command]
         menu.addItem(quit)
         menu.delegate = self
@@ -244,7 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
-            window.title = "MonitorSuhu Settings"
+            window.title = "Bara Settings"
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             window.isReleasedWhenClosed = false
             window.setContentSize(NSSize(width: 560, height: 640))

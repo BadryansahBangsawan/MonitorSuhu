@@ -41,5 +41,5 @@ enum AutostartService {
     }
 
     private static let loginItemsHint =
-        "Allow MonitorSuhu in System Settings → General → Login Items."
+        "Allow Bara in System Settings → General → Login Items."
 }

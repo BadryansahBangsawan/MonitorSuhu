@@ -167,7 +167,7 @@ jobs:
         with:
           generate_release_notes: false
           body: |
-            ## MonitorSuhu ${{ github.ref_name }}
+            ## Bara ${{ github.ref_name }}
 
             Lightweight hardware temperature overlay for macOS, Windows, and Linux. Install newer releases from Settings — that in-app path still works.
 

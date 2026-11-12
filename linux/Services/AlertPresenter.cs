@@ -30,7 +30,7 @@ public sealed class AlertPresenter
             using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = "notify-send",
-                ArgumentList = { "-a", "MonitorSuhu", "-u", "critical", "MonitorSuhu", message },
+                ArgumentList = { "-a", "Bara", "-u", "critical", "Bara", message },
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

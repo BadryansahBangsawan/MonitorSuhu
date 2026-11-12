@@ -79,7 +79,7 @@ final class UpdateChecker: ObservableObject {
                     if self.hasUpdate {
                         self.promptInstall(latest: hit.tag)
                     } else {
-                        Self.alert("You’re up to date.", "MonitorSuhu \(self.currentVersion) is the latest macOS release.")
+                        Self.alert("You’re up to date.", "Bara \(self.currentVersion) is the latest macOS release.")
                     }
                 }
             }
@@ -132,7 +132,7 @@ final class UpdateChecker: ObservableObject {
 
     private func promptInstall(latest: String) {
         let alert = NSAlert()
-        alert.messageText = "MonitorSuhu \(latest) is available"
+        alert.messageText = "Bara \(latest) is available"
         alert.informativeText = latestAsset == nil
             ? "Download it from GitHub Releases, then replace the app in Applications."
             : "Download and replace the app in place. Your settings stay where they are."

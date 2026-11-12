@@ -32,15 +32,15 @@ public sealed partial class UpdateChecker : ObservableObject
     public string UpdateMessage =>
         Installing
             ? Progress < 1
-                ? $"Downloading MonitorSuhu {LatestVersion}…"
-                : $"Installing MonitorSuhu {LatestVersion}…"
+                ? $"Downloading Bara {LatestVersion}…"
+                : $"Installing Bara {LatestVersion}…"
             : HasUpdate && !string.IsNullOrEmpty(LatestVersion)
-                ? $"MonitorSuhu {LatestVersion} is ready."
-                : $"MonitorSuhu {CurrentVersion}";
+                ? $"Bara {LatestVersion} is ready."
+                : $"Bara {CurrentVersion}";
 
     public string UpdateHint =>
         Installing
-            ? "The app will close to finish. Open MonitorSuhu again if it does not restart."
+            ? "The app will close to finish. Open Bara again if it does not restart."
             : HasUpdate
                 ? "Install from here. The app will close — reopen it if it does not come back."
                 : "";
@@ -117,12 +117,12 @@ public sealed partial class UpdateChecker : ObservableObject
                 if (HasUpdate)
                 {
                     await ShowAsync(
-                        $"MonitorSuhu {hit.Value.Tag} is available",
+                        $"Bara {hit.Value.Tag} is available",
                         "Install from Settings. The app will close; open it again if it does not restart.");
                 }
                 else
                 {
-                    await ShowAsync("You're up to date.", $"MonitorSuhu {CurrentVersion} is the latest Linux release.");
+                    await ShowAsync("You're up to date.", $"Bara {CurrentVersion} is the latest Linux release.");
                 }
             }
         }

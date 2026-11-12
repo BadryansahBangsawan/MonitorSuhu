@@ -26,15 +26,15 @@ public sealed partial class UpdateChecker : ObservableObject
     public string UpdateMessage =>
         Installing
             ? Progress < 1
-                ? $"Downloading MonitorSuhu {LatestVersion}…"
-                : $"Installing MonitorSuhu {LatestVersion}…"
+                ? $"Downloading Bara {LatestVersion}…"
+                : $"Installing Bara {LatestVersion}…"
             : HasUpdate && !string.IsNullOrEmpty(LatestVersion)
-                ? $"MonitorSuhu {LatestVersion} is ready."
-                : $"MonitorSuhu {CurrentVersion}";
+                ? $"Bara {LatestVersion} is ready."
+                : $"Bara {CurrentVersion}";
 
     public string UpdateHint =>
         Installing
-            ? "The app will close to finish. Open MonitorSuhu again from the Start menu if it does not restart."
+            ? "The app will close to finish. Open Bara again from the Start menu if it does not restart."
             : HasUpdate
                 ? "Install from here. Settings stay in AppData. The app will close — reopen it if it does not come back."
                 : "";
@@ -105,7 +105,7 @@ public sealed partial class UpdateChecker : ObservableObject
                 if (HasUpdate)
                     PromptInstall(hit.Value.Tag);
                 else
-                    Show("You're up to date.", $"MonitorSuhu {CurrentVersion} is the latest Windows release.");
+                    Show("You're up to date.", $"Bara {CurrentVersion} is the latest Windows release.");
             }
         }
         catch (Exception ex)
@@ -171,17 +171,17 @@ public sealed partial class UpdateChecker : ObservableObject
     {
         var canInstall = LatestAsset is not null;
         var message = canInstall
-            ? "Download and install it now. Settings stay in AppData. The app will close — open MonitorSuhu again from the Start menu if it does not restart."
-            : "Download it from GitHub Releases, run the installer, then open MonitorSuhu again.";
+            ? "Download and install it now. Settings stay in AppData. The app will close — open Bara again from the Start menu if it does not restart."
+            : "Download it from GitHub Releases, run the installer, then open Bara again.";
         if (!canInstall)
         {
-            Show($"MonitorSuhu {tag} is available", message, open: LatestUrl ?? ReleasesPage);
+            Show($"Bara {tag} is available", message, open: LatestUrl ?? ReleasesPage);
             return;
         }
 
         var result = System.Windows.MessageBox.Show(
             message + "\n\nInstall now?",
-            $"MonitorSuhu {tag} is available",
+            $"Bara {tag} is available",
             System.Windows.MessageBoxButton.YesNo);
         if (result == System.Windows.MessageBoxResult.Yes)
             _ = ApplyAsync();

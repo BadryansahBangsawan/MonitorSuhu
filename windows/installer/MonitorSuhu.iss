@@ -1,6 +1,6 @@
-#define MyAppName "MonitorSuhu"
+#define MyAppName "Bara"
 #define MyAppVersion "1.0.14"
-#define MyAppPublisher "MonitorSuhu"
+#define MyAppPublisher "Bara"
 #define MyAppURL "https://github.com/BadryansahBangsawan/MonitorSuhu"
 #define MyAppExeName "MonitorSuhu.exe"
 
@@ -37,6 +37,12 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 
 [Files]
 Source: "..\dist\win-x64\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+
+; Shortcuts left behind by installs made under the old name (MonitorSuhu).
+[InstallDelete]
+Type: files; Name: "{group}\MonitorSuhu.lnk"
+Type: files; Name: "{group}\Uninstall MonitorSuhu.lnk"
+Type: files; Name: "{autodesktop}\MonitorSuhu.lnk"
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -93,7 +93,7 @@ public partial class App : Application
     private void OnUpdateCheckerPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(UpdateChecker.HasUpdate) && _updates is { HasUpdate: true })
-            _tray?.ShowInfo($"MonitorSuhu {_updates.LatestVersion} is available.");
+            _tray?.ShowInfo($"Bara {_updates.LatestVersion} is available.");
     }
 
     public void ToggleOverlay()

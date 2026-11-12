@@ -92,7 +92,7 @@ public partial class App : Application
         {
             if (args.PropertyName == nameof(UpdateChecker.HasUpdate) && _updates.HasUpdate)
             {
-                _tray?.ShowInfo($"MonitorSuhu {_updates.LatestVersion} is available.");
+                _tray?.ShowInfo($"Bara {_updates.LatestVersion} is available.");
             }
         };
         _ = _updates.CheckAsync();

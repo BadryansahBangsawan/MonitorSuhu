@@ -20,7 +20,7 @@ public static class UpdateInstaller
     {
         var name = Path.GetFileName(tarPath);
         if (!ReleaseAssets.Matches(name, "linux") || !File.Exists(tarPath))
-            throw new InvalidOperationException("Update file is not a MonitorSuhu Linux package.");
+            throw new InvalidOperationException("Update file is not a Bara Linux package.");
 
         var list = Process.Start(new ProcessStartInfo
         {

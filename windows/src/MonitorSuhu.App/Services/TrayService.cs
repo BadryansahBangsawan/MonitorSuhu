@@ -37,7 +37,7 @@ public sealed class TrayService : IDisposable
 
         _icon = new TaskbarIcon
         {
-            ToolTipText = "MonitorSuhu",
+            ToolTipText = "Bara",
             Icon = LoadAppIcon(),
             ContextMenu = menu,
             Visibility = Visibility.Visible
@@ -55,12 +55,12 @@ public sealed class TrayService : IDisposable
 
     public void ShowWarning(string message)
     {
-        _icon.ShowBalloonTip("MonitorSuhu", message, BalloonIcon.Warning);
+        _icon.ShowBalloonTip("Bara", message, BalloonIcon.Warning);
     }
 
     public void ShowInfo(string message)
     {
-        _icon.ShowBalloonTip("MonitorSuhu", message, BalloonIcon.Info);
+        _icon.ShowBalloonTip("Bara", message, BalloonIcon.Info);
     }
 
     public void Dispose() => _icon.Dispose();

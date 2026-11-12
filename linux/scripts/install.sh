@@ -14,7 +14,7 @@ ln -sf "$DEST/MonitorSuhu" "$BIN/MonitorSuhu"
 cat > "$APPS/monitorsuhu.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=MonitorSuhu
+Name=Bara
 Comment=Hardware temperature overlay
 Exec=$DEST/MonitorSuhu
 Terminal=false

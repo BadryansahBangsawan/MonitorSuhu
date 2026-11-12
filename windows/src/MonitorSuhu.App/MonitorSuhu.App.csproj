@@ -9,7 +9,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\MonitorSuhu.ico</ApplicationIcon>
     <AssemblyName>MonitorSuhu</AssemblyName>
-    <Product>MonitorSuhu</Product>
+    <Product>Bara</Product>
+    <AssemblyTitle>Bara</AssemblyTitle>
     <Version>1.0.14</Version>
   </PropertyGroup>
   <ItemGroup>

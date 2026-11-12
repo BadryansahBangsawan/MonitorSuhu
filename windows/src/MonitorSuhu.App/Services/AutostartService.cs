@@ -18,7 +18,7 @@ public static class AutostartService
             if (!enabled) return null;
 
             var definition = service.NewTask();
-            definition.RegistrationInfo.Description = "Start MonitorSuhu overlay at logon";
+            definition.RegistrationInfo.Description = "Start Bara overlay at logon";
             definition.Principal.RunLevel = TaskRunLevel.Highest;
             definition.Principal.LogonType = TaskLogonType.InteractiveToken;
             definition.Triggers.Add(new LogonTrigger());

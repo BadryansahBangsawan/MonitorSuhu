@@ -38,7 +38,7 @@ public sealed class TrayService : IDisposable
 
         _icon = new TrayIcon
         {
-            ToolTipText = "MonitorSuhu",
+            ToolTipText = "Bara",
             Menu = menu,
             IsVisible = true,
             Icon = LoadAppIcon()

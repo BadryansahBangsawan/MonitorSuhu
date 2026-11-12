@@ -1,7 +1,7 @@
 <Window x:Class="MonitorSuhu.App.Views.OverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MonitorSuhu"
+        Title="Bara"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"

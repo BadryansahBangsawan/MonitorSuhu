@@ -1,9 +1,13 @@
 <div align="center">
 
-# 🌡️ MonitorSuhu
+<img src="icon/app-icon.svg" width="96" height="96" alt="Bara logo"/>
+
+# Bara
 
 **Always-on-top hardware temperature HUD for macOS, Windows, and Linux.**  
 NVIDIA-style dark overlay — drag to a corner, snap to edges, survives display changes.
+
+Bara was called **MonitorSuhu** before 1.0.15. Download names, the repo, the app file name and the settings folder keep the old name, so existing installs update in place and keep their settings.
 
 <br/>
 
@@ -207,7 +211,7 @@ Yes — open **Settings → Appearance** and switch the °C / °F toggle. The ch
 Only if you turn on Hide in fullscreen. Default is off so games keep the HUD. Windows still only hides for slideshow / presentation mode, not D3D exclusive.
 
 **My GPU sensor is missing on Apple Silicon.**  
-MonitorSuhu only shows a GPU row when a HID product name contains `gpu`, `agx`, `dgpu`, or `gfx`. On Apple Silicon this matches the integrated GPU reported by `IOHIDEventSystemClient`. If the row is absent, the sensor name on your chip may differ — check the **Assignments** panel for available names.
+Bara only shows a GPU row when a HID product name contains `gpu`, `agx`, `dgpu`, or `gfx`. On Apple Silicon this matches the integrated GPU reported by `IOHIDEventSystemClient`. If the row is absent, the sensor name on your chip may differ — check the **Assignments** panel for available names.
 
 **How do I reset settings to defaults?**  
 Delete (or rename) the settings file and relaunch: `~/Library/Application Support/MonitorSuhu/settings.json` (macOS), `%AppData%\MonitorSuhu\settings.json` (Windows), or `~/.config/MonitorSuhu/settings.json` (Linux).
