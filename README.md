@@ -74,7 +74,7 @@ Default shortcuts on every OS: **Ctrl+Shift+T** (toggle overlay), **Ctrl+Shift+E
 
    Or right-click → **Open** → **Open**. Still blocked: **System Settings → Privacy & Security → Open Anyway**.
 
-4. Menu extra title is **Suhu** (right side of the menu bar). Dock icon reopens Settings; closing Settings does not quit the HUD.
+4. Menu extra title is **Suhu** (right side of the menu bar). Dock icon reopens Settings; closing Settings does not quit the HUD. **Quit** from the Dock or **Cmd+Q** while Settings is focused still exits the extra and the overlay together.
 
 **Sensors:** Apple Silicon HID (`IOHIDEventSystemClient`, usage page `0xff00` / usage `0x0005`). Intel fallback: SMC. CPU pick ranks pACC / eACC / SoC over PMU `tdie`. BOARD is wifi / skin / ambient — not the battery (`gas gauge`). No GPU row unless a HID product name contains `gpu` / `agx` / `dgpu` / `gfx`. FAN from SMC `F0Ac` / `F1Ac` (200–15000 RPM).
 
@@ -215,6 +215,12 @@ Bara only shows a GPU row when a HID product name contains `gpu`, `agx`, `dgpu`,
 
 **How do I reset settings to defaults?**  
 Delete (or rename) the settings file and relaunch: `~/Library/Application Support/MonitorSuhu/settings.json` (macOS), `%AppData%\MonitorSuhu\settings.json` (Windows), or `~/.config/MonitorSuhu/settings.json` (Linux).
+
+**How do I mute the critical alert sound temporarily?**  
+From the menu extra / tray or **Settings → Alerts**, choose mute for 15 minutes. Rising-edge critical beeps stay silenced until that window ends or you unmute.
+
+**How do I fully quit the HUD (not just close Settings)?**  
+Closing the Settings window leaves the overlay and menu extra running. Quit from the menu extra / tray (**Quit**), or use the configured overlay toggle shortcut then quit from there — the Dock icon on macOS only reopens Settings.
 
 ---
 
